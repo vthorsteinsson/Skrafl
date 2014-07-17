@@ -1,0 +1,60 @@
+﻿{% extends "main.html" %}
+{% block result %}
+
+<div class="row">
+   <div class="col-xs-12">
+      <div class="panel panel-success">
+         <div class="panel-heading">
+            <h3>
+               <span class="label label-success">
+{% if result.is_valid_word(result.rack()) %}
+                  <span class="glyphicon glyphicon-ok"></span>&nbsp;
+{% endif %}
+                  {{ result.rack() }}
+               </span>
+               &nbsp;<small>hæsta skor <span class="glyphicon glyphicon-star"></span> {{ result.highscore() }}</small>
+            </h3>
+         </div>
+         <div class="panel-body">
+            <h3>
+{% for w in result.allwords() %}
+               <a href="/?rack={{ w|urlencode }}">
+{%- if (w|length) >= 7 -%}
+               <span class="label label-danger resultword">
+{%- elif (w|length == result.rack()|length) -%}
+               <span class="label label-warning resultword">
+{%- else -%}
+               <span class="label label-success resultword">
+{%- endif -%}
+{%- if w in result.highwords() -%}
+                  <span class="glyphicon glyphicon-star"></span>&nbsp;
+{%- endif -%}
+                  {{ w }}</span></a>
+{% endfor %}
+            </h3>
+         </div>
+      </div>
+   </div>
+</div>
+
+{% if result.combinations() %}
+<div class="row">
+   <div class="col-xs-12">
+      <div class="panel panel-info">
+         <div class="panel-body">
+            <h3>
+{% for c, l in result.combinations() | dictsort %}
+               <span class="label label-primary resultword">{{ c }}</span>
+{% for w in l  %}
+               <a href="/?rack={{ w|urlencode }}"><span class="label label-info resultword">{{ w }}</span></a>
+{% endfor %}
+{% endfor %}
+            </h3>
+         </div>
+      </div>
+   </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
