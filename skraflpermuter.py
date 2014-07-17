@@ -1,3 +1,5 @@
+﻿# -*- coding: utf-8 -*-
+
 """ Scrabble rack permutations
 
 Copyright (C) 2014 by Vilhjalmur Thorsteinsson
@@ -19,42 +21,44 @@ from text files.
 
 import os
 import itertools
+import codecs
+import logging
 
 # Dictionary of Icelandic scrabble letter scores
 
 _scores = {
-    'a': 1,
-    'b': 6,
-    'd': 4,
-    'e': 1,
-    'f': 3,
-    'g': 2,
-    'h': 3,
-    'i': 1,
-    'j': 5,
-    'k': 2,
-    'l': 2,
-    'm': 2,
-    'n': 1,
-    'o': 3,
-    'p': 8,
-    'r': 1,
-    's': 1,
-    't': 1,
-    'u': 1,
-    'v': 3,
-    'x': 10,
-    'y': 7,
-    'þ': 4,
-    'æ': 5,
-    'ö': 7,
-    'ð': 2,
-    'á': 4,
-    'é': 6,
-    'í': 4,
-    'ó': 6,
-    'ú': 8,
-    'ý': 9
+    u'a': 1,
+    u'b': 6,
+    u'd': 4,
+    u'e': 1,
+    u'f': 3,
+    u'g': 2,
+    u'h': 3,
+    u'i': 1,
+    u'j': 5,
+    u'k': 2,
+    u'l': 2,
+    u'm': 2,
+    u'n': 1,
+    u'o': 3,
+    u'p': 8,
+    u'r': 1,
+    u's': 1,
+    u't': 1,
+    u'u': 1,
+    u'v': 3,
+    u'x': 10,
+    u'y': 7,
+    u'þ': 4,
+    u'æ': 5,
+    u'ö': 7,
+    u'ð': 2,
+    u'á': 4,
+    u'é': 6,
+    u'í': 4,
+    u'ó': 6,
+    u'ú': 8,
+    u'ý': 9
 }
 
 # Singleton instance of Referee class that manages the list of legal words
@@ -91,9 +95,10 @@ class Referee:
 
     def _load_file(self, fname):
         """Load a word list file, assumed to contain one word per line"""
-        with open(fname, mode='r', encoding='iso8859-1') as fin:
+#        with open(fname, mode='r', encoding='iso8859-1') as fin:
+        with codecs.open(fname, mode='r', encoding='utf-8') as fin:
             for line in fin:
-                if line.endswith('\n'):
+                if line.endswith(u'\n'):
                     # Cut off trailing newline
                     line = line[0:-1]
                 if line and len(line) < 9: # No need to load longer words than 8 letters (rack + 1 letter combinations)
@@ -104,11 +109,11 @@ class Referee:
         if self._loaded:
             # Already loaded, nothing to do
             return
-        print("Loading word list 1")
+        logging.info("Loading word list 1")
         self._load_file(os.path.abspath('resources\\ordalisti.txt'))
-        print("Loading word list 2")
+        logging.info("Loading word list 2")
         self._load_file(os.path.abspath('resources\\smaordalisti.txt'))
-        print("Total number of words in permitted set is", len(self._permitted))
+        logging.info("Total number of words in permitted set is " + str(len(self._permitted)))
         self._loaded = True
 
     def is_valid_word(self, word):
@@ -134,7 +139,7 @@ class Tabulator:
         self._highscore = 0
         self._highwords = []
         self._combinations = { }
-        self._rack = ''
+        self._rack = u''
         self._rack_is_valid = False # True if the rack is itself a valid word
 
     def process(self, rack):
@@ -145,7 +150,7 @@ class Tabulator:
         self._highscore = 0
         self._highwords = []
         self._combinations = { }
-        self._rack = ''
+        self._rack = u''
         # Do a sanity check on the input by calculating its raw score, thereby
         # checking whether all the letters are valid
         score = 0
@@ -187,9 +192,9 @@ class Tabulator:
 
     def _check_permutation(self, p):
         """ Check a single candidate permutation for validity, and, if valid, add it to the tabulated results """
-        word = ''
+        word = u''
         score = 0
-        # wrd comes in as a set of characters. Assemble a word and calculate its score
+        # The permutation p comes in as a set of characters. Assemble a word and calculate its score
         for c in p:
             word += c
             score += _scores[c]
