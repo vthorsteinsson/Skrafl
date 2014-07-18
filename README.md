@@ -1,79 +1,51 @@
-## Python Flask Skeleton for Google App Engine
+## Skraflhjálp (Scrabble Helper)
 
-A skeleton for building Python applications on Google App Engine with the
-[Flask micro framework](http://flask.pocoo.org).
+Vefur sem hjálpar skröflurum að finna orð í rekkanum og tengja þau við stafi sem fyrir eru.
 
-See our other [Google Cloud Platform github
-repos](https://github.com/GoogleCloudPlatform) for sample applications and
-scaffolding for other python frameworks and use cases.
+Vefurinn er byggður á Python 2.7 og notar Flask undirforritasafnið, þar með talið
+Jinja2 sniðmátakerfið (templates).
 
-## Run Locally
-1. Install the [App Engine Python SDK](https://developers.google.com/appengine/downloads).
-See the README file for directions. You'll need python 2.7 and [pip 1.4 or later](http://www.pip-installer.org/en/latest/installing.html) installed too.
+Hann notar Bootstrap CSS-safnið fyrir viðmót og þægilega aðlögun að
+mismunandi skjám, þ.e. síma, spjaldtölvu eða borðtölvu.
 
-2. Clone this repo with
+## Notkun vefsins
+Ef farið er inn á vefslóðina / kemur upp aðalsíða Skraflhjálpar.
+Slóðin /help gefur hjálparsíðu.
 
-   ```
-   git clone https://github.com/GoogleCloudPlatform/appengine-python-flask-skeleton.git
-   ```
-3. Install dependencies in the project's lib directory.
-   Note: App Engine can only import libraries from inside your project directory.
+## Til að keyra á eigin tölvu
+1. Settu upp Python 2.7.
+
+2. Sæktu þetta Git safn:
 
    ```
-   cd appengine-python-flask-skeleton
+   git clone https://github.com/vthorsteinsson/skrafl.git
+   ```
+
+3. Sæktu undirforritasöfn inn á lib skráasafnið undir aðalmöppu Skraflhjálpar.
+   Google App Engine getur aðeins notað undirforritasöfn sem geymd eru beint undir
+   möppu viðkomandi verkefnis.
+
+   ```
+   cd skrafl
    pip install -r requirements.txt -t lib
    ```
-4. Run this project locally from the command line:
+4. Keyra má vefþjón Skraflhjálpar beint frá skipanalínu.
+   Google App Engine:
 
    ```
    dev_appserver.py .
    ```
 
-Visit the application [http://localhost:8080](http://localhost:8080)
-
-See [the development server documentation](https://developers.google.com/appengine/docs/python/tools/devserver)
-for options when running dev_appserver.
-
-## Deploy
-To deploy the application:
-
-1. Use the [Admin Console](https://appengine.google.com) to create a
-   project/app id. (App id and project id are identical)
-1. [Deploy the
-   application](https://developers.google.com/appengine/docs/python/tools/uploadinganapp) with
+   Venjuleg Python 2.7 uppsetning:
 
    ```
-   appcfg.py -A <your-project-id> --oauth2 update .
+   python skrafl.py
    ```
-1. Congratulations!  Your application is now live at your-app-id.appspot.com
 
-## Next Steps
-This skeleton includes `TODO` markers to help you find basic areas you will want
-to customize.
+5. Nálgast má vefinn á vefrápara:
 
-### Relational Databases and Datastore
-To add persistence to your models, use
-[NDB](https://developers.google.com/appengine/docs/python/ndb/) for
-scale.  Consider
-[CloudSQL](https://developers.google.com/appengine/docs/python/cloud-sql)
-if you need a relational database.
+   Google App Engine [http://localhost:8080](http://localhost:8080)
+   Venjuleg Python 2.7 uppsetning [http://localhost:5000](http://localhost:5000)
 
-### Installing Libraries
-See the [Third party
-libraries](https://developers.google.com/appengine/docs/python/tools/libraries27)
-page for libraries that are already included in the SDK.  To include SDK
-libraries, add them in your app.yaml file. Other than libraries included in
-the SDK, only pure python libraries may be added to an App Engine project.
-
-### Feedback
-Star this repo if you found it useful. Use the github issue tracker to give
-feedback on this repo.
-
-## Contributing changes
-See [CONTRIB.md](CONTRIB.md)
-
-## Licensing
-See [LICENSE](LICENSE)
-
-## Author
-Logan Henriquez and Johan Euphrosine
+## Höfundur
+Vilhjálmur Þorsteinsson
