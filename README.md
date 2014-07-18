@@ -8,6 +8,8 @@ undirforritasafnið, þar með talið [Jinja2](http://jinja.pocoo.org/) sniðmá
 Hann notar [Bootstrap](http://getbootstrap.com/) CSS-safnið fyrir viðmót og þægilega aðlögun að
 mismunandi skjám, þ.e. síma, spjaldtölvu eða borðtölvu.
 
+Vefinn má nálgast á [http://skraflhjalp.appspot.com](http://skraflhjalp.appspot.com)
+
 ## Notkun vefsins
 Ef farið er inn á vefslóðina / kemur upp aðalsíða Skraflhjálpar.
 Slóðin /help gefur hjálparsíðu.
@@ -44,8 +46,9 @@ Slóðin /help gefur hjálparsíðu.
 
 5. Nálgast má vefinn á vefrápara:
 
-   Google App Engine [http://localhost:8080](http://localhost:8080)
-   Venjuleg Python 2.7 uppsetning [http://localhost:5000](http://localhost:5000)
+   Í skýinu á appspot.com [http://skraflhjalp.appspot.com](http://skraflhjalp.appspot.com)
+   Á Google App Engine/Cloud SDK á eigin tölvu [http://localhost:8080](http://localhost:8080)
+   Venjuleg Python 2.7 uppsetning með Flask/Werkzeug [http://localhost:5000](http://localhost:5000)
 
 ## Höfundur
 Vilhjálmur Þorsteinsson
