@@ -15,18 +15,26 @@ from flask import Flask
 from flask import render_template
 from flask import request
 
+import logging
+
 import skraflpermuter
 
 # Standard Flask initialization
+
 app = Flask(__name__)
 app.config['DEBUG'] = True # !!! Remove this before public deployment
+
+logging.info("Starting initialization of Referee")
+_referee = skraflpermuter.Referee()
+_referee.initialize()
+logging.info("Completed initialization of Referee")
 
 def _process_rack(rack):
     """ Process a given input rack
         Returns True if OK or False if the rack was invalid, i.e. contains invalid letters
     """
     # Create a Tabulator to process the rack
-    t = skraflpermuter.Tabulator()
+    t = skraflpermuter.Tabulator(_referee)
     if not t.process(rack):
        # Something was wrong with the rack
        # Show the user an error response page

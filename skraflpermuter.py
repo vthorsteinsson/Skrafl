@@ -63,9 +63,6 @@ _scores = {
 
 # Singleton instance of Referee class that manages the list of legal words
 
-_referee = None
-
-
 class Referee:
 
     """ Maintains the set of permitted words and judges whether a word is acceptable
@@ -115,23 +112,27 @@ class Referee:
         # The lists are divided into several files to circumvent the
         # file size limits imposed by App Engine
         logging.info("Loading word list 1")
-        self._load_file(os.path.abspath('resources\\ordalisti1.txt'))
+        self._load_file(os.path.abspath('resources/ordalisti1.txt')) # Use \\ instead of / for Windows
         logging.info("Loading word list 2")
-        self._load_file(os.path.abspath('resources\\ordalisti2.txt'))
+        self._load_file(os.path.abspath('resources/ordalisti2.txt'))
         logging.info("Loading word list 3")
-        self._load_file(os.path.abspath('resources\\smaordalisti.txt'))
+        self._load_file(os.path.abspath('resources/smaordalisti.txt'))
         logging.info("Total number of words in permitted set is " + str(len(self._permitted)))
         self._loaded = True
+
+    def initialize(self):
+        """ Force preloading of word lists into memory """
+        if not self._loaded:
+            self._load();
 
     def is_valid_word(self, word):
         """ Checks whether a word is found in the list of legal words """
         if not word:
             return False;
         if not self._loaded:
-            self._load()
+            self._load();
         return word in self._permitted
 
-        
 class Tabulator:
 
     """ Processes and tabulates the possibilities within a given rack that is passed to the constructor.
@@ -140,7 +141,7 @@ class Tabulator:
 
     """
 
-    def __init__(self):
+    def __init__(self, referee):
         self._counter = 0
         self._allwords = []
         self._highscore = 0
@@ -148,6 +149,7 @@ class Tabulator:
         self._combinations = { }
         self._rack = u''
         self._rack_is_valid = False # True if the rack is itself a valid word
+        self._referee = referee
 
     def process(self, rack):
         """ Iterate over all permutations of the rack, i.e. with length from 2 to the rack length """
@@ -254,10 +256,4 @@ class Tabulator:
         return self._combinations
       
     def is_valid_word(self, word):
-        """ Checks whether a particular word is present on the list of valid words """
-        global _referee
-        # We use only one instance of Referee (singleton) for multiple instances of Tabulator
-        if _referee is None:
-            _referee = Referee()
-        return _referee.is_valid_word(word)
-
+        return self._referee.is_valid_word(word)
