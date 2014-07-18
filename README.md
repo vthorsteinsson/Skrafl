@@ -5,7 +5,7 @@ Vefur sem hjálpar skröflurum að finna orð í rekkanum og tengja þau við st
 Vefurinn er byggður á Python 2.7 og notar Flask undirforritasafnið, þar með talið
 Jinja2 sniðmátakerfið (templates).
 
-Hann notar Bootstrap CSS-safnið fyrir viðmót og þægilega aðlögun að
+Hann notar [http://getbootstrap.com/](Bootstrap) CSS-safnið fyrir viðmót og þægilega aðlögun að
 mismunandi skjám, þ.e. síma, spjaldtölvu eða borðtölvu.
 
 ## Notkun vefsins
@@ -13,7 +13,7 @@ Ef farið er inn á vefslóðina / kemur upp aðalsíða Skraflhjálpar.
 Slóðin /help gefur hjálparsíðu.
 
 ## Til að keyra á eigin tölvu
-1. Settu upp Python 2.7.
+1. Settu upp [https://www.python.org/download/releases/2.7.8/](Python 2.7).
 
 2. Sæktu þetta Git safn:
 
