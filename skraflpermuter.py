@@ -94,7 +94,7 @@ class Referee:
         self._loaded = False
 
     def _load_file(self, fname):
-        """Load a word list file, assumed to contain one word per line"""
+        """ Load a word list file, assumed to contain one word per line """
         with codecs.open(fname, mode='r', encoding='utf-8') as fin:
             for line in fin:
                 if line.endswith(u'\r\n'):
@@ -111,9 +111,14 @@ class Referee:
         if self._loaded:
             # Already loaded, nothing to do
             return
+        # Load lists of legal words
+        # The lists are divided into several files to circumvent the
+        # file size limits imposed by App Engine
         logging.info("Loading word list 1")
-        self._load_file(os.path.abspath('resources\\ordalisti.txt'))
+        self._load_file(os.path.abspath('resources\\ordalisti1.txt'))
         logging.info("Loading word list 2")
+        self._load_file(os.path.abspath('resources\\ordalisti2.txt'))
+        logging.info("Loading word list 3")
         self._load_file(os.path.abspath('resources\\smaordalisti.txt'))
         logging.info("Total number of words in permitted set is " + str(len(self._permitted)))
         self._loaded = True
