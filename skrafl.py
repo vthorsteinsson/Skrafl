@@ -19,7 +19,7 @@ import skraflpermuter
 
 # Standard Flask initialization
 app = Flask(__name__)
-app.config['DEBUG'] = True
+app.config['DEBUG'] = True # !!! Remove this before public deployment
 
 def _process_rack(rack):
     """ Process a given input rack
@@ -28,6 +28,7 @@ def _process_rack(rack):
     # Create a Tabulator to process the rack
     t = skraflpermuter.Tabulator()
     if not t.process(rack):
+       # Something was wrong with the rack
        # Show the user an error response page
        return render_template("errorword.html")
     # The rack was successfully processed and tabulated

@@ -95,11 +95,13 @@ class Referee:
 
     def _load_file(self, fname):
         """Load a word list file, assumed to contain one word per line"""
-#        with open(fname, mode='r', encoding='iso8859-1') as fin:
         with codecs.open(fname, mode='r', encoding='utf-8') as fin:
             for line in fin:
-                if line.endswith(u'\n'):
-                    # Cut off trailing newline
+                if line.endswith(u'\r\n'):
+                    # Cut off trailing CRLF (Windows-style)
+                    line = line[0:-2]
+                elif line.endswith(u'\n'):
+                    # Cut off trailing LF (Unix-style)
                     line = line[0:-1]
                 if line and len(line) < 9: # No need to load longer words than 8 letters (rack + 1 letter combinations)
                     self._permitted.add(line)
