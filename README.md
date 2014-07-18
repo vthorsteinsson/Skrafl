@@ -47,7 +47,9 @@ Slóðin /help gefur hjálparsíðu.
 5. Nálgast má vefinn á vefrápara:
 
    Í skýinu á appspot.com [http://skraflhjalp.appspot.com](http://skraflhjalp.appspot.com)
+
    Á Google App Engine/Cloud SDK á eigin tölvu [http://localhost:8080](http://localhost:8080)
+   
    Venjuleg Python 2.7 uppsetning með Flask/Werkzeug [http://localhost:5000](http://localhost:5000)
 
 ## Höfundur
