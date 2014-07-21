@@ -1,11 +1,12 @@
 ﻿
 """ Web server for Scrabble rack permutations
 
-    Copyright (C) 2014 by Vilhjalmur Thorsteinsson
+    Original author: Vilhjalmur Thorsteinsson, 2014
 
     This web server module uses the Flask framework to implement
-    a simple query page where the user can enter a Scrabble rack
-    and get a list of all legal word permutations from the rack.
+    a simple form page where the user can enter a Scrabble rack
+    and get a list of all legal word permutations from the rack,
+    as well as combinations with a single additional letter.
 
     The actual permutation engine is found in skraflpermuter.py
 

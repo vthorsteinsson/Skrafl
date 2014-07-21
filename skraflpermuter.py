@@ -2,7 +2,7 @@
 
 """ Scrabble rack permutations
 
-Copyright (C) 2014 by Vilhjalmur Thorsteinsson
+Original author: Vilhjalmur Thorsteinsson, 2014
 
 This module implements a main class named Tabulator and
 a helper class named Referee.
@@ -12,6 +12,8 @@ all valid word permutations within the rack. It can then
 be queried for the number of such permutations, the list
 of permutations, the highest "plain" score in the list,
 and the list of the permutations having the highest such score.
+It also generates valid combinations of the
+rack with a single additional letter.
 
 Referee can judge whether a particular word is valid
 in (Icelandic) Scrabble. It uses a word database loaded
@@ -75,8 +77,10 @@ class Referee:
     instance of this class, in the variable _referee, across all invocations.
 
     The word list is loaded from text files assumed to sit in the resources
-    folder. These files are presently ordalisti.txt and smaordalisti.txt,
-    a list of longer (/declined) and shorter (/undeclined) words, respectively.
+    folder. These files are presently ordalisti1.txt, ordalisti2.txt and smaordalisti.txt,
+    containing longer (/declined) and shorter (/undeclined) words, respectively.
+    The lists are cleaned-up versions of a database originally from bin.arnastofnun.is,
+    used under license conditions from "Stofnun Árna Magnússonar í íslenskum fræðum".
     
     Note that for optimization purposes, only words from 2..8 letters in length
     are loaded into memory. The class will thus not recognize valid words longer than
@@ -109,8 +113,8 @@ class Referee:
             # Already loaded, nothing to do
             return
         # Load lists of legal words
-        # The lists are divided into several files to circumvent the
-        # file size limits imposed by App Engine
+        # The lists are divided into smaller files to circumvent the
+        # file size limits (~32 MB per file) imposed by App Engine
         logging.info("Loading word list 1")
         self._load_file(os.path.abspath('resources/ordalisti1.txt')) # Use \\ instead of / for Windows
         logging.info("Loading word list 2")
@@ -200,7 +204,7 @@ class Tabulator:
         return True
 
     def _check_permutation(self, p):
-        """ Check a single candidate permutation for validity, and, if valid, add it to the tabulated results """
+        """ Check a single candidate permutation for validity """
         word = u''
         score = 0
         # The permutation p comes in as a set of characters. Assemble a word and calculate its score
@@ -214,7 +218,7 @@ class Tabulator:
         return (word, score)
 
     def _add_permutation(self, word, score):
-        # The word is found in the word list and is thus valid
+        """ Add a valid permulation to the tabulation result """
         self._counter += 1
         self._allwords.append(word)
         if score > self._highscore:
@@ -226,7 +230,7 @@ class Tabulator:
             self._highwords.append(word)
 
     def _add_combination(self, ch, wordlist):
-        # Add a list of legal combinations that are possible if the letter ch is added to the rack
+        """ Add to a list of legal combinations that are possible if the letter ch is added to the rack """
         self._combinations[ch] = wordlist
 
     def rack(self):
@@ -256,4 +260,5 @@ class Tabulator:
         return self._combinations
       
     def is_valid_word(self, word):
+        """ Checks whether a word is valid """
         return self._referee.is_valid_word(word)
