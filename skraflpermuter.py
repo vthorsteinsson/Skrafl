@@ -63,6 +63,10 @@ _scores = {
     u'ö': 7
 }
 
+# Sort ordering of Icelandic letters
+_order = u'aábdðeéfghiíjklmnoóprstuúvxyýþæö'
+_upper = u'AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ'
+
 # Singleton instance of Referee class that manages the list of legal words
 
 class Referee:
@@ -115,12 +119,11 @@ class Referee:
         # Load lists of legal words
         # The lists are divided into smaller files to circumvent the
         # file size limits (~32 MB per file) imposed by App Engine
-        logging.info("Loading word list 1")
-        self._load_file(os.path.abspath('resources/ordalisti1.txt')) # Use \\ instead of / for Windows
-        logging.info("Loading word list 2")
-        self._load_file(os.path.abspath('resources/ordalisti2.txt'))
-        logging.info("Loading word list 3")
-        self._load_file(os.path.abspath('resources/smaordalisti.txt'))
+        files = ['ordalisti1.txt', 'ordalisti2.txt', 'smaordalisti.txt']
+        for f in files:
+            fpath = os.path.abspath(os.path.join('resources', f))
+            logging.info("Loading word list " + fpath)
+            self._load_file(fpath)
         logging.info("Total number of words in permitted set is " + str(len(self._permitted)))
         self._loaded = True
 
@@ -167,17 +170,24 @@ class Tabulator:
         # Do a sanity check on the input by calculating its raw score, thereby
         # checking whether all the letters are valid
         score = 0
+        rack_lower = u'' # Rack converted to lowercase
         try:
             for c in rack:
-                score += _scores[c]
+                ch = c
+                if ch in _upper:
+                    # Uppercase: find corresponding lowercase letter
+                    ch = _order[_upper.index(ch)]
+                score += _scores[ch]
+                rack_lower += ch
         except KeyError:
+            # A letter in the rack is not valid, even after conversion to lower case
             return False
         # The rack contains only valid letters
-        self._rack = rack
+        self._rack = rack_lower
         # Check combinations with one additional letter
         for i in _scores:
             # Permute the rack with the additional letter
-            resultset = set(itertools.permutations(rack + i))
+            resultset = set(itertools.permutations(self._rack + i))
             # Check the permutations to find valid words and their scores
             comblist = []
             for p in resultset:
@@ -190,12 +200,12 @@ class Tabulator:
                 self._add_combination(i, comblist)
         # Check permutations
         # The shortest possible rack to check for permutations is 2 letters
-        if len(rack) < 2:
+        if len(self._rack) < 2:
             return True
-        for i in range(1, len(rack)):
+        for i in range(1, len(self._rack)):
             # Calculate the permutations of length i+1 and fold them into a set,
             # causing duplicates to be dropped
-            resultset = set(itertools.permutations(rack, i + 1))
+            resultset = set(itertools.permutations(self._rack, i + 1))
             for r in resultset:
                 word, score = self._check_permutation(r)
                 if score > 0:
@@ -205,17 +215,13 @@ class Tabulator:
 
     def _check_permutation(self, p):
         """ Check a single candidate permutation for validity """
-        word = u''
-        score = 0
-        # The permutation p comes in as a set of characters. Assemble a word and calculate its score
-        for c in p:
-            word += c
-            score += _scores[c]
+        # The permutation p comes in as a set of characters. Assemble a word from it and check
+        word = u''.join(p)
         if not self.is_valid_word(word):
             # Not a valid word: we're done
             return (word, 0)
         # Valid word: return its score
-        return (word, score)
+        return (word, reduce(lambda x, y: x + _scores[y], word, 0))
 
     def _add_permutation(self, word, score):
         """ Add a valid permulation to the tabulation result """
@@ -254,11 +260,17 @@ class Tabulator:
         return self._highwords
 
     def combinations(self):
-        """ Returns a dict of the combinations possible with additional letters.
-        The dict contains {ch: wordlist} tuples where ch is the additional letter
+        """ Returns a list of the combinations possible with additional letters.
+        The list contains (ch, wordlist) tuples where ch is the additional letter
         and wordlist is a list of legal words that can be formed with that letter. """
-        return self._combinations
-      
+        lc = list(self._combinations.items())
+        if lc:
+            # Sort the combinations properly in alphabetical order before returning them
+           lc.sort(key = lambda x: _order.index(x[0]))
+           return lc
+        # No combinations
+        return None
+
     def is_valid_word(self, word):
         """ Checks whether a word is valid """
         return self._referee.is_valid_word(word)

@@ -1,4 +1,4 @@
-﻿{% extends "main.html" %}
+{% extends "main.html" %}
 {% block result %}
 
 <div class="row">
@@ -43,8 +43,8 @@
       <div class="panel panel-info">
          <div class="panel-body">
             <h3>
-{% for c, l in result.combinations() | dictsort %}
-               <span class="label label-primary resultword">{{ c }}</span>
+{% for ch, l in result.combinations() %}
+               <span class="label label-primary resultword">{{ ch }}</span>
 {% for w in l  %}
                <a href="/?rack={{ w|urlencode }}"><span class="label label-info resultword">{{ w }}</span></a>
 {% endfor %}
