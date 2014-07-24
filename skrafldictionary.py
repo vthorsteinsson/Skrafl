@@ -76,32 +76,49 @@ class Skrafldictionary:
             print("Loading word list " + fpath)
             self._load_file(fpath)
 
+    def _collapse_branch(self, nd):
+        """ Attempt to collapse a single branch of the tree """
+        tail = u''
+        di = nd.next
+        # See whether we have a contiguous sequence of 1-child dicts
+        # that can be collapsed into a string
+        while di and len(di) == 1:
+            for ch, nx in di.items():
+                tail += ch
+                if nx and nx.final:
+                    tail += u'*'
+                if nx:
+                    di = nx.next
+                else:
+                    di = None
+                # We only want one iteration
+                break
+        if di is None or len(di) == 0 and tail:
+            # Found a contiguous sequence:
+            # return a collapsed string representation of it
+            return tail
+        # The branch is complex: we can't collapse it
+        return None
+
     def _collapse(self, i, newd):
         """ Collapse and optimize the tree structure previously in
             place for character position i
         """
         d = self._dicts[i]
         if d:
-        # Process d here
-            tail = u''
-            di = d
-            while di and len(di) == 1:
-                for ch, nx in di.iteritems():
-                    tail += ch
-                    if nx and nx.final:
-                        tail += u'*'
-                    if nx:
-                        di = nx.next
-                    else:
-                        di = None
-                    # We only want one iteration
-                    break
-            if di is None or len(di) == 0:
-                # We found a contiguous sequence of 1-child dicts:
-                # Clear the original dictionary and put a single compressed node
-                # into it instead
-                d.clear()
-                d[tail] = None
+            # Iterate through the letter position and
+            # attempt to collapse all "simple" branches from it
+            for ch, nx in d.items():
+                collapsed = None
+                if nx:
+                    collapsed = self._collapse_branch(nx)
+                if collapsed:
+                    # Successful in collapsing branch: remove it from the dict
+                    # and put a result string instead
+                    del d[ch]
+                    if nx.final:
+                        collapsed = u'*' + collapsed
+                    d[ch + collapsed] = None
         self._dicts[i] = newd
 
     def _addword(self, wrd):
@@ -136,7 +153,7 @@ class Skrafldictionary:
         self._lastlen = len(wrd)
 
     def _dumplevel(self, level, d):
-        for ch, nx in d.iteritems():
+        for ch, nx in d.items():
             print((u' ' * level).encode('cp861')),
             print(ch.encode('cp861')),
             if nx and nx.final:
