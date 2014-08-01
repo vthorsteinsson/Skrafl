@@ -35,6 +35,7 @@ class _Node:
     def __init__(self):
         self.next = dict()
         self.final = False
+        self.hash = None # A hash of the contents of the dictionary and the final flag
 
     def __str__(self):
         return u'_Node ({0}) with dict {1}'.format(self.final, self.next)
@@ -67,9 +68,6 @@ class Skrafldictionary:
 
     def _load(self):
         """ Load word lists into memory from static preprocessed text files """
-        # Load lists of legal words
-        # The lists are divided into smaller files to circumvent the
-        # file size limits (~32 MB per file) imposed by App Engine
         files = ['testwords.txt']
         for f in files:
             fpath = os.path.abspath(os.path.join('resources', f))
@@ -87,6 +85,12 @@ class Skrafldictionary:
 
     def _collapse_branch(self, root_d, root_ch, root_nd):
         """ Attempt to collapse a single branch of the tree """
+        
+        # TBD: Calculate a hash for this branch. Work out whether
+        # a branch with the same hash has already been generated, and if
+        # so, check for equality with it. If equal, collapse this branch
+        # into a pointer to the previously generated branch.
+
         # If the next level has more than one choice (child), we can't collapse it
         # into this one
         di = root_nd.next
