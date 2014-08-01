@@ -49,7 +49,7 @@ class Skrafldictionary:
         self._lastlen = 0
         self._root = dict()
         # Initialize empty list of starting dictionaries
-        self._dicts = [None for i in range(0, MAXLEN)]
+        self._dicts = [None] * MAXLEN
         self._dicts[0] = self._root
 
     def _load_file(self, fname):
@@ -62,7 +62,7 @@ class Skrafldictionary:
                 elif line.endswith(u'\n'):
                     # Cut off trailing LF (Unix-style)
                     line = line[0:-1]
-                if line:
+                if line and len(line) < MAXLEN:
                     self._addword(line)
 
     def _load(self):
@@ -75,55 +75,56 @@ class Skrafldictionary:
             fpath = os.path.abspath(os.path.join('resources', f))
             print("Loading word list " + fpath)
             self._load_file(fpath)
+        # Complete the optimization of the tree
+        j = self._lastlen
+        while j > 0:
+            if self._dicts[j]:
+                self._collapse(self._dicts[j])
+                self._dicts[j] = None
+            j -= 1
+        self._lastword = u''
+        self._lastlen = 0
 
-    def _collapse_branch(self, nd):
+    def _collapse_branch(self, root_d, root_ch, root_nd):
         """ Attempt to collapse a single branch of the tree """
-        tail = u''
-        di = nd.next
-        # See whether we have a contiguous sequence of 1-child dicts
-        # that can be collapsed into a string
-        while di and len(di) == 1:
-            for ch, nx in di.items():
-                tail += ch
-                if nx and nx.final:
-                    tail += u'*'
-                if nx:
-                    di = nx.next
-                else:
-                    di = None
-                # We only want one iteration
-                break
-        if di is None or len(di) == 0 and tail:
-            # Found a contiguous sequence:
-            # return a collapsed string representation of it
-            return tail
-        # The branch is complex: we can't collapse it
-        return None
+        # If the next level has more than one choice (child), we can't collapse it
+        # into this one
+        di = root_nd.next
+        if not(di) or len(di) > 1:
+            # Nothing to do
+            return
+        # Only one child: we can collapse
+        lastd = None
+        tail = None
+        for ch, nx in di.items():
+            # There will only be one iteration of this loop
+            tail = ch
+            lastd = nx
+        # Delete the child node and put a string of characters into the root instead
+        del root_d[root_ch]
+        if root_nd.final:
+            tail = u'*' + tail
+        root_d[root_ch + tail] = lastd
 
-    def _collapse(self, i, newd):
-        """ Collapse and optimize the tree structure previously in
-            place for character position i
+    def _collapse(self, d):
+        """ Collapse and optimize the tree structure with a root in dict d
         """
-        d = self._dicts[i]
-        if d:
-            # Iterate through the letter position and
-            # attempt to collapse all "simple" branches from it
-            for ch, nx in d.items():
-                collapsed = None
-                if nx:
-                    collapsed = self._collapse_branch(nx)
-                if collapsed:
-                    # Successful in collapsing branch: remove it from the dict
-                    # and put a result string instead
-                    del d[ch]
-                    if nx.final:
-                        collapsed = u'*' + collapsed
-                    d[ch + collapsed] = None
-        self._dicts[i] = newd
+        # Iterate through the letter position and
+        # attempt to collapse all "simple" branches from it
+        for ch, nx in list(d.items()):
+            if nx:
+                self._collapse_branch(d, ch, nx)
 
     def _addword(self, wrd):
         """ Add a word to the dictionary.
             For optimal results, words are expected to arrive in sorted order.
+
+            As an example, we may have these three words arriving in sequence:
+
+            abbadísar
+            abbadísarinnar  [extends last word by 5 letters]
+            abbadísarstofa  [backtracks from last word by 5 letters]
+
         """
         # First see how many letters we have in common with the
         # last word we processed
@@ -131,9 +132,16 @@ class Skrafldictionary:
         while i < len(wrd) and i < self._lastlen and wrd[i] == self._lastword[i]:
             i += 1
         # Start from the point of last divergence in the tree
+        # In the case of backtracking, collapse all previous outstanding branches
+        j = self._lastlen
+        while j > i:
+            if self._dicts[j]:
+                self._collapse(self._dicts[j])
+                self._dicts[j] = None
+            j -= 1
+        # Add the (divergent) rest of the word
         d = self._dicts[i] # Note that self._dicts[0] is self._root
         nd = None
-        # Add the (divergent) rest of the word
         while i < len(wrd):
             nd = _Node()
             # Add a new starting letter to the working dictionary,
@@ -141,11 +149,8 @@ class Skrafldictionary:
             d[wrd[i]] = nd
             d = nd.next
             i += 1
-            # Now is the time to optimize the tree structure sitting
-            # within the previous self._dicts[i], if any, because it
-            # won't be modified after this (or indeed accessed in _addword)
-            self._collapse(i, d)
-        # We are at the node for the final letter
+            self._dicts[i] = d
+        # We are at the node for the final letter in the word: mark it as such
         if nd:
             nd.final = True
         # Save our position to optimize the handling of the next word
@@ -154,11 +159,10 @@ class Skrafldictionary:
 
     def _dumplevel(self, level, d):
         for ch, nx in d.items():
-            print((u' ' * level).encode('cp861')),
-            print(ch.encode('cp861')),
+            s = u' ' * level + ch
             if nx and nx.final:
-                print ((u'*').encode('cp861')),
-            print
+                s = s + u'*'
+            print(s.encode('cp861'))
             if nx and nx.next:
                 self._dumplevel(level + 1, nx.next)
 
