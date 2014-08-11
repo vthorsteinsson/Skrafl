@@ -36,8 +36,11 @@ root _Dawg -> {
 """
 
 import os
-import itertools
 import codecs
+
+import binascii
+import struct
+import io
 
 MAXLEN = 48 # Longest possible word to be processed
 
@@ -254,16 +257,14 @@ class _Dawg:
                 chars += len(prefix) - prefix.count(u'*')
         return chars
 
-    def _output(self, packer, d):
-        """ Use a packer to output a level of the tree and continue into sublevels by recursion """
-        for prefix, nd in d.items():
-            packer.output(prefix, nd.id, nd.final, len(nd.edges))
-            self._output(packer, nd.edges)
-
     def output(self, packer):
-        """ Initiate output of the entire tree to a packer """
+        """ Output the optimized DAWG to a packer """
         packer.start()
-        self._output(packer, self._root)
+        for node in self._unique_nodes.values():
+            packer.node_start(node.id, node.final, len(node.edges))
+            for prefix, nd in node.edges.items():
+                packer.edge(nd.id, prefix)
+            packer.node_end(node.id)
         packer.finish()
 
 
@@ -279,13 +280,13 @@ class _BinaryDawgPacker:
                     eeee = number of edges
             For each edge out of a node:
                 BYTE Prefix header
-                    [tfnnnnnn]
+                    [ftnnnnnn]
                     If t == 1 then
                         f = final bit of single prefix character
                         nnnnnn = single prefix character,
                             coded as an index into AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ
                     else
-                        fnnnnnn = number of prefix characters following
+                        00nnnnnn = number of prefix characters following
                         n * BYTE Prefix characters
                             [fccccccc]
                                 f = final bit
@@ -295,14 +296,93 @@ class _BinaryDawgPacker:
 
     """
 
+    CODING_UCASE = u"AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ"
+    CODING_LCASE = u"aábdðeéfghiíjklmnoóprstuúvxyýþæö"
+
+    def __init__(self, stream):
+        self._stream = stream
+        self._byte_struct = struct.Struct("<B")
+        self._loc_struct = struct.Struct("<L")
+        # _locs is a dict of already written nodes and their stream locations
+        self._locs = dict()
+        # _fixups is a dict of node ids and file positions where the
+        # node id has been referenced without knowing where the node is
+        # located
+        self._fixups = dict()
+
     def start(self):
         pass
 
-    def output(self, prefix, id, final, num_edges):
+    def node_start(self, id, final, num_edges):
+        pos = self._stream.tell()
+        if id in self._fixups:
+            # We have previously put references to this id without
+            # knowing its location: fix'em now
+            for fix in self._fixups[id]:
+                self._stream.seek(fix)
+                self._stream.write(self._loc_struct.pack(pos))
+            self._stream.seek(pos)
+            del self._fixups[id]
+        # Remember where we put this node
+        self._locs[id] = pos
+        self._stream.write(self._byte_struct.pack((0x80 if final else 0x00) | (num_edges & 0x7F)))
+
+    def node_end(self, id):
         pass
 
+    def edge(self, id, prefix):
+        b = []
+        last = None
+        for c in prefix:
+            if c == u'*':
+                last |= 0x80
+            else:
+                if last:
+                    b.append(last)
+                try:
+                    last = _BinaryDawgPacker.CODING_LCASE.index(c)
+                except ValueError:
+                    last = _BinaryDawgPacker.CODING_UCASE.index(c)
+        b.append(last)
+
+        if len(b) == 1:
+            # Save space on single-letter prefixes
+            self._stream.write(self._byte_struct.pack(b[0] | 0x40))
+        else:
+            self._stream.write(self._byte_struct.pack(len(b) & 0x3F))
+            for by in b:
+                self._stream.write(self._byte_struct.pack(by))
+        if id in self._locs:
+            # We've already written the node and know where it is: write its location
+            self._stream.write(self._loc_struct.pack(self._locs[id]))
+        else:
+            # This is a forward reference to a node we haven't written yet:
+            # reserve space for the node location and add a fixup
+            pos = self._stream.tell()
+            self._stream.write(self._loc_struct.pack(0xFFFFFFFF)) # Temporary - will be overwritten
+            if id not in self._fixups:
+                self._fixups[id] = []
+            self._fixups[id].append(pos)
+
     def finish(self):
-        pass
+        # Clear the temporary fixup stuff from memory
+        self._locs = dict()
+        self._fixups = dict()
+
+    def dump(self):
+        buf = self._stream.getvalue()
+        print("Total of {0} bytes".format(len(buf)))
+        s = binascii.hexlify(buf)
+        BYTES_PER_LINE = 16
+        CHARS_PER_LINE = BYTES_PER_LINE * 2
+        i = 0
+        addr = 0
+        lens = len(s)
+        while i < lens:
+            line = s[i : i + CHARS_PER_LINE]
+            print("{0:08x}: {1}".format(addr, u" ".join([line[j : j + 2] for j in range(0, len(line) - 1, 2)])))
+            i += CHARS_PER_LINE
+            addr += BYTES_PER_LINE
 
 
 class Skrafldictionary:
@@ -352,6 +432,11 @@ class Skrafldictionary:
         self._load()
         print("Dumping...")
         self._dawg.dump()
+        print("Outputting...")
+        f = io.BytesIO()
+        p = _BinaryDawgPacker(f)
+        self._dawg.output(p)
+        p.dump()
 
 
 def test():
