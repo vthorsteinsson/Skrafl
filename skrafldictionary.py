@@ -75,7 +75,7 @@ class _DawgNode:
         self.edges = dict()
         self.final = False
         self._strng = None # Cached string representation of this node
-        self._hash = None # A hash of the final flag and a shallow traversal of the edges
+        self._hash = None # Hash of the final flag and a shallow traversal of the edges
 
     def __str__(self):
         """ Return a string representation of this node, cached if possible """
@@ -84,8 +84,8 @@ class _DawgNode:
             arr = []
             if self.final: 
                 arr.append("*")
-            for letter, node in self.edges.items():
-                arr.append(letter)
+            for prefix, node in self.edges.items():
+                arr.append(prefix)
                 arr.append(str(node.id))
             self._strng = "_".join(arr)
         return self._strng
@@ -117,6 +117,11 @@ class _Dawg:
     def _collapse_branch(self, parent, prefix, node):
         """ Attempt to collapse a single branch of the tree """
 
+        # First, attempt to collapse simple chains of single-letter nodes
+        # with single outgoing edges into a single node with a multi-letter prefix.
+        # If any of the chained nodes has a final marker, add an asterisk '*' to
+        # the prefix instead.
+
         # If the next level has more than one choice (child), we can't collapse it
         # into this one
         di = node.edges
@@ -128,7 +133,7 @@ class _Dawg:
                 # There will only be one iteration of this loop
                 tail = ch
                 lastd = nx
-            # Delete the child node and put a string of characters into the root instead
+            # Delete the child node and put a string of prefix characters into the root instead
             del parent[prefix]
             if node.final:
                 tail = u'*' + tail
@@ -148,13 +153,13 @@ class _Dawg:
             # This is a new, unique signature: store it in the dictionary of unique nodes
             self._unique_nodes[node] = node
 
-    def _collapse(self, parent):
-        """ Collapse and optimize the tree structure with a root in dict d """
+    def _collapse(self, edges):
+        """ Collapse and optimize the edges in the parent dict """
         # Iterate through the letter position and
         # attempt to collapse all "simple" branches from it
-        for letter, node in list(parent.items()):
+        for letter, node in list(edges.items()):
             if node:
-                self._collapse_branch(parent, letter, node)
+                self._collapse_branch(edges, letter, node)
 
     def _collapse_to(self, divergence):
         """ Collapse the tree backwards from the point of divergence """
@@ -259,7 +264,10 @@ class _Dawg:
 
     def output(self, packer):
         """ Output the optimized DAWG to a packer """
-        packer.start()
+        packer.start(len(self._root))
+        # Start with the root edges
+        for prefix, nd in self._root.items():
+            packer.edge(nd.id, prefix)
         for node in self._unique_nodes.values():
             packer.node_start(node.id, node.final, len(node.edges))
             for prefix, nd in node.edges.items():
@@ -310,13 +318,15 @@ class _BinaryDawgPacker:
         # located
         self._fixups = dict()
 
-    def start(self):
-        pass
+    def start(self, num_root_edges):
+        # The stream starts off with a single byte containing the
+        # number of root edges
+        self._stream.write(self._byte_struct.pack(num_root_edges))
 
     def node_start(self, id, final, num_edges):
         pos = self._stream.tell()
         if id in self._fixups:
-            # We have previously put references to this id without
+            # We have previously output references to this node without
             # knowing its location: fix'em now
             for fix in self._fixups[id]:
                 self._stream.seek(fix)
@@ -337,7 +347,7 @@ class _BinaryDawgPacker:
             if c == u'*':
                 last |= 0x80
             else:
-                if last:
+                if last is not None:
                     b.append(last)
                 try:
                     last = _BinaryDawgPacker.CODING_LCASE.index(c)
@@ -434,9 +444,51 @@ class Skrafldictionary:
         self._dawg.dump()
         print("Outputting...")
         f = io.BytesIO()
+        # Create a packer to flatten the tree onto a binary stream
         p = _BinaryDawgPacker(f)
+        # Output the tree to the packer
         self._dawg.output(p)
+        # Dump the packer contents to stdout for debugging
         p.dump()
+        # Write packed DAWG to binary file
+        with open(os.path.abspath(os.path.join('resources', "testwords.dawg")), "wb") as of:
+            of.write(f.getvalue())
+        f.close()
+
+class SkraflTester:
+
+    def __init__(self):
+        self._b = bytes()
+        self._load('testwords.dawg')
+        self._byte_struct = struct.Struct("<B")
+        self._loc_struct = struct.Struct("<L")
+
+    def _load(self, fname):
+        with open(os.path.abspath(os.path.join('resources', fname)), "rb") as f:
+            self._b = f.readall()
+
+    def find(self, word):
+        node = 0
+        for c in word:
+            try:
+                ci = _BinaryDawgPacker.CODING_LCASE.index(c)
+            except ValueError:
+                ci = _BinaryDawgPacker.CODING_UCASE.index(c)
+            numedges = self._byte_struct.unpack_from(self._b, node)
+            edge = node + 1
+            for i in range(0, numedges):
+                ehdr = self._byte_struct.unpack_from(self._b, edge)
+                if ehdr & 0x40:
+                    # Single-letter prefix
+                    if ci == ehdr & 0x3F:
+                        # We match this prefix: traverse the edge to the next node
+                        node = self._loc_struct.unpack_from(self._b, edge + 1)
+                        break
+                    # Did not match: go to next edge
+                    edge += 1 + self._loc_struct.size()
+                else:
+                    # Multi-letter prefix
+                    numletters = ehdr & 0x3F
 
 
 def test():
