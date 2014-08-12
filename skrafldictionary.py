@@ -42,7 +42,9 @@ import binascii
 import struct
 import io
 
+
 MAXLEN = 48 # Longest possible word to be processed
+
 
 class _DawgNode:
 
@@ -67,7 +69,18 @@ class _DawgNode:
     """
 
     # Running count of node identifiers
-    _nextid = 0
+    _nextid = 1 # We use zero for "None"
+
+    @staticmethod
+    def stringify_edges(edges, arr):
+        """ Utility function to create a compact descriptor string for node edges """
+        for prefix, node in edges.items():
+            arr.append(prefix)
+            if node is None:
+                arr.append(u"0")
+            else:
+                arr.append(str(node.id))
+        return "_".join(arr)
 
     def __init__(self):
         self.id = _DawgNode._nextid
@@ -84,10 +97,7 @@ class _DawgNode:
             arr = []
             if self.final: 
                 arr.append("*")
-            for prefix, node in self.edges.items():
-                arr.append(prefix)
-                arr.append(str(node.id))
-            self._strng = "_".join(arr)
+            self._strng = _DawgNode.stringify_edges(self.edges, arr)
         return self._strng
 
     def __hash__(self):
@@ -125,7 +135,15 @@ class _Dawg:
         # If the next level has more than one choice (child), we can't collapse it
         # into this one
         di = node.edges
-        if di and len(di) == 1:
+        if len(di) == 0:
+            # No outgoing edges: optimize by marking the prefix as final
+            # and deleting the edge, i.e. making it None
+            if not node.final:
+                raise ValueError("Terminal node must be marked as final")
+            parent[prefix] = None # We don't need an asterisk, it's implicit
+            return
+
+        if len(di) == 1:
             # Only one child: we can collapse
             lastd = None
             tail = None
@@ -236,10 +254,11 @@ class _Dawg:
         print("Total of {0} nodes and {1} edges with {2} prefix characters".format(self.num_unique_nodes(),
             self.num_edges(), self.num_edge_chars()))
         for ix, n in enumerate(self._unique_nodes.values()):
-            # We don't use ix for the time being
-            print(u"Node {0}{1}".format(n.id, u"*" if n.final else u""))
-            for prefix, nd in n.edges.items():
-                print(u"   Edge {0} to node {1}".format(prefix, nd.id))
+            if n is not None:
+                # We don't use ix for the time being
+                print(u"Node {0}{1}".format(n.id, u"*" if n.final else u""))
+                for prefix, nd in n.edges.items():
+                    print(u"   Edge {0} to node {1}".format(prefix, 0 if nd is None else nd.id))
 
     def num_unique_nodes(self):
         """ Count the total number of unique nodes in the graph """
@@ -249,32 +268,46 @@ class _Dawg:
         """ Count the total number of edges between unique nodes in the graph """
         edges = 0
         for n in self._unique_nodes.values():
-            edges += len(n.edges)
+            if n is not None:
+                edges += len(n.edges)
         return edges
 
     def num_edge_chars(self):
         """ Count the total number of edge prefix letters in the graph """
         chars = 0
         for n in self._unique_nodes.values():
-            for prefix in n.edges:
-                # Add the length of all prefixes to the edge, minus the asterisk
-                # '*' which indicates a final character within the prefix
-                chars += len(prefix) - prefix.count(u'*')
+            if n is not None:
+                for prefix in n.edges:
+                    # Add the length of all prefixes to the edge, minus the asterisk
+                    # '*' which indicates a final character within the prefix
+                    chars += len(prefix) - prefix.count(u'*')
         return chars
 
-    def output(self, packer):
-        """ Output the optimized DAWG to a packer """
+    def write_packed(self, packer):
+        """ Write the optimized DAWG to a packer """
         packer.start(len(self._root))
         # Start with the root edges
         for prefix, nd in self._root.items():
             packer.edge(nd.id, prefix)
         for node in self._unique_nodes.values():
-            packer.node_start(node.id, node.final, len(node.edges))
-            for prefix, nd in node.edges.items():
-                packer.edge(nd.id, prefix)
-            packer.node_end(node.id)
+            if node is not None:
+                packer.node_start(node.id, node.final, len(node.edges))
+                for prefix, nd in node.edges.items():
+                    if nd is None:
+                        packer.edge(0, prefix)
+                    else:
+                        packer.edge(nd.id, prefix)
+                packer.node_end(node.id)
         packer.finish()
 
+    def write_text(self, stream):
+        """ Write the optimized DAWG to a text stream """
+        # Start with the root edges
+        arr = []
+        stream.write(u"Root " + _DawgNode.stringify_edges(self._root, arr) + u"\n")
+        for node in self._unique_nodes.values():
+            if node is not None:
+                stream.write(str(node.id) + u" " + node.__str__() + u"\n")
 
 class _BinaryDawgPacker:
 
@@ -362,7 +395,9 @@ class _BinaryDawgPacker:
             self._stream.write(self._byte_struct.pack(len(b) & 0x3F))
             for by in b:
                 self._stream.write(self._byte_struct.pack(by))
-        if id in self._locs:
+        if id == 0:
+            self._stream.write(self._loc_struct.pack(0))
+        elif id in self._locs:
             # We've already written the node and know where it is: write its location
             self._stream.write(self._loc_struct.pack(self._locs[id]))
         else:
@@ -436,6 +471,28 @@ class Skrafldictionary:
             self._load_file(fpath)
         self._dawg.finish()
 
+    def _output_binary(self):
+        """ Write the DAWG to a flattened binary stream """
+        # Experimental / debugging...
+        f = io.BytesIO()
+        # Create a packer to flatten the tree onto a binary stream
+        p = _BinaryDawgPacker(f)
+        # Write the tree using the packer
+        self._dawg.write_packed(p)
+        # Dump the packer contents to stdout for debugging
+        p.dump()
+        # Write packed DAWG to binary file
+        with open(os.path.abspath(os.path.join('resources', "testwords.dawg")), "wb") as of:
+            of.write(f.getvalue())
+        f.close()
+
+    def _output_text(self):
+        """ Write the DAWG to a text stream """
+        # Write packed DAWG to binary file
+        fname = os.path.abspath(os.path.join('resources', "testwords.text.dawg"))
+        with codecs.open(fname, mode='w', encoding='utf-8') as fout:
+            self._dawg.write_text(fout)
+
     def go(self):
         """ Start the dictionary loading """
         print("Here we go...")
@@ -443,17 +500,8 @@ class Skrafldictionary:
         print("Dumping...")
         self._dawg.dump()
         print("Outputting...")
-        f = io.BytesIO()
-        # Create a packer to flatten the tree onto a binary stream
-        p = _BinaryDawgPacker(f)
-        # Output the tree to the packer
-        self._dawg.output(p)
-        # Dump the packer contents to stdout for debugging
-        p.dump()
-        # Write packed DAWG to binary file
-        with open(os.path.abspath(os.path.join('resources', "testwords.dawg")), "wb") as of:
-            of.write(f.getvalue())
-        f.close()
+        self._output_binary()
+        self._output_text()
 
 class SkraflTester:
 
