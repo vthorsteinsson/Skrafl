@@ -6,7 +6,7 @@ __pycache__/
 *.so
 
 # Compressed DAWG trees
-.dawg
+*.dawg
 
 # Distribution / packaging
 .Python
