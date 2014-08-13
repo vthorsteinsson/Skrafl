@@ -489,8 +489,8 @@ class DawgBuilder:
         return wordcount
 
     def _load(self, relpath, inputs):
-        """ Load word lists into the DAWG from static text files,
-            assumed to be located in the 'resources' subdirectory.
+        """ Load word lists into the DAWG from one or more static text files,
+            assumed to be located in the relpath subdirectory.
             The text files should contain one word per line,
             encoded in UTF-8 format. Lines may end with CR/LF or LF only.
             Upper or lower case should be consistent throughout.
@@ -508,7 +508,7 @@ class DawgBuilder:
         self._dawg.finish()
 
     def _output_binary(self, relpath, output):
-        """ Write the DAWG to a flattened binary stream """
+        """ Write the DAWG to a flattened binary output file with extension '.dawg' """
         assert self._dawg is not None
         # Experimental / debugging...
         f = io.BytesIO()
@@ -524,29 +524,30 @@ class DawgBuilder:
         f.close()
 
     def _output_text(self, relpath, output):
-        """ Write the DAWG to a text stream """
+        """ Write the DAWG to a text output file with extension '.text.dawg' """
         assert self._dawg is not None
         fname = os.path.abspath(os.path.join(relpath, output + u".text.dawg"))
         with codecs.open(fname, mode='w', encoding='utf-8') as fout:
             self._dawg.write_text(fout)
 
     def build(self, inputs, output, relpath="resources"):
-        """ Build a DAWG from input files and write it to output files """
+        """ Build a DAWG from input file(s) and write it to the output file(s) (potentially in multiple formats) """
         # inputs is a list of input file names
-        # output is an output file name without file type suffix; ".dawg" and ".text.dawg" will be appended
+        # output is an output file name without file type suffix;
+        # ".dawg" and ".text.dawg" will be appended depending on output formats
         # relpath is a relative path to the input and output files
         print("DawgBuilder starting...")
         self._load(relpath, inputs)
         # print("Dumping...")
         # self._dawg.dump()
         print("Outputting...")
-        # self._output_binary(relpath, output)
+        # self._output_binary(relpath, output) # Not used for now
         self._output_text(relpath, output)
         print("DawgBuilder done")
 
 
 def test():
-    # Build a DAWG from the file testwords.txt
+    # Build a DAWG from the files listed
     db = DawgBuilder()
     db.build(["ordalisti1.txt", "ordalisti2.txt"], "ordalisti", "resources")
 
