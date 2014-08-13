@@ -35,7 +35,7 @@ class DawgDictionary:
     def _parse_and_add(self, line):
         """ Parse a single line of a DAWG text file and add to the graph structure """
         nodedata = line.split(u' ')
-        if nodedata[0] == "Root":
+        if nodedata[0] == u"Root":
             nodeid = 0
         else:
             nodeid = int(nodedata[0])
@@ -77,7 +77,7 @@ class DawgDictionary:
                 elif line.endswith(u'\n'):
                     # Cut off trailing LF (Unix-style)
                     line = line[0:-1]
-                if line and len(line) < MAXLEN:
+                if line:
                     self._parse_and_add(line)
 
     def _nav_from_node(self, node, word, index):
@@ -155,5 +155,5 @@ class DawgTester:
 def test():
     # Test navivation in the DAWG
     dt = DawgTester()
-    dt.go("testwords", "resources")
+    dt.go("ordalisti", "resources")
 

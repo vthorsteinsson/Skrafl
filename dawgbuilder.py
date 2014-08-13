@@ -136,6 +136,12 @@ class _DawgNode:
         """ Use string equality based on the string representation of nodes """
         return self.__str__() == other.__str__()
 
+    def reset_id(self, newid):
+        """ Set a new id number for this node. This forces a reset of the cached data. """
+        self.id = newid
+        self._strng = None
+        self._hash = None
+
 
 class _Dawg:
 
@@ -265,6 +271,12 @@ class _Dawg:
         self._lastword = u''
         self._lastlen = 0
         self._collapse(self._root)
+        # Renumber the nodes for a tidier graph
+        ix = 1
+        for n in self._unique_nodes.values():
+            if n is not None:
+                n.reset_id(ix)
+                ix += 1
 
     def _dump_level(self, level, d):
         """ Dump a level of the tree and continue into sublevels by recursion """
