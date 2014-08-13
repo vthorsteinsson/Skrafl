@@ -4,11 +4,11 @@
 
 Author: Vilhjalmur Thorsteinsson, 2014
 
-The dictionary is encapsulated within the class Skrafldictionary.
+The dictionary is encapsulated within the class DawgDictionary.
 The class can resolve whether a particular word is legal or not
 by looking it up in a database of allowed Scrabble words.
 
-Skrafldictionary uses a Directed Acyclic Word Graph (DAWG) internally
+DawgDictionary uses a Directed Acyclic Word Graph (DAWG) internally
 to store the word database in an efficient structure in terms
 of storage and speed.
 
@@ -51,35 +51,32 @@ class _DawgNode:
     """ A _DawgNode is a node in a Directed Acyclic Word Graph (DAWG).
         It contains:
             * a node identifier (a simple unique sequence number);
-            * a dictionary of edges (children) where each entry has a following
-                letter together with its child _DawgNode;
-            * and a Bool (final) indicating whether this node in the graph represents
-                the end of a legal word.
+            * a dictionary of edges (children) where each entry has a prefix
+                (following letter(s)) together with its child _DawgNode;
+            * and a Bool (final) indicating whether this node in the graph
+                also marks the end of a legal word.
 
         A _DawgNode has a string representation which can be hashed to
         determine whether it is identical to a previously encountered node,
         i.e. whether it has the same final flag and the same edges with
-        following letters leading to the same child nodes. This assumes
+        prefixes leading to the same child nodes. This assumes
         that the child nodes have already been subjected to the same
         test, i.e. whether they are identical to previously encountered
         nodes and, in that case, modified to point to the previous, identical
-        subtree. Each tree layer can thus depend on the (shallow) comparisons
-        made in previous layers and deep comparisons are not necessary.
+        subgraph. Each graph layer can thus depend on the (shallow) comparisons
+        made in previous layers and deep comparisons are not necessary. This
+        is an important optimization when building the graph.
 
     """
 
     # Running count of node identifiers
-    _nextid = 1 # We use zero for "None"
+    _nextid = 1 # Zero is reserved for "None"
 
     @staticmethod
     def stringify_edges(edges, arr):
-        """ Utility function to create a compact descriptor string for node edges """
+        """ Utility function to create a compact descriptor string and hashable key for node edges """
         for prefix, node in edges.items():
-            arr.append(prefix)
-            if node is None:
-                arr.append(u"0")
-            else:
-                arr.append(str(node.id))
+            arr.append(prefix + u':' + (u'0' if node is None else str(node.id)))
         return "_".join(arr)
 
     def __init__(self):
@@ -127,21 +124,26 @@ class _Dawg:
     def _collapse_branch(self, parent, prefix, node):
         """ Attempt to collapse a single branch of the tree """
 
-        # First, attempt to collapse simple chains of single-letter nodes
+        di = node.edges
+        assert di is not None
+
+        # If the node has no outgoing edges, it must be a final node.
+        # Optimize by reducing graph clutter and making the parent
+        # point to None instead.
+
+        if len(di) == 0:
+            assert node.final
+            # We don't need to put an asterisk at the end of the prefix; it's implicit
+            parent[prefix] = None
+            return
+
+        # Attempt to collapse simple chains of single-letter nodes
         # with single outgoing edges into a single node with a multi-letter prefix.
         # If any of the chained nodes has a final marker, add an asterisk '*' to
         # the prefix instead.
 
         # If the next level has more than one choice (child), we can't collapse it
         # into this one
-        di = node.edges
-        if len(di) == 0:
-            # No outgoing edges: optimize by marking the prefix as final
-            # and deleting the edge, i.e. making it None
-            if not node.final:
-                raise ValueError("Terminal node must be marked as final")
-            parent[prefix] = None # We don't need an asterisk, it's implicit
-            return
 
         if len(di) == 1:
             # Only one child: we can collapse
@@ -202,7 +204,7 @@ class _Dawg:
         # Sanity check: make sure the word is not too long
         lenword = len(wrd)
         if lenword >= MAXLEN:
-            raise Exception("Error: word exceeds maximum length of {0} letters".format(MAXLEN))
+            raise ValueError("Word exceeds maximum length of {0} letters".format(MAXLEN))
         # First see how many letters we have in common with the
         # last word we processed
         i = 0
@@ -223,7 +225,7 @@ class _Dawg:
             i += 1
             self._dicts[i] = d
         # We are at the node for the final letter in the word: mark it as such
-        if nd:
+        if nd is not None:
             nd.final = True
         # Save our position to optimize the handling of the next word
         self._lastword = wrd
@@ -430,20 +432,17 @@ class _BinaryDawgPacker:
             addr += BYTES_PER_LINE
 
 
-class Skrafldictionary:
+class DawgBuilder:
 
-    """ A Skrafldictionary allows efficient checking of words to see
-        whether they are valid, i.e. contained in the dictionary of
-        legal words.
-
-        Here it is implemented as a DAWG (Directed Acyclic Word Graph).
+    """ Creates a DAWG from word lists and writes the resulting
+        graph to binary or text files.
     """
 
     def __init__(self):
-        self._dawg = _Dawg()
+        self._dawg = None
 
     def _load_file(self, fname):
-        """ Load a word list file, assumed to contain one word per line """
+        """ Load a single word list file, assumed to contain one word per line """
         with codecs.open(fname, mode='r', encoding='utf-8') as fin:
             for line in fin:
                 if line.endswith(u'\r\n'):
@@ -455,8 +454,8 @@ class Skrafldictionary:
                 if line and len(line) < MAXLEN:
                     self._dawg.add_word(line)
 
-    def _load(self):
-        """ Load word lists into memory from static text files,
+    def _load(self, relpath, inputs):
+        """ Load word lists into the DAWG from static text files,
             assumed to be located in the 'resources' subdirectory.
             The text files should contain one word per line,
             encoded in UTF-8 format. Lines may end with CR/LF or LF only.
@@ -464,15 +463,16 @@ class Skrafldictionary:
             All lower case is preferred. The words should appear in
             ascending sort order.
         """
-        files = ['testwords.txt'] # Add files to this list as required
-        for f in files:
-            fpath = os.path.abspath(os.path.join('resources', f))
+        self._dawg = _Dawg()
+        for f in inputs:
+            fpath = os.path.abspath(os.path.join(relpath, f))
             print("Loading word list " + fpath)
             self._load_file(fpath)
         self._dawg.finish()
 
-    def _output_binary(self):
+    def _output_binary(self, relpath, output):
         """ Write the DAWG to a flattened binary stream """
+        assert self._dawg is not None
         # Experimental / debugging...
         f = io.BytesIO()
         # Create a packer to flatten the tree onto a binary stream
@@ -482,40 +482,46 @@ class Skrafldictionary:
         # Dump the packer contents to stdout for debugging
         p.dump()
         # Write packed DAWG to binary file
-        with open(os.path.abspath(os.path.join('resources', "testwords.dawg")), "wb") as of:
+        with open(os.path.abspath(os.path.join(relpath, output + u".dawg")), "wb") as of:
             of.write(f.getvalue())
         f.close()
 
-    def _output_text(self):
+    def _output_text(self, relpath, output):
         """ Write the DAWG to a text stream """
-        # Write packed DAWG to binary file
-        fname = os.path.abspath(os.path.join('resources', "testwords.text.dawg"))
+        assert self._dawg is not None
+        fname = os.path.abspath(os.path.join(relpath, output + u".text.dawg"))
         with codecs.open(fname, mode='w', encoding='utf-8') as fout:
             self._dawg.write_text(fout)
 
-    def go(self):
-        """ Start the dictionary loading """
-        print("Here we go...")
-        self._load()
+    def build(self, inputs, output, relpath="resources"):
+        """ Build a DAWG from input files and write it to output files """
+        # inputs is a list of input file names
+        # output is an output file name without file type suffix; ".dawg" and ".text.dawg" will be appended
+        # relpath is a relative path to the input and output files
+        print("DawgBuilder starting...")
+        self._load(relpath, inputs)
         print("Dumping...")
         self._dawg.dump()
         print("Outputting...")
-        self._output_binary()
-        self._output_text()
+        self._output_binary(relpath, output)
+        self._output_text(relpath, output)
+        print("DawgBuilder done")
 
-class SkraflTester:
+
+class BinaryDawgTester:
 
     def __init__(self):
         self._b = bytes()
-        self._load('testwords.dawg')
+        self._load_binary_dawg('testwords.dawg')
         self._byte_struct = struct.Struct("<B")
         self._loc_struct = struct.Struct("<L")
 
-    def _load(self, fname):
+    def _load_binary_dawg(self, fname):
         with open(os.path.abspath(os.path.join('resources', fname)), "rb") as f:
             self._b = f.readall()
 
     def find(self, word):
+        # !!! Incomplete code !!!
         node = 0
         for c in word:
             try:
@@ -539,7 +545,145 @@ class SkraflTester:
                     numletters = ehdr & 0x3F
 
 
+class DawgDictionary:
+
+    class _Node:
+
+        def __init__(self):
+            self.final = False
+            self.edges = dict()
+
+
+    def __init__(self):
+        # Initialize an empty node dict.
+        # The root entry will eventually be self._nodes[0]
+        self._nodes = dict()
+
+    def _parse_and_add(self, line):
+        """ Parse a single line of a DAWG text file and add to the graph structure """
+        nodedata = line.split(u' ')
+        if nodedata[0] == "Root":
+            nodeid = 0
+        else:
+            nodeid = int(nodedata[0])
+        edgedata = nodedata[1].split(u'_')
+        final = False
+        firstedge = 0
+        if len(edgedata) >= 1 and edgedata[0] == u'*':
+            # Asterisk denotes final node
+            final = True
+            firstedge = 1
+        if nodeid in self._nodes:
+            # We have already seen this node id: use the previously created instance
+            newnode = self._nodes[nodeid]
+        else:
+            # The id is appearing for the first time: add it
+            newnode = DawgDictionary._Node()
+            self._nodes[nodeid] = newnode
+        newnode.final = final
+        for edge in edgedata[firstedge:]:
+            e = edge.split(u':')
+            prefix = e[0]
+            edgeid = int(e[1])
+            if edgeid == 0:
+                newnode.edges[prefix] = None
+            elif edgeid in self._nodes:
+                newnode.edges[prefix] = self._nodes[edgeid]
+            else:
+                newterminal = DawgDictionary._Node()
+                newnode.edges[prefix] = newterminal
+                self._nodes[edgeid] = newterminal
+
+    def load(self, fname):
+        """ Load a DAWG from a text file """
+        with codecs.open(fname, mode='r', encoding='utf-8') as fin:
+            for line in fin:
+                if line.endswith(u'\r\n'):
+                    # Cut off trailing CRLF (Windows-style)
+                    line = line[0:-2]
+                elif line.endswith(u'\n'):
+                    # Cut off trailing LF (Unix-style)
+                    line = line[0:-1]
+                if line and len(line) < MAXLEN:
+                    self._parse_and_add(line)
+
+    def _nav_from_node(self, node, word, index):
+        """ Starting from a given node, navigate the graph using the word and an index into it """
+        if index >= len(word):
+            # The word is exhausted: it is valid if we're at a null or final node
+            return (node is None) or node.final
+        if node is None:
+            # The word is not exhausted but we're at a null node: no match
+            return False
+        # Go through the edges of this node and try to find a path
+        for prefix, nextnode in node.edges.items():
+            if prefix[0] == word[index]:
+                # Found a matching prefix: navigate it
+                return self._follow_edge(word, index, prefix, nextnode)
+        # No matching prefix, so no outgoing edges: no match
+        return False
+
+    def _follow_edge(self, word, index, prefix, nextnode):
+        """ We've found an edge with a matching prefix: loop through the prefix """
+        lenp = len(prefix)
+        j = 0
+        while j < lenp:
+            if word[index] != prefix[j]:
+                # The prefix does not match the word: we're done
+                return False
+            # So far, we have a match
+            index += 1
+            j += 1
+            final = False
+            # Check whether the next prefix character is an asterisk, denoting finality
+            if j < lenp and prefix[j] == '*':
+                final = True
+                j += 1
+            if index >= len(word):
+                # The word is hereby exhausted:
+                # We have a match if this was a final char in the prefix,
+                # or if the prefix is exhausted and the next node is terminal
+                return final or ((j >= lenp) and ((nextnode is None) or nextnode.final))
+        return self._nav_from_node(nextnode, word, index)
+
+    def find(self, word):
+        root = self._nodes[0] # Start at the root
+        return self._nav_from_node(root, word, 0)
+
+
+class DawgTester:
+
+    def __init__(self):
+        self._dawg = None
+
+    def _test(self, word):
+        print(u"\"{0}\" is {1}found".format(word, u"" if self._dawg.find(word) else u"not "))
+
+    def go(self, fname, relpath):
+        self._dawg = DawgDictionary()
+        fpath = os.path.abspath(os.path.join(relpath, fname + ".text.dawg"))
+        self._dawg.load(fpath)
+        self._test(u"abbadísarinnar")
+        self._test(u"absintufyllirí")
+        self._test(u"absolútt")
+        self._test(u"aborri")
+        self._test(u"abs")
+        self._test(u"halló")
+        self._test(u"abstraktmálarið")
+        self._test(u"abstraktmálari")
+        self._test(u"abstraktmálar")
+        self._test(u"abstraktmála")
+        self._test(u"prófun")
+        self._test(u"")
+        self._test(u"abo550")
+        self._dawg = None
+
+
 def test():
-   sd = Skrafldictionary()
-   sd.go()
+    # Build a DAWG from the file testwords.txt
+    db = DawgBuilder()
+    db.build(["testwords.txt"], "testwords", "resources")
+    # Test navivation in the DAWG
+    dt = DawgTester()
+    dt.go("testwords", "resources")
 
