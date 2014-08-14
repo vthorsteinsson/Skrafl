@@ -27,9 +27,9 @@ class DawgDictionary:
             self.edges = dict()
 
     def __init__(self):
-        # Initialize an empty node dict.
+        # Initialize an empty graph
         # The root entry will eventually be self._nodes[0]
-        self._nodes = dict()
+        self._nodes = None
         # Running counter of nodes read
         self._index = 1
 
@@ -37,6 +37,7 @@ class DawgDictionary:
         """ Parse a single line of a DAWG text file and add to the graph structure """
         # The first line is the root (by convention nodeid 0)
         # The first non-root node is in line 2 and has nodeid 2
+        assert self._nodes is not None
         nodeid = self._index if self._index > 1 else 0
         self._index += 1
         edgedata = line.split(u'_')
@@ -69,6 +70,9 @@ class DawgDictionary:
 
     def load(self, fname):
         """ Load a DAWG from a text file """
+        # Reset the graph contents
+        self._nodes = dict()
+        self._index = 1
         with codecs.open(fname, mode='r', encoding='utf-8') as fin:
             for line in fin:
                 if line.endswith(u'\r\n'):
@@ -97,7 +101,7 @@ class DawgDictionary:
         return False
 
     def _follow_edge(self, word, index, prefix, nextnode):
-        """ We've found an edge with a matching prefix: loop through the prefix """
+        """ Found an edge with a matching prefix: loop through the prefix """
         lenp = len(prefix)
         j = 0
         while j < lenp:
@@ -120,7 +124,14 @@ class DawgDictionary:
         return self._nav_from_node(nextnode, word, index)
 
     def find(self, word):
+        """ Look for a word in the graph, returning True if it is found or False if not """
+        if self._nodes is None:
+            # Must load the graph before searching
+            return False
         root = self._nodes[0] # Start at the root
+        if root is None:
+            # No root: no match
+            return False
         return self._nav_from_node(root, word, 0)
 
 import time
