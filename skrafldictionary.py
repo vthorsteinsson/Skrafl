@@ -26,24 +26,24 @@ class DawgDictionary:
             self.final = False
             self.edges = dict()
 
-
     def __init__(self):
         # Initialize an empty node dict.
         # The root entry will eventually be self._nodes[0]
         self._nodes = dict()
+        # Running counter of nodes read
+        self._index = 1
 
     def _parse_and_add(self, line):
         """ Parse a single line of a DAWG text file and add to the graph structure """
-        nodedata = line.split(u' ')
-        if nodedata[0] == u"Root":
-            nodeid = 0
-        else:
-            nodeid = int(nodedata[0])
-        edgedata = nodedata[1].split(u'_')
+        # The first line is the root (by convention nodeid 0)
+        # The first non-root node is in line 2 and has nodeid 2
+        nodeid = self._index if self._index > 1 else 0
+        self._index += 1
+        edgedata = line.split(u'_')
         final = False
         firstedge = 0
-        if len(edgedata) >= 1 and edgedata[0] == u'*':
-            # Asterisk denotes final node
+        if len(edgedata) >= 1 and edgedata[0] == u'|':
+            # Vertical bar denotes final node
             final = True
             firstedge = 1
         if nodeid in self._nodes:
@@ -108,8 +108,8 @@ class DawgDictionary:
             index += 1
             j += 1
             final = False
-            # Check whether the next prefix character is an asterisk, denoting finality
-            if j < lenp and prefix[j] == '*':
+            # Check whether the next prefix character is a vertical bar, denoting finality
+            if j < lenp and prefix[j] == '|':
                 final = True
                 j += 1
             if index >= len(word):
@@ -123,6 +123,7 @@ class DawgDictionary:
         root = self._nodes[0] # Start at the root
         return self._nav_from_node(root, word, 0)
 
+import time
 
 class DawgTester:
 
@@ -135,7 +136,10 @@ class DawgTester:
     def go(self, fname, relpath):
         self._dawg = DawgDictionary()
         fpath = os.path.abspath(os.path.join(relpath, fname + ".text.dawg"))
+        t0 = time.time()
         self._dawg.load(fpath)
+        t1 = time.time()
+        print("DAWG load took {0:.2f} seconds".format(t1 - t0))
         self._test(u"abbadísarinnar")
         self._test(u"absintufyllirí")
         self._test(u"absolútt")

@@ -98,7 +98,8 @@ class _DawgNode:
     """
 
     # Running count of node identifiers
-    _nextid = 1 # Zero is reserved for "None"
+    # Zero is reserved for "None"
+    _nextid = 1
 
     @staticmethod
     def stringify_edges(edges, arr):
@@ -162,7 +163,7 @@ class _Dawg:
         assert di is not None
 
         # If the node has no outgoing edges, it must be a final node.
-        # Optimize by reducing graph clutter and making the parent
+        # Optimize and reduce graph clutter by making the parent
         # point to None instead.
 
         if len(di) == 0:
@@ -172,12 +173,9 @@ class _Dawg:
             return
 
         # Attempt to collapse simple chains of single-letter nodes
-        # with single outgoing edges into a single node with a multi-letter prefix.
+        # with single outgoing edges into a single edge with a multi-letter prefix.
         # If any of the chained nodes has a final marker, add a vertical bar '|' to
         # the prefix instead.
-
-        # If the next level has more than one choice (child), we can't collapse it
-        # into this one
 
         if len(di) == 1:
             # Only one child: we can collapse
@@ -271,8 +269,9 @@ class _Dawg:
         self._lastword = u''
         self._lastlen = 0
         self._collapse(self._root)
-        # Renumber the nodes for a tidier graph
-        ix = 1
+        # Renumber the nodes for a tidier graph and more compact output
+        # 1 is the line number of the root in text output files, so we start with 2
+        ix = 2
         for n in self._unique_nodes.values():
             if n is not None:
                 n.reset_id(ix)
@@ -345,12 +344,14 @@ class _Dawg:
     def write_text(self, stream):
         """ Write the optimized DAWG to a text stream """
         print("Output graph has {0} nodes".format(len(self._unique_nodes))) # +1 to include the root in the node count
+        # We don't have to write node ids since they correspond to line numbers.
+        # The root is always in the first line and the first node after the root has id 2.
         # Start with the root edges
         arr = []
-        stream.write(u"Root " + _DawgNode.stringify_edges(self._root, arr) + u"\n")
+        stream.write(_DawgNode.stringify_edges(self._root, arr) + u"\n")
         for node in self._unique_nodes.values():
             if node is not None:
-                stream.write(str(node.id) + u" " + node.__str__() + u"\n")
+                stream.write(node.__str__() + u"\n")
 
 class _BinaryDawgPacker:
 
@@ -482,7 +483,7 @@ class DawgBuilder:
     def __init__(self):
         self._dawg = None
 
-    def _load_file(self, fname):
+    def _load_file(self, fname, filter):
         """ Load a single word list file, assumed to contain one word per line """
         wordcount = 0
         with codecs.open(fname, mode='r', encoding='utf-8') as fin:
@@ -494,13 +495,15 @@ class DawgBuilder:
                     # Cut off trailing LF (Unix-style)
                     line = line[0:-1]
                 if line and len(line) < MAXLEN:
-                    self._dawg.add_word(line)
-                    wordcount += 1
-                    if wordcount % 1000 == 0:
-                        print "{0}...\r".format(wordcount),
+                    # Apply a user-supplied filter to determine whether to include the word
+                    if (filter is None) or filter(line):
+                        self._dawg.add_word(line)
+                        wordcount += 1
+                        if wordcount % 1000 == 0:
+                            print "{0}...\r".format(wordcount),
         return wordcount
 
-    def _load(self, relpath, inputs):
+    def _load(self, relpath, inputs, filter):
         """ Load word lists into the DAWG from one or more static text files,
             assumed to be located in the relpath subdirectory.
             The text files should contain one word per line,
@@ -514,7 +517,7 @@ class DawgBuilder:
         for f in inputs:
             fpath = os.path.abspath(os.path.join(relpath, f))
             print("Loading word list " + fpath)
-            wloaded = self._load_file(fpath)
+            wloaded = self._load_file(fpath, filter)
             wcnt += wloaded
             print("Finished loading {0} words for a total of {1}".format(wloaded, wcnt))
         self._dawg.finish()
@@ -542,14 +545,14 @@ class DawgBuilder:
         with codecs.open(fname, mode='w', encoding='utf-8') as fout:
             self._dawg.write_text(fout)
 
-    def build(self, inputs, output, relpath="resources"):
+    def build(self, inputs, output, relpath="resources", filter=None):
         """ Build a DAWG from input file(s) and write it to the output file(s) (potentially in multiple formats) """
         # inputs is a list of input file names
         # output is an output file name without file type suffix;
         # ".dawg" and ".text.dawg" will be appended depending on output formats
         # relpath is a relative path to the input and output files
         print("DawgBuilder starting...")
-        self._load(relpath, inputs)
+        self._load(relpath, inputs, filter)
         # print("Dumping...")
         # self._dawg.dump()
         print("Outputting...")
@@ -557,9 +560,18 @@ class DawgBuilder:
         self._output_text(relpath, output)
         print("DawgBuilder done")
 
+def filter(word):
+    # The resulting DAWG will include all words for which filter() returns True, and exclude others.
+    # Useful for excluding long words or words containing "foreign" characters.
+    return True
+
+import time
 
 def test():
     # Build a DAWG from the files listed
     db = DawgBuilder()
-    db.build(["ordalisti1.txt", "ordalisti2.txt"], "ordalisti", "resources")
+    t0 = time.time()
+    db.build(["ordalisti1.txt", "ordalisti2.txt"], "ordalisti", "resources", filter)
+    t1 = time.time()
+    print("Build took {0:.2f} seconds".format(t1 - t0))
 
