@@ -25,6 +25,9 @@ import os
 import itertools
 import codecs
 import logging
+import time
+
+import dawgdictionary
 
 # Dictionary of Icelandic scrabble letter scores
 
@@ -71,74 +74,54 @@ _upper = u'AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ'
 
 class Referee:
 
-    """ Maintains the set of permitted words and judges whether a word is acceptable
+    """ Maintains the set of permitted words and judges whether a word is acceptable.
     
-    This class loads and maintains the list of valid words, and is used to judge
+    This class loads and maintains a graph (DAWG) of valid words, and is used to judge
     whether a given word is valid.
 
-    The list is fairly big (several megabytes) so it is important to avoid multiple
+    The graph is fairly big (several megabytes) so it is important to avoid multiple
     instances of it. The Tabulator implementation below makes sure to use a singleton
-    instance of this class, in the variable _referee, across all invocations.
+    instance of this class, in the class variable _referee, across all invocations.
 
-    The word list is loaded from text files assumed to sit in the resources
-    folder. These files are presently ordalisti1.txt, ordalisti2.txt and smaordalisti.txt,
-    containing longer (/declined) and shorter (/undeclined) words, respectively.
-    The lists are cleaned-up versions of a database originally from bin.arnastofnun.is,
+    The word graph is loaded from a text file, 'ordalisti.text.dawg', assumed to be in
+    the 'resources' folder. The file is generated using DawgBuilder.build() in dawgbuilder.py.
+
+    The graph contains a cleaned-up version of a database originally from bin.arnastofnun.is,
     used under license conditions from "Stofnun Árna Magnússonar í íslenskum fræðum".
     
-    Note that for optimization purposes, only words from 2..8 letters in length
-    are loaded into memory. The class will thus not recognize valid words longer than
-    8 letters, nor single-letter words. This restriction is fine for Scrabble.
-
     """
 
     def __init__(self):
-        # We maintain the list of permitted words in a (pretty big!) set
-        self._permitted = set()
-        # The set is lazily loaded into memory upon first use
-        self._loaded = False
-
-    def _load_file(self, fname):
-        """ Load a word list file, assumed to contain one word per line """
-        with codecs.open(fname, mode='r', encoding='utf-8') as fin:
-            for line in fin:
-                if line.endswith(u'\r\n'):
-                    # Cut off trailing CRLF (Windows-style)
-                    line = line[0:-2]
-                elif line.endswith(u'\n'):
-                    # Cut off trailing LF (Unix-style)
-                    line = line[0:-1]
-                if line and len(line) < 9: # No need to load longer words than 8 letters (rack + 1 letter combinations)
-                    self._permitted.add(line)
+        # We maintain the list of permitted words in a DAWG dictionary
+        # The DAWG is lazily loaded into memory upon first use
+        self._dawg = None
 
     def _load(self):
         """ Load word lists into memory from static preprocessed text files """
-        if self._loaded:
+        if self._dawg is not None:
             # Already loaded, nothing to do
             return
-        # Load lists of legal words
-        # The lists are divided into smaller files to circumvent the
-        # file size limits (~32 MB per file) imposed by App Engine
-        files = ['ordalisti1.txt', 'ordalisti2.txt', 'smaordalisti.txt']
-        for f in files:
-            fpath = os.path.abspath(os.path.join('resources', f))
-            logging.info("Loading word list " + fpath)
-            self._load_file(fpath)
-        logging.info("Total number of words in permitted set is " + str(len(self._permitted)))
-        self._loaded = True
+        fname = os.path.abspath(os.path.join("resources", "ordalisti.text.dawg"))
+        logging.info("Loading graph from file {0}".format(fname))
+        t0 = time.time()
+        self._dawg = dawgdictionary.DawgDictionary()
+        self._dawg.load(fname)
+        t1 = time.time()
+        logging.info("Loaded {0} graph nodes in {1:.2f} seconds".format(self._dawg.num_nodes(), t1 - t0))
 
     def initialize(self):
         """ Force preloading of word lists into memory """
-        if not self._loaded:
-            self._load();
+        if self._dawg is None:
+            self._load()
 
     def is_valid_word(self, word):
         """ Checks whether a word is found in the list of legal words """
         if not word:
-            return False;
-        if not self._loaded:
-            self._load();
-        return word in self._permitted
+            return False
+        if self._dawg is None:
+            self._load()
+        assert self._dawg is not None
+        return self._dawg.find(word)
 
 class Tabulator:
 
@@ -148,7 +131,9 @@ class Tabulator:
 
     """
 
-    def __init__(self, referee):
+    _referee = None
+
+    def __init__(self):
         self._counter = 0
         self._allwords = []
         self._highscore = 0
@@ -156,7 +141,9 @@ class Tabulator:
         self._combinations = { }
         self._rack = u''
         self._rack_is_valid = False # True if the rack is itself a valid word
-        self._referee = referee
+        if Tabulator._referee is None:
+            # The Referee word graph will be lazily loaded from file upon first use
+            Tabulator._referee = Referee()
 
     def process(self, rack):
         """ Iterate over all permutations of the rack, i.e. with length from 2 to the rack length """
@@ -273,4 +260,4 @@ class Tabulator:
 
     def is_valid_word(self, word):
         """ Checks whether a word is valid """
-        return self._referee.is_valid_word(word)
+        return Tabulator._referee.is_valid_word(word)

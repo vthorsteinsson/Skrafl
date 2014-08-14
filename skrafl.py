@@ -17,6 +17,7 @@ from flask import render_template
 from flask import request
 
 import logging
+import time
 
 import skraflpermuter
 
@@ -25,21 +26,22 @@ import skraflpermuter
 app = Flask(__name__)
 app.config['DEBUG'] = True # !!! Remove this before public deployment
 
-logging.info("Starting initialization of Referee")
-_referee = skraflpermuter.Referee()
-_referee.initialize()
-logging.info("Completed initialization of Referee")
-
 def _process_rack(rack):
     """ Process a given input rack
         Returns True if OK or False if the rack was invalid, i.e. contains invalid letters
     """
     # Create a Tabulator to process the rack
-    t = skraflpermuter.Tabulator(_referee)
+    t = skraflpermuter.Tabulator()
+    t0 = time.time()
+
     if not t.process(rack):
        # Something was wrong with the rack
        # Show the user an error response page
        return render_template("errorword.html")
+
+    t1 = time.time()
+    logging.info(u"Processed rack \"{0}\" in {1:.2f} seconds".format(rack, t1 - t0).encode('latin-1'))
+
     # The rack was successfully processed and tabulated
     # Show the user a result page
     return render_template("result.html", result=t)
@@ -81,5 +83,4 @@ def help():
 """
 if __name__ == "__main__":
     app.run(debug=True)
-    
 """
