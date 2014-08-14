@@ -18,26 +18,26 @@ graph.
 The output file is structured as a sequence of lines where each
 line is as follows:
 
-[node id] ' ' ['*']['_' prefix ':' nextnode]*
+[node id] ' ' ['|']['_' prefix ':' nextnode]*
 
 The node id is a unique integer or 'Root' for the root node.
 The node id is separated from the rest of the line by a single space.
-If the node is a final node, the next character is an asterisk
-('*') followed by an underscore.
+If the node is a final node, the next character is a vertical bar
+('|') followed by an underscore.
 The rest of the line is a sequence of edges where each edge
 is described by a prefix string followed by a colon (':')
 and the (integer) id of the following node. Edges are separated
-by underscores ('_'). The prefix string can contain asterisks
+by underscores ('_'). The prefix string can contain vertical bars
 indicating that the previous character was a final character
 in a legal word.
 
 Example output:
 
 Root ab:2
-41 *_a:0_ni:0
-99 *_ð:0_nu:0
+41 |_a:0_ni:0
+99 |_ð:0_nu:0
 28 a:0_um:0_n:30
-12 *_innar:0_stof:21
+12 |_innar:0_stof:21
 
 Node 41 is a final node in itself, but also has edges with prefixes "a" and "ni"
 pointing to 0 (a shorthand for terminal, final nodes).
@@ -121,7 +121,7 @@ class _DawgNode:
             # We don't have a cached string representation: create it
             arr = []
             if self.final: 
-                arr.append("*")
+                arr.append("|")
             self._strng = _DawgNode.stringify_edges(self.edges, arr)
         return self._strng
 
@@ -167,13 +167,13 @@ class _Dawg:
 
         if len(di) == 0:
             assert node.final
-            # We don't need to put an asterisk at the end of the prefix; it's implicit
+            # We don't need to put a vertical bar (final marker) at the end of the prefix; it's implicit
             parent[prefix] = None
             return
 
         # Attempt to collapse simple chains of single-letter nodes
         # with single outgoing edges into a single node with a multi-letter prefix.
-        # If any of the chained nodes has a final marker, add an asterisk '*' to
+        # If any of the chained nodes has a final marker, add a vertical bar '|' to
         # the prefix instead.
 
         # If the next level has more than one choice (child), we can't collapse it
@@ -190,7 +190,7 @@ class _Dawg:
             # Delete the child node and put a string of prefix characters into the root instead
             del parent[prefix]
             if node.final:
-                tail = u'*' + tail
+                tail = u'|' + tail
             prefix += tail
             parent[prefix] = lastd
             node = lastd
@@ -283,7 +283,7 @@ class _Dawg:
         for ch, nx in d.items():
             s = u' ' * level + ch
             if nx and nx.final:
-                s = s + u'*'
+                s = s + u'|'
             s += u' ' * (50 - len(s))
             s += nx.__str__()
             print(s.encode('cp850'))
@@ -298,7 +298,7 @@ class _Dawg:
         for ix, n in enumerate(self._unique_nodes.values()):
             if n is not None:
                 # We don't use ix for the time being
-                print(u"Node {0}{1}".format(n.id, u"*" if n.final else u""))
+                print(u"Node {0}{1}".format(n.id, u"|" if n.final else u""))
                 for prefix, nd in n.edges.items():
                     print(u"   Edge {0} to node {1}".format(prefix, 0 if nd is None else nd.id))
 
@@ -320,9 +320,9 @@ class _Dawg:
         for n in self._unique_nodes.values():
             if n is not None:
                 for prefix in n.edges:
-                    # Add the length of all prefixes to the edge, minus the asterisk
-                    # '*' which indicates a final character within the prefix
-                    chars += len(prefix) - prefix.count(u'*')
+                    # Add the length of all prefixes to the edge, minus the vertical bar
+                    # '|' which indicates a final character within the prefix
+                    chars += len(prefix) - prefix.count(u'|')
         return chars
 
     def write_packed(self, packer):
@@ -420,7 +420,7 @@ class _BinaryDawgPacker:
         b = []
         last = None
         for c in prefix:
-            if c == u'*':
+            if c == u'|':
                 last |= 0x80
             else:
                 if last is not None:
