@@ -140,27 +140,28 @@ class DawgDictionary:
 
     def _append_perm_from_node(self, node, matched, rack, permlist):
         """ Starting from a given node, navigate the graph using the word and an index into it """
-        if not rack or node is None:
-            # Nothing more to do
+        if (not rack) or (node is None):
+            # Nothing more to do (we assume that a match has already been recorded)
             return
-        # Go through the edges of this node and try to find a path
+        # Go through the edges of this node and follow all that match a
+        # letter in the rack
         for prefix, nextnode in node.edges.items():
             if prefix[0] in rack:
-                # This edge is open: navigate through it
+                # This edge is a candidate: navigate through it
                 self._append_perm_from_edge(matched, rack, prefix, nextnode, permlist)
 
     def _append_perm_from_edge(self, matched, rack, prefix, nextnode, permlist):
-        """ There is a letter in the rack matching this prefix """
+        """ There is a letter in the rack matching the prefix of this edge """
         lenp = len(prefix)
         j = 0
         while j < lenp and rack:
             if prefix[j] not in rack:
-                # Can't continue with this prefix - no matching rack letters
-                return False
-            # Add a letter to the matched path so far
+                # Can't continue with this prefix - we no longer have rack letters matching it
+                return
+            # Add a letter to the matched path
             matched += prefix[j]
             # Remove the letter from the rack
-            rack.replace(prefix[j], '', 1)
+            rack = rack.replace(prefix[j], '', 1)
             # So far, we have a match
             j += 1
             final = False
@@ -169,16 +170,21 @@ class DawgDictionary:
                 final = True
                 j += 1
             if final:
-                # We have found a complete word
+                # We have found a complete valid word
                 permlist.append(matched)
-            elif not rack:
-                # If the rack is hereby exhausted, we're at the end of the
-                # prefix and there is no next node, we also have a match
-                if (j >= lenp) and ((nextnode is None) or nextnode.final):
-                    permlist.append(matched)
-        if rack:
-            # Gone through the entire edge and still not done: continue
-            # with the next node
+        # We're done following the prefix for as long as it goes and
+        # as long as the rack lasts
+        if j < lenp:
+            # We didn't complete the prefix, so the rack must be out:
+            # we're done
+            return
+        # We completed the prefix
+        if (nextnode is None) or nextnode.final:
+            # We're at a final state, explicit or implicit: add the match
+            permlist.append(matched)
+        if rack and (nextnode is not None):
+            # Gone through the entire edge and still have rack letters left:
+            # continue with the next node
             self._append_perm_from_node(nextnode, matched, rack, permlist)
 
     def find_permutations(self, rack):
@@ -191,7 +197,9 @@ class DawgDictionary:
         if root is None:
             # No root: no permutations
             return permlist
-        self._append_perm_from_node(root, '', rack, permlist)
+        self._append_perm_from_node(root, u'', rack, permlist)
+        # Sort in ascending order by length of permutation
+        permlist.sort(key = lambda x: len(x))
         return permlist
 
 import time
@@ -202,31 +210,112 @@ class DawgTester:
         self._dawg = None
 
     def _test(self, word):
-        print(u"\"{0}\" is {1}found".format(word, u"" if self._dawg.find(word) else u"not "))
+        print(u"\"{0}\" is {1}found".format(word, u"" if self._dawg.find(word) else u"not ").encode('cp850'))
+
+    def _test_true(self, word):
+        if not self._dawg.find(word):
+            print(u"Error: \"{0}\" was not found".format(word).encode('cp850'))
+
+    def _test_false(self, word):
+        if self._dawg.find(word):
+            print(u"Error: \"{0}\" was found".format(word).encode('cp850'))
 
     def go(self, fname, relpath):
+        """ Load a DawgDictionary and test its functionality """
+
+        print("DawgDictionary tester")
+        print("Author: Vilhjalmur Thorsteinsson")
+        print
+
         self._dawg = DawgDictionary()
         fpath = os.path.abspath(os.path.join(relpath, fname + ".text.dawg"))
         t0 = time.time()
         self._dawg.load(fpath)
         t1 = time.time()
-        print("DAWG load took {0:.2f} seconds".format(t1 - t0))
-        self._test(u"abbadísarinnar")
-        self._test(u"absintufyllirí")
-        self._test(u"absolútt")
-        self._test(u"aborri")
-        self._test(u"abs")
-        self._test(u"halló")
-        self._test(u"hraðskákmótin")
-        self._test(u"jólahraðskákmótið")
-        self._test(u"nafnskírteinið")
-        self._test(u"abstraktmálarið")
-        self._test(u"abstraktmálari")
-        self._test(u"abstraktmálar")
-        self._test(u"abstraktmála")
-        self._test(u"prófun")
-        self._test(u"")
-        self._test(u"abo550")
+
+        print("DAWG loaded in {0:.2f} seconds".format(t1 - t0))
+        print("Checking a set of random words:")
+        self._test_true(u"abbadísarinnar")
+        self._test_true(u"absintufyllirí")
+        self._test_false(u"absolútt")
+        self._test_true(u"aborri")
+        self._test_false(u"abs")
+        self._test_true(u"halló")
+        self._test_true(u"hraðskákmótin")
+        self._test_true(u"jólahraðskákmótið")
+        self._test_true(u"nafnskírteinið")
+        self._test_false(u"abstraktmálarið")
+        self._test_true(u"abstraktmálari")
+        self._test_false(u"abstraktmálar")
+        self._test_false(u"abstraktmála")
+        self._test_true(u"prófun")
+        self._test_false(u"")
+        self._test_false(u"abo550")
+
+        # All two-letter words accepted by the Icelandic Scrabble(tm)-like game
+        # at ordaleikur.appspot.com
+        smallwords = [
+            u"að", u"af", u"ak", u"al", u"an", u"ar", u"as", u"at", u"ax",
+            u"áa", u"áð", u"ái", u"ál", u"ám", u"án", u"ár", u"ás", u"át",
+            u"bí", u"bú", u"bý", u"bæ",
+            u"dá", u"do", u"dó", u"dý",
+            u"eð", u"ef", u"eg", u"ei", u"ek", u"el", u"em", u"en", u"er", u"et", u"ex", u"ey",
+            u"ég", u"él", u"ét",
+            u"fa", u"fá", u"fé", u"fæ",
+            u"gá",
+            u"ha", u"há", u"hí", u"hó", u"hý", u"hæ",
+            u"ið", u"il",
+            u"íð", u"íl", u"ís",
+            u"já", u"jó", u"jú",
+            u"ká", u"ku", u"kú",
+            u"la", u"lá", u"lé", u"ló", u"lý", u"læ",
+            u"má", u"mi", u"mó", u"mý",
+            u"ná", u"né", u"nó", u"nú", u"ný", u"næ",
+            u"of", u"og", u"ok", u"op", u"or",
+            u"óa", u"óð", u"óf", u"ói", u"ók", u"ól", u"óm", u"ón", u"óp", u"ós", u"óx",
+            u"pí", u"pú",
+            u"rá", u"re", u"ré", u"rí", u"ró", u"rú", u"rý", u"ræ",
+            u"sá", u"sé", u"sí", u"so", u"sú", u"sý", u"sæ",
+            u"tá", u"te", u"té", u"ti", u"tí", u"tó", u"tý",
+            u"um", u"un",
+            u"úa", u"úð", u"úf", u"úi", u"úr", u"út",
+            u"vá", u"vé", u"ví", u"vó",
+            u"yl", u"ym", u"yr", u"ys",
+            u"ýf", u"ýg", u"ýi", u"ýk", u"ýl", u"ýr", u"ýs", u"ýt",
+            u"þá", u"þó", u"þú", u"þý",
+            u"æð", u"æf", u"æg", u"æi", u"æl", u"æp", u"ær", u"æs", u"æt",
+            u"öl", u"ör", u"ös", u"öt", u"öx"]
+
+        letters = u'aábdðeéfghiíjklmnoóprstuúvxyýþæö'
+
+        print("Checking small words:")
+
+        # Check all possible two-letter combinations, allowing only those in the list
+        for first in letters:
+            for second in letters:
+                word = first + second
+                if word in smallwords:
+                    self._test_true(word)
+                else:
+                    self._test_false(word)
+
+        print("Finding permutations:")
+        t0 = time.time()
+        word = u"einstök"
+        permlist = self._dawg.find_permutations(word)
+        t1 = time.time()
+        print(u"Permutations of \"{0}\":".format(word).encode('cp850'))
+        cnt = 0
+        for word in permlist:
+            print(u"\"{0}\"".format(word).encode('cp850')),
+            cnt += 1
+            if cnt % 6 == 0:
+                print
+        print
+        print(u"{0} permutations found in {1:.2f} seconds".format(cnt, t1 - t0))
+        print
+        print(u"Test finished")
+
         self._dawg = None
 
 
