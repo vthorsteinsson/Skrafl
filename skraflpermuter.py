@@ -2,10 +2,10 @@
 
 """ Scrabble rack permutations
 
-Original author: Vilhjalmur Thorsteinsson, 2014
+Author: Vilhjalmur Thorsteinsson, 2014
 
 This module implements a main class named Tabulator and
-a helper class named Referee.
+a helper class named WordDatabase.
 
 Tabulator takes a Scrabble rack and processes it to find
 all valid word permutations within the rack. It can then
@@ -15,9 +15,9 @@ and the list of the permutations having the highest such score.
 It also generates valid combinations of the
 rack with a single additional letter.
 
-Referee can judge whether a particular word is valid
-in (Icelandic) Scrabble. It uses a word database loaded
-from text files.
+WordDatabase can judge whether a particular word is valid
+in (Icelandic) Scrabble. It uses a preprocessed word graph
+loaded from text files.
 
 """
 
@@ -72,23 +72,24 @@ _upper = u'AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ'
 
 # Singleton instance of Referee class that manages the list of legal words
 
-class Referee:
+class WordDatabase:
 
     """ Maintains the set of permitted words and judges whether a word is acceptable.
     
-    This class loads and maintains a graph (DAWG) of valid words, and is used to judge
-    whether a given word is valid.
+    This class loads and maintains a Directed Acyclic Word Graph (DAWG) of valid words.
+    The DAWG is used to check racks for validity and to find all valid words embedded
+    within a rack.
 
-    The graph is fairly big (several megabytes) so it is important to avoid multiple
+    The word database is fairly big (several megabytes) so it is important to avoid multiple
     instances of it. The Tabulator implementation below makes sure to use a singleton
-    instance of this class, in the class variable _referee, across all invocations.
+    instance of this class, in the class variable _word_db, across all invocations.
 
     The word graph is loaded from a text file, 'ordalisti.text.dawg', assumed to be in
     the 'resources' folder. The file is generated using DawgBuilder.build() in dawgbuilder.py.
 
     The graph contains a cleaned-up version of a database originally from bin.arnastofnun.is,
     used under license conditions from "Stofnun Árna Magnússonar í íslenskum fræðum".
-    
+
     """
 
     def __init__(self):
@@ -123,6 +124,16 @@ class Referee:
         assert self._dawg is not None
         return self._dawg.find(word)
 
+    def find_permutations(self, rack):
+        """ Find all embedded words within a rack """
+        if not rack:
+            return None
+        if self._dawg is None:
+            self._load()
+        assert self._dawg is not None
+        return self._dawg.find_permutations(rack)
+
+
 class Tabulator:
 
     """ Processes and tabulates the possibilities within a given rack that is passed to the constructor.
@@ -131,7 +142,7 @@ class Tabulator:
 
     """
 
-    _referee = None
+    _word_db = None
 
     def __init__(self):
         self._counter = 0
@@ -141,9 +152,9 @@ class Tabulator:
         self._combinations = { }
         self._rack = u''
         self._rack_is_valid = False # True if the rack is itself a valid word
-        if Tabulator._referee is None:
+        if Tabulator._word_db is None:
             # The Referee word graph will be lazily loaded from file upon first use
-            Tabulator._referee = Referee()
+            Tabulator._word_db = WordDatabase()
 
     def process(self, rack):
         """ Iterate over all permutations of the rack, i.e. with length from 2 to the rack length """
@@ -172,43 +183,37 @@ class Tabulator:
         # The rack contains only valid letters
         self._rack = rack_lower
         # Check combinations with one additional letter
-        for i in _scores:
+        # !!! TBD !!!: leftover from older code; will be optimized to one graph traversal
+        for i in _order:
             # Permute the rack with the additional letter
-            resultset = set(itertools.permutations(self._rack + i))
+            p = self._word_db.find_permutations(self._rack + i)
             # Check the permutations to find valid words and their scores
-            comblist = []
-            for p in resultset:
-                word, score = self._check_permutation(p)
-                if score > 0:
-                    # Found a legal combination
-                    comblist.append(word)
-            if len(comblist) > 0:
-                # We found at least one legal word from the combinations with this letter
-                self._add_combination(i, comblist)
+            if p is not None:
+                result = [word for word in p if len(word) == len(self._rack) + 1]
+                if result:
+                    # We found at least one legal word from the combinations with this letter
+                    self._add_combination(i, result)
         # Check permutations
         # The shortest possible rack to check for permutations is 2 letters
         if len(self._rack) < 2:
             return True
-        for i in range(1, len(self._rack)):
-            # Calculate the permutations of length i+1 and fold them into a set,
-            # causing duplicates to be dropped
-            resultset = set(itertools.permutations(self._rack, i + 1))
-            for r in resultset:
-                word, score = self._check_permutation(r)
-                if score > 0:
-                    self._add_permutation(word, score)
+        p = self._word_db.find_permutations(self._rack)
+        if p is not None:
+            for word in p:
+                self._add_permutation(word, self.score(word))
         # Successful
         return True
 
-    def _check_permutation(self, p):
-        """ Check a single candidate permutation for validity """
-        # The permutation p comes in as a set of characters. Assemble a word from it and check
-        word = u''.join(p)
-        if not self.is_valid_word(word):
-            # Not a valid word: we're done
-            return (word, 0)
-        # Valid word: return its score
-        return (word, reduce(lambda x, y: x + _scores[y], word, 0))
+    def score(self, word):
+        """ Calculate the score for a word """
+        if word is None:
+            return 0
+        try:
+            s = reduce(lambda x, y: x + _scores[y], word, 0)
+        except KeyError:
+            # Word contains an unrecognized letter: return a zero score
+            s = 0
+        return s
 
     def _add_permutation(self, word, score):
         """ Add a valid permulation to the tabulation result """
@@ -260,4 +265,4 @@ class Tabulator:
 
     def is_valid_word(self, word):
         """ Checks whether a word is valid """
-        return Tabulator._referee.is_valid_word(word)
+        return Tabulator._word_db.is_valid_word(word)
