@@ -65,6 +65,7 @@ root _Dawg -> {
 
 import os
 import codecs
+import locale
 
 import binascii
 import struct
@@ -483,11 +484,27 @@ class DawgBuilder:
     def __init__(self):
         self._dawg = None
 
-    def _load_file(self, fname, filter):
-        """ Load a single word list file, assumed to contain one word per line """
-        wordcount = 0
-        with codecs.open(fname, mode='r', encoding='utf-8') as fin:
-            for line in fin:
+    class _InFile:
+        """ InFile represents a single sorted input file. """
+
+        def __init__(self, relpath, fname):
+            self._eof = False
+            self._nxt = None
+            fpath = os.path.abspath(os.path.join(relpath, fname))
+            self._fin = codecs.open(fpath, mode='r', encoding='utf-8')
+            print(u"Opened input file {0}".format(fpath))
+            # Read the first word from the file to initialize the iteration
+            self.read_word()
+
+        def read_word(self):
+            """ Read lines until we have a legal word or EOF """
+            while True:
+                try:
+                    line = self._fin.next()
+                except StopIteration:
+                    # We're done with this file
+                    self._eof = True
+                    return False
                 if line.endswith(u'\r\n'):
                     # Cut off trailing CRLF (Windows-style)
                     line = line[0:-2]
@@ -495,32 +512,63 @@ class DawgBuilder:
                     # Cut off trailing LF (Unix-style)
                     line = line[0:-1]
                 if line and len(line) < MAXLEN:
-                    # Apply a user-supplied filter to determine whether to include the word
-                    if (filter is None) or filter(line):
-                        self._dawg.add_word(line)
-                        wordcount += 1
-                        if wordcount % 1000 == 0:
-                            print "{0}...\r".format(wordcount),
-        return wordcount
+                    # Valid word
+                    self._nxt = line
+                    return True
 
-    def _load(self, relpath, inputs, filter):
+        def next_word(self):
+            return None if self._eof else self._nxt
+
+        def has_word(self):
+            return not self._eof
+
+        def close(self):
+            self._fin.close()
+
+    def _load(self, relpath, inputs, localeid, filter):
         """ Load word lists into the DAWG from one or more static text files,
             assumed to be located in the relpath subdirectory.
             The text files should contain one word per line,
             encoded in UTF-8 format. Lines may end with CR/LF or LF only.
             Upper or lower case should be consistent throughout.
             All lower case is preferred. The words should appear in
-            ascending sort order.
+            ascending sort order within each file. The input files will
+            be merged in sorted order in the load process.
         """
         self._dawg = _Dawg()
-        wcnt = 0
-        for f in inputs:
-            fpath = os.path.abspath(os.path.join(relpath, f))
-            print("Loading word list " + fpath)
-            wloaded = self._load_file(fpath, filter)
-            wcnt += wloaded
-            print("Finished loading {0} words for a total of {1}".format(wloaded, wcnt))
+        wordcount = 0
+        locale.setlocale(locale.LC_COLLATE, localeid)
+        # Open the input files
+        infiles = [DawgBuilder._InFile(relpath, f) for f in inputs]
+        # Merge the inputs
+        while True:
+            smallest = None
+            # Find the smallest next word among the input files
+            for f in infiles:
+                if f.has_word():
+                    if (smallest is None) or (locale.strcoll(f.next_word(), smallest.next_word()) < 0):
+                        smallest = f
+            if smallest is None:
+                # All files exhausted: we're done
+                break
+            # We have the smallest word
+            word = smallest.next_word()
+            if (filter is None) or filter(word):
+                # This word passes the filter: add it to the graph
+                self._dawg.add_word(word)
+                wordcount += 1
+                if wordcount % 1000 == 0:
+                    # Progress indicator
+                    print "{0}...\r".format(wordcount),
+            # Advance to the next word in the file we read from
+            smallest.read_word()
+        # Done merging: close all files
+        for f in infiles:
+            assert not f.has_word()
+            f.close()
+        # Complete and clean up
         self._dawg.finish()
+        print("Finished loading {0} words".format(wordcount))
 
     def _output_binary(self, relpath, output):
         """ Write the DAWG to a flattened binary output file with extension '.dawg' """
@@ -545,14 +593,21 @@ class DawgBuilder:
         with codecs.open(fname, mode='w', encoding='utf-8') as fout:
             self._dawg.write_text(fout)
 
-    def build(self, inputs, output, relpath="resources", filter=None):
-        """ Build a DAWG from input file(s) and write it to the output file(s) (potentially in multiple formats) """
+    def build(self, inputs, output, relpath="resources", localeid=None, filter=None):
+        """ Build a DAWG from input file(s) and write it to the output file(s) (potentially in multiple formats).
+            The input files are assumed to be individually sorted in correct ascending alphabetical
+            order. They will be merged in parallel into a single sorted stream and added to the DAWG.
+        """
         # inputs is a list of input file names
         # output is an output file name without file type suffix;
         # ".dawg" and ".text.dawg" will be appended depending on output formats
         # relpath is a relative path to the input and output files
         print("DawgBuilder starting...")
-        self._load(relpath, inputs, filter)
+        if (not inputs) or (not output):
+            # Nothing to do
+            print("No inputs or no output: Nothing to do")
+            return
+        self._load(relpath, inputs, localeid, filter)
         # print("Dumping...")
         # self._dawg.dump()
         print("Outputting...")
@@ -568,10 +623,16 @@ def filter(word):
 import time
 
 def test():
-    # Build a DAWG from the files listed
+    """ Build a DAWG from the files listed """
     db = DawgBuilder()
     t0 = time.time()
-    db.build(["ordalisti1.txt", "ordalisti2.txt"], "ordalisti", "resources", filter)
+    # "isl" specifies Icelandic sorting order - modify this for other languages
+    db.build(
+        ["ordalisti1.txt", "ordalisti2.txt", "smaord.sorted.txt"], # Input files to be merged
+        "ordalisti", # Output file - full name will be ordalisti.text.dawg
+        "resources", # Subfolder of input and output files
+        "isl", # Identifier of locale to use for sorting order
+        filter) # Word filter function to apply
     t1 = time.time()
     print("Build took {0:.2f} seconds".format(t1 - t0))
 
