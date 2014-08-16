@@ -536,8 +536,15 @@ class DawgBuilder:
             be merged in sorted order in the load process.
         """
         self._dawg = _Dawg()
-        wordcount = 0
-        locale.setlocale(locale.LC_COLLATE, localeid)
+        # Total number of words read from input files
+        incount = 0
+        # Total number of words written to output file (may be less than incount because of filtering)
+        outcount = 0
+        # Total number of duplicate words found in input files
+        duplicates = 0
+        # If a locale for sorting/collation is specified, set it
+        if localeid:
+            locale.setlocale(locale.LC_COLLATE, localeid)
         # Open the input files
         infiles = [DawgBuilder._InFile(relpath, f) for f in inputs]
         # Merge the inputs
@@ -546,20 +553,30 @@ class DawgBuilder:
             # Find the smallest next word among the input files
             for f in infiles:
                 if f.has_word():
-                    if (smallest is None) or (locale.strcoll(f.next_word(), smallest.next_word()) < 0):
+                    if smallest is None:
                         smallest = f
+                    else:
+                        cmp = locale.strcoll(f.next_word(), smallest.next_word())
+                        if cmp == 0:
+                            # We have the same word in two files: make sure we don't add it twice
+                            f.read_word()
+                            incount += 1
+                            duplicates += 1
+                        elif cmp < 0:
+                            smallest = f
             if smallest is None:
                 # All files exhausted: we're done
                 break
             # We have the smallest word
             word = smallest.next_word()
+            incount += 1
             if (filter is None) or filter(word):
                 # This word passes the filter: add it to the graph
                 self._dawg.add_word(word)
-                wordcount += 1
-                if wordcount % 1000 == 0:
-                    # Progress indicator
-                    print "{0}...\r".format(wordcount),
+                outcount += 1
+            if incount % 1000 == 0:
+                # Progress indicator
+                print "{0}...\r".format(incount),
             # Advance to the next word in the file we read from
             smallest.read_word()
         # Done merging: close all files
@@ -568,7 +585,7 @@ class DawgBuilder:
             f.close()
         # Complete and clean up
         self._dawg.finish()
-        print("Finished loading {0} words".format(wordcount))
+        print("Finished loading {0} words, output {1} words, {2} duplicates skipped".format(incount, outcount, duplicates))
 
     def _output_binary(self, relpath, output):
         """ Write the DAWG to a flattened binary output file with extension '.dawg' """
