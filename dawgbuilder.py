@@ -523,7 +523,9 @@ class DawgBuilder:
             return not self._eof
 
         def close(self):
-            self._fin.close()
+            if self._fin is not None:
+                self._fin.close()
+            self._fin = None
 
     def _load(self, relpath, inputs, localeid, filter):
         """ Load word lists into the DAWG from one or more static text files,
@@ -538,13 +540,16 @@ class DawgBuilder:
         self._dawg = _Dawg()
         # Total number of words read from input files
         incount = 0
-        # Total number of words written to output file (may be less than incount because of filtering)
+        # Total number of words written to output file
+        # (may be less than incount because of filtering or duplicates)
         outcount = 0
         # Total number of duplicate words found in input files
         duplicates = 0
         # If a locale for sorting/collation is specified, set it
         if localeid:
             locale.setlocale(locale.LC_COLLATE, localeid)
+        # Enforce strict ascending lexicographic order
+        lastword = None
         # Open the input files
         infiles = [DawgBuilder._InFile(relpath, f) for f in inputs]
         # Merge the inputs
@@ -556,6 +561,7 @@ class DawgBuilder:
                     if smallest is None:
                         smallest = f
                     else:
+                        # Use the sort ordering of the current locale to compare words
                         cmp = locale.strcoll(f.next_word(), smallest.next_word())
                         if cmp == 0:
                             # We have the same word in two files: make sure we don't add it twice
@@ -563,6 +569,7 @@ class DawgBuilder:
                             incount += 1
                             duplicates += 1
                         elif cmp < 0:
+                            # New smallest word
                             smallest = f
             if smallest is None:
                 # All files exhausted: we're done
@@ -570,9 +577,18 @@ class DawgBuilder:
             # We have the smallest word
             word = smallest.next_word()
             incount += 1
-            if (filter is None) or filter(word):
+            if lastword and locale.strcoll(lastword, word) >= 0:
+                # Something appears to be wrong with the input sort order
+                # If it's a duplicate, we don't mind too much, but if it's out
+                # of order, display a warning
+                if locale.strcoll(lastword, word) > 0:
+                    print(u"Warning: input files should be in ascending order, but \"{0}\" > \"{1}\"".format(lastword, word))
+                else:
+                    duplicates += 1
+            elif (filter is None) or filter(word):
                 # This word passes the filter: add it to the graph
                 self._dawg.add_word(word)
+                lastword = word
                 outcount += 1
             if incount % 1000 == 0:
                 # Progress indicator
@@ -583,6 +599,7 @@ class DawgBuilder:
         for f in infiles:
             assert not f.has_word()
             f.close()
+            f = None
         # Complete and clean up
         self._dawg.finish()
         print("Finished loading {0} words, output {1} words, {2} duplicates skipped".format(incount, outcount, duplicates))
@@ -632,24 +649,72 @@ class DawgBuilder:
         self._output_text(relpath, output)
         print("DawgBuilder done")
 
-def filter(word):
-    # The resulting DAWG will include all words for which filter() returns True, and exclude others.
-    # Useful for excluding long words or words containing "foreign" characters.
+# Filter functions
+# The resulting DAWG will include all words for which filter() returns True, and exclude others.
+# Useful for excluding long words or words containing "foreign" characters.
+
+def nofilter(word):
+    """ No filtering - include all input words in output graph """
+    return True
+
+disallowed = set([u"im", u"ím", u"je", u"oj", u"pé"])
+
+def filter_skrafl(word):
+    """ Filtering for Icelandic Scrabble(tm)
+        Exclude words longer than 15 letters (won't fit on board)
+        Exclude words with non-Icelandic letters, i.e. C, Q, W, Z
+        Exclude two-letter words in the word database that are not
+            allowed according to Icelandic Scrabble rules
+    """
+    lenw = len(word)
+    if lenw > 15:
+        # Too long, not necessary for Scrabble
+        return False
+    if any(c in word for c in u"cqwz"):
+        # Non-Icelandic character
+        return False
+    if word in disallowed:
+        # Two-letter word that is not allowed in Icelandic Scrabble
+        return False
     return True
 
 import time
 
-def test():
+def run_full_bin():
     """ Build a DAWG from the files listed """
+    # This creates a DAWG from the full database of 'Beygingarlýsing íslensks nútímamáls' (BIN)
+    # (except abbreviations, 'skammstafanir', and proper names, 'sérnöfn')
+    # This is about 2.6 million words, generating 103,200 graph nodes
+    print(u"Starting DAWG build for Beygingarlýsing íslensks nútímamáls")
     db = DawgBuilder()
     t0 = time.time()
     # "isl" specifies Icelandic sorting order - modify this for other languages
     db.build(
         ["ordalisti1.txt", "ordalisti2.txt", "smaord.sorted.txt"], # Input files to be merged
+        "ordalisti-bin", # Output file - full name will be ordalisti-bin.text.dawg
+        "resources", # Subfolder of input and output files
+        "isl", # Identifier of locale to use for sorting order
+        nofilter) # Word filter function to apply
+    t1 = time.time()
+    print("Build took {0:.2f} seconds".format(t1 - t0))
+
+def run_skrafl():
+    """ Build a DAWG from the files listed """
+    # This creates a DAWG from the full database of 'Beygingarlýsing íslensks nútímamáls' (BIN)
+    # (except abbreviations, 'skammstafanir', and proper names, 'sérnöfn'), but
+    # filtered according to filter_skrafl() (see comment above) and with a few two-letter
+    # words added according to Icelandic Scrabble rules
+    # Output is about 2.2 million words, generating 102,668 graph nodes
+    print(u"Starting DAWG build for Skrafl/ordaleikur.appspot.com")
+    db = DawgBuilder()
+    t0 = time.time()
+    # "isl" specifies Icelandic sorting order - modify this for other languages
+    db.build(
+        ["ordalisti1.txt", "ordalisti2.txt", "smaord.sorted.txt", "tveggjastafa.sorted.txt"], # Input files to be merged
         "ordalisti", # Output file - full name will be ordalisti.text.dawg
         "resources", # Subfolder of input and output files
         "isl", # Identifier of locale to use for sorting order
-        filter) # Word filter function to apply
+        filter_skrafl) # Word filter function to apply
     t1 = time.time()
     print("Build took {0:.2f} seconds".format(t1 - t0))
 

@@ -10,3 +10,11 @@ handlers:
   upload: static/favicon.ico
 - url: .*
   script: skrafl.app
+
+skip_files:
+- ^(.*/)?.*\.txt$
+- ^(.*/)?#.*#$
+- ^(.*/)?.*~$
+- ^(.*/)?.*\.py[co]$
+- ^(.*/)?.*/RCS/.*$
+- ^(.*/)?\..*$
