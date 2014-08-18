@@ -8,9 +8,6 @@ DawgDictionary uses a Directed Acyclic Word Graph (DAWG) internally
 to store a large set of words in an efficient structure in terms
 of storage and speed.
 
-The DAWG implementation is partially based on Steve Hanov's work
-(see http://stevehanov.ca/blog/index.php?id=115).
-
 See also comments in dawgbuilder.py
 
 """
@@ -55,15 +52,19 @@ class DawgDictionary:
             newnode = DawgDictionary._Node()
             self._nodes[nodeid] = newnode
         newnode.final = final
+        # Process the edges
         for edge in edgedata[firstedge:]:
             e = edge.split(u':')
             prefix = e[0]
             edgeid = int(e[1])
             if edgeid == 0:
+                # Edge leads to null/zero, i.e. is final
                 newnode.edges[prefix] = None
             elif edgeid in self._nodes:
+                # Edge leads to a node we've already seen
                 newnode.edges[prefix] = self._nodes[edgeid]
             else:
+                # Edge leads to a new, previously unseen node: Create it
                 newterminal = DawgDictionary._Node()
                 newnode.edges[prefix] = newterminal
                 self._nodes[edgeid] = newterminal
@@ -220,7 +221,7 @@ class DawgTester:
         if self._dawg.find(word):
             print(u"Error: \"{0}\" was found".format(word).encode('cp850'))
 
-    def go(self, fname, relpath):
+    def run(self, fname, relpath):
         """ Load a DawgDictionary and test its functionality """
 
         print("DawgDictionary tester")
@@ -242,7 +243,7 @@ class DawgTester:
         self._test_false(u"abs")
         self._test_true(u"halló")
         self._test_true(u"hraðskákmótin")
-        self._test_true(u"jólahraðskákmótið")
+        # self._test_true(u"jólahraðskákmótið") # Longer than 15 letters
         self._test_true(u"nafnskírteinið")
         self._test_false(u"abstraktmálarið")
         self._test_true(u"abstraktmálari")
@@ -304,10 +305,10 @@ class DawgTester:
         word = u"einstök"
         permlist = self._dawg.find_permutations(word)
         t1 = time.time()
-        print(u"Permutations of \"{0}\":".format(word).encode('cp850'))
+        print(u"Permutations of \"{0}\":".format(word))
         cnt = 0
         for word in permlist:
-            print(u"\"{0}\"".format(word).encode('cp850')),
+            print(u"\"{0}\"".format(word)),
             cnt += 1
             if cnt % 6 == 0:
                 print
@@ -322,5 +323,5 @@ class DawgTester:
 def test():
     # Test navivation in the DAWG
     dt = DawgTester()
-    dt.go("ordalisti", "resources")
+    dt.run("ordalisti", "resources")
 

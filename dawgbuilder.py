@@ -9,44 +9,61 @@ to store a large set of words in an efficient structure in terms
 of storage and speed.
 
 The DAWG implementation is partially based on Steve Hanov's work
-(see http://stevehanov.ca/blog/index.php?id=115).
+(see http://stevehanov.ca/blog/index.php?id=115), which references
+a paper by Daciuk et al (http://www.aclweb.org/anthology/J00-1002.pdf).
 
-DawgBuilder reads a set of text files containing plain words,
+This implementation compresses node sequences with single edges between
+them into single multi-letter edges. It also removes redundant edges
+to "pure" final nodes.
+
+DawgBuilder reads a set of text input files containing plain words,
 one word per line, and outputs a text file with a compressed
 graph.
 
-The output file is structured as a sequence of lines where each
-line is as follows:
+The output file is structured as a sequence of lines. Each line
+represents a node in the graph and contains information about
+outgoing edges from the node. Nodes are referred to by their
+line number, where the starting root node is in line 1 and subsequent
+nodes are numbered starting with 2.
 
-[node id] ' ' ['|']['_' prefix ':' nextnode]*
+A node (line) is represented as follows:
 
-The node id is a unique integer or 'Root' for the root node.
-The node id is separated from the rest of the line by a single space.
-If the node is a final node, the next character is a vertical bar
-('|') followed by an underscore.
+['|']['_' prefix ':' nextnode]*
+
+If the node is a final node (i.e. a valid word is completed at
+the node), the first character in the line is
+a vertical bar ('|') followed by an underscore.
 The rest of the line is a sequence of edges where each edge
 is described by a prefix string followed by a colon (':')
-and the (integer) id of the following node. Edges are separated
-by underscores ('_'). The prefix string can contain vertical bars
-indicating that the previous character was a final character
-in a legal word.
+and the line number of the node following that edge. Edges are
+separated by underscores ('_'). The prefix string can contain
+embedded vertical bars indicating that the previous character was
+a final character in a valid word.
 
 Example output:
 
-Root ab:2
-41 |_a:0_ni:0
-99 |_ð:0_nu:0
-28 a:0_um:0_n:30
-12 |_innar:0_stof:21
+ab:2
+|_a:0_ni:3
+|_ð:4_nu:0
+a:0_um:0_n:5
+|_in|nar:0_stof:0
 
-Node 41 is a final node in itself, but also has edges with prefixes "a" and "ni"
-pointing to 0 (a shorthand for terminal, final nodes).
-Node 28 is not a final node, but has edges through "a" to 0, "um" to 0 and "n" to node 30.
+The root (in line 1) has the edge "ab" leading to node 2. This graph thus only
+accepts words starting with the letters "ab".
+Node 2 is a final node (cf. the "|_" at the start), indicating that "ab" is a
+valid word in itself. However there are also edges "a", leading to zero (i.e.
+final) and thus accepting "aba" as valid, and "ni" leading to node 3.
+Node 3 is again a final node, indicating that "abni" is a valid word.
+The edge "ð" leads to node 4 and the edge "nu" is final, meaning that "abninu" is valid.
+Node 4 is not final, but has final edges "a" and "um" so "abniða" and "abniðum" are valid.
+It also has the edge "n" leading to node 5.
+Node 5 is final, so "abniðn" is valid, and the edge "in|nar" means that both
+"abniðnin" and "abniðninnar" are valid, as well as "abniðnstof" (the last edge).
 
 Dictionary structure:
 
 Suppose the dictionary contains two words, 'word' and 'wolf'.
-This will be represented as follows:
+This is represented by Python data structures as follows:
 
 root _Dawg -> {
     'w': _DawgNode(final=False, edges -> {
@@ -71,9 +88,7 @@ import binascii
 import struct
 import io
 
-
 MAXLEN = 48 # Longest possible word to be processed
-
 
 class _DawgNode:
 
@@ -210,7 +225,7 @@ class _Dawg:
         """ Collapse and optimize the edges in the parent dict """
         # Iterate through the letter position and
         # attempt to collapse all "simple" branches from it
-        for letter, node in list(edges.items()):
+        for letter, node in edges.items(): # !!! Was list(edges.items())
             if node:
                 self._collapse_branch(edges, letter, node)
 
@@ -357,7 +372,11 @@ class _Dawg:
 class _BinaryDawgPacker:
 
     """ _BinaryDawgPacker packs the DAWG data to a byte stream.
-        The format is as follows:
+
+        !!! This is not fully implemented and not currently used by the
+        !!! DawgDictionary class in dawgdictionary.py
+
+        The stream format is as follows:
 
         For each node:
             BYTE Node header
@@ -479,6 +498,10 @@ class DawgBuilder:
 
     """ Creates a DAWG from word lists and writes the resulting
         graph to binary or text files.
+
+        The word lists are assumed to be pre-sorted in ascending
+        lexicographic order. They are automatically merged during
+        processing to appear as one aggregated and sorted word list.
     """
 
     def __init__(self):
@@ -517,12 +540,15 @@ class DawgBuilder:
                     return True
 
         def next_word(self):
+            """ Returns the next available word from this input file """
             return None if self._eof else self._nxt
 
         def has_word(self):
+            """ True if a word is available, or False if EOF has been reached """
             return not self._eof
 
         def close(self):
+            """ Close the associated file, if it is still open """
             if self._fin is not None:
                 self._fin.close()
             self._fin = None
@@ -578,7 +604,7 @@ class DawgBuilder:
             word = smallest.next_word()
             incount += 1
             if lastword and locale.strcoll(lastword, word) >= 0:
-                # Something appears to be wrong with the input sort order
+                # Something appears to be wrong with the input sort order.
                 # If it's a duplicate, we don't mind too much, but if it's out
                 # of order, display a warning
                 if locale.strcoll(lastword, word) > 0:
@@ -607,7 +633,7 @@ class DawgBuilder:
     def _output_binary(self, relpath, output):
         """ Write the DAWG to a flattened binary output file with extension '.dawg' """
         assert self._dawg is not None
-        # Experimental / debugging...
+        # !!! Experimental / debugging...
         f = io.BytesIO()
         # Create a packer to flatten the tree onto a binary stream
         p = _BinaryDawgPacker(f)
@@ -633,7 +659,7 @@ class DawgBuilder:
             order. They will be merged in parallel into a single sorted stream and added to the DAWG.
         """
         # inputs is a list of input file names
-        # output is an output file name without file type suffix;
+        # output is an output file name without file type suffix (extension);
         # ".dawg" and ".text.dawg" will be appended depending on output formats
         # relpath is a relative path to the input and output files
         print("DawgBuilder starting...")

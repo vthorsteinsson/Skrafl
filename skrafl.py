@@ -1,7 +1,7 @@
 ﻿
 """ Web server for Scrabble rack permutations
 
-    Original author: Vilhjalmur Thorsteinsson, 2014
+    Author: Vilhjalmur Thorsteinsson, 2014
 
     This web server module uses the Flask framework to implement
     a simple form page where the user can enter a Scrabble rack
@@ -24,7 +24,7 @@ import skraflpermuter
 # Standard Flask initialization
 
 app = Flask(__name__)
-app.config['DEBUG'] = True # !!! Remove this before public deployment
+app.config['DEBUG'] = False
 
 def _process_rack(rack):
     """ Process a given input rack
@@ -40,7 +40,7 @@ def _process_rack(rack):
        return render_template("errorword.html")
 
     t1 = time.time()
-    logging.info(u"Processed rack \"{0}\" in {1:.2f} seconds".format(rack, t1 - t0).encode('latin-1'))
+    logging.info(u"Processed rack \"{0}\" in {1:.2f} seconds".format(rack, t1 - t0).encode('utf-8'))
 
     # The rack was successfully processed and tabulated
     # Show the user a result page
