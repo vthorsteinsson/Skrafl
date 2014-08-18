@@ -40,7 +40,9 @@ def _process_rack(rack):
        return render_template("errorword.html")
 
     t1 = time.time()
-    logging.info(u"Processed rack \"{0}\" in {1:.2f} seconds".format(rack, t1 - t0).encode('utf-8'))
+    # For logging, the 'latin-1' encoding seems to work on App Engine in Windows.
+    # Straight Unicode or utf-8 don't work.
+    logging.info(u"Processed rack \"{0}\" in {1:.2f} seconds".format(rack, t1 - t0).encode("latin-1"))
 
     # The rack was successfully processed and tabulated
     # Show the user a result page

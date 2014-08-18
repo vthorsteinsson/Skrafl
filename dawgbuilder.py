@@ -88,7 +88,10 @@ import binascii
 import struct
 import io
 
+from languages import Icelandic as Icelandic
+
 MAXLEN = 48 # Longest possible word to be processed
+SCRABBLE_MAXLEN = 15 # Longest possible word in a Scrabble database
 
 class _DawgNode:
 
@@ -301,7 +304,7 @@ class _Dawg:
                 s = s + u'|'
             s += u' ' * (50 - len(s))
             s += nx.__str__()
-            print(s.encode('cp850'))
+            print(s)
             if nx and nx.edges:
                 self._dump_level(level + 1, nx.edges)
 
@@ -401,8 +404,8 @@ class _BinaryDawgPacker:
 
     """
 
-    CODING_UCASE = u"AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ"
-    CODING_LCASE = u"aábdðeéfghiíjklmnoóprstuúvxyýþæö"
+    CODING_UCASE = Icelandic.upper
+    CODING_LCASE = Icelandic.order
 
     def __init__(self, stream):
         self._stream = stream
@@ -616,9 +619,9 @@ class DawgBuilder:
                 self._dawg.add_word(word)
                 lastword = word
                 outcount += 1
-            if incount % 1000 == 0:
+            if incount % 5000 == 0:
                 # Progress indicator
-                print "{0}...\r".format(incount),
+                print ("{0}...\r".format(incount)),
             # Advance to the next word in the file we read from
             smallest.read_word()
         # Done merging: close all files
@@ -687,13 +690,13 @@ disallowed = set([u"im", u"ím", u"je", u"oj", u"pé"])
 
 def filter_skrafl(word):
     """ Filtering for Icelandic Scrabble(tm)
-        Exclude words longer than 15 letters (won't fit on board)
+        Exclude words longer than SCRABBLE_MAXLEN letters (won't fit on board)
         Exclude words with non-Icelandic letters, i.e. C, Q, W, Z
         Exclude two-letter words in the word database that are not
             allowed according to Icelandic Scrabble rules
     """
     lenw = len(word)
-    if lenw > 15:
+    if lenw > SCRABBLE_MAXLEN:
         # Too long, not necessary for Scrabble
         return False
     if any(c in word for c in u"cqwz"):

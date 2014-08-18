@@ -45,12 +45,13 @@
          <div class="panel-body">
             <h3>
 {% for ch, l in result.combinations() %}
-               <span display="inline-block"><span class="label label-primary resultword">{{ ch }}</span>
+               <span class="label label-primary resultword">{{ ch }}</span>
 {%- for w in l -%}
-               &nbsp;<a href="/?rack={{ w|urlencode }}"><span class="label label-info resultword">{{ w }}</span></a>
+               
 {%- if loop.index == 1 -%}
-               </span>
+&nbsp;
 {%- endif -%}
+               <a href="/?rack={{ w|urlencode }}"><span class="label label-info resultword">{{ w }}</span></a>
 {% endfor %}
 {% endfor %}
             </h3>

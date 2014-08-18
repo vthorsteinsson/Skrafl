@@ -15,6 +15,8 @@ See also comments in dawgbuilder.py
 import os
 import codecs
 
+from languages import Icelandic as Icelandic
+
 class DawgDictionary:
 
     class _Node:
@@ -195,6 +197,7 @@ class DawgDictionary:
 
     def find_permutations(self, rack):
         """ Returns a list of legal permutations of a rack of letters.
+            The list is sorted in descending order by permutation length.
             The rack may contain question marks '?' as wildcards, matching all letters.
             Question marks should be used carefully as they can
             yield very large result sets.
@@ -208,8 +211,9 @@ class DawgDictionary:
             # No root: no permutations
             return permlist
         self._append_perm_from_node(root, u'', rack, permlist)
-        # Sort in ascending order by length of permutation
-        permlist.sort(key = lambda x: len(x))
+        # Sort in descending order by length of permutation
+        # and within that, in ascending lexicographic order
+        permlist.sort(key = lambda x: (-len(x), Icelandic.sortkey(x)))
         return permlist
 
 import time
@@ -220,15 +224,15 @@ class DawgTester:
         self._dawg = None
 
     def _test(self, word):
-        print(u"\"{0}\" is {1}found".format(word, u"" if self._dawg.find(word) else u"not ").encode('cp850'))
+        print(u"\"{0}\" is {1}found".format(word, u"" if self._dawg.find(word) else u"not "))
 
     def _test_true(self, word):
         if not self._dawg.find(word):
-            print(u"Error: \"{0}\" was not found".format(word).encode('cp850'))
+            print(u"Error: \"{0}\" was not found".format(word))
 
     def _test_false(self, word):
         if self._dawg.find(word):
-            print(u"Error: \"{0}\" was found".format(word).encode('cp850'))
+            print(u"Error: \"{0}\" was found".format(word))
 
     def run(self, fname, relpath):
         """ Load a DawgDictionary and test its functionality """
@@ -296,13 +300,11 @@ class DawgTester:
             u"æð", u"æf", u"æg", u"æi", u"æl", u"æp", u"ær", u"æs", u"æt",
             u"öl", u"ör", u"ös", u"öt", u"öx"]
 
-        letters = u'aábdðeéfghiíjklmnoóprstuúvxyýþæö'
-
         print("Checking small words:")
 
         # Check all possible two-letter combinations, allowing only those in the list
-        for first in letters:
-            for second in letters:
+        for first in Icelandic.order:
+            for second in Icelandic.order:
                 word = first + second
                 if word in smallwords:
                     self._test_true(word)

@@ -29,46 +29,7 @@ import time
 
 import dawgdictionary
 
-# Dictionary of Icelandic scrabble letter scores
-
-_scores = {
-    u'a': 1,
-    u'á': 4,
-    u'b': 6,
-    u'd': 4,
-    u'ð': 2,
-    u'e': 1,
-    u'é': 6,
-    u'f': 3,
-    u'g': 2,
-    u'h': 3,
-    u'i': 1,
-    u'í': 4,
-    u'j': 5,
-    u'k': 2,
-    u'l': 2,
-    u'm': 2,
-    u'n': 1,
-    u'o': 3,
-    u'ó': 6,
-    u'p': 8,
-    u'r': 1,
-    u's': 1,
-    u't': 1,
-    u'u': 1,
-    u'ú': 8,
-    u'v': 3,
-    u'x': 10,
-    u'y': 7,
-    u'ý': 9,
-    u'þ': 4,
-    u'æ': 5,
-    u'ö': 7
-}
-
-# Sort ordering of Icelandic letters
-_order = u'aábdðeéfghiíjklmnoóprstuúvxyýþæö'
-_upper = u'AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ'
+from languages import Icelandic as Icelandic
 
 # Singleton instance of Referee class that manages the list of legal words
 
@@ -179,15 +140,15 @@ class Tabulator:
         try:
             for c in rack:
                 ch = c
-                if ch in _upper:
+                if ch in Icelandic.upper:
                     # Uppercase: find corresponding lowercase letter
-                    ch = _order[_upper.index(ch)]
+                    ch = Icelandic.lowercase(ch)
                 if ch in u'?_*':
                     # This is one of the allowed wildcard characters
                     wildcards += 1
                     ch = u'?'
                 else:
-                    score += _scores[ch]
+                    score += Icelandic.scores[ch]
                 rack_lower += ch
         except KeyError:
             # A letter in the rack is not valid, even after conversion to lower case
@@ -197,17 +158,20 @@ class Tabulator:
             return False
         # The rack contains only valid letters
         self._rack = rack_lower
-        # Check combinations with one additional letter
-        # !!! TBD !!!: leftover from older code; will be optimized to one graph traversal
-        for i in _order:
-            # Permute the rack with the additional letter
-            p = self._word_db.find_permutations(self._rack + i)
-            # Check the permutations to find valid words and their scores
-            if p is not None:
-                result = [word for word in p if len(word) == len(self._rack) + 1]
-                if result:
-                    # We found at least one legal word from the combinations with this letter
-                    self._add_combination(i, result)
+        if not wildcards:
+            # If no wildcards given, check combinations with one additional letter
+            # !!! TBD !!!: leftover from older code; will be optimized to one graph traversal
+            for i in Icelandic.order:
+                # Permute the rack with the additional letter
+                p = self._word_db.find_permutations(self._rack + i)
+                # Check the permutations to find valid words and their scores
+                if p is not None:
+                    result = [word for word in p if len(word) == len(self._rack) + 1]
+                    if result:
+                        # We found at least one legal word from the combinations with this letter
+                        # Sort the result list in ascending order
+                        Icelandic.sort(result)
+                        self._add_combination(i, result)
         # Check permutations
         # The shortest possible rack to check for permutations is 2 letters
         if len(self._rack) < 2:
@@ -215,7 +179,18 @@ class Tabulator:
         p = self._word_db.find_permutations(self._rack)
         if p is not None:
             for word in p:
-                self._add_permutation(word, self.score(word))
+                if len(word) > 1:
+                    # Don't show single letter words
+                    score = self.score(word)
+                    if wildcards:
+                        # Don't count the score of the wildcard tile
+                        # (The code below is not terribly efficient but also not time critical)
+                        wchars = word
+                        for c in self._rack:
+                            wchars = wchars.replace(c, u'', 1)
+                        # What we have left are the wildcard substitutes
+                        score -= self.score(wchars)
+                    self._add_permutation(word, score)
         # Successful
         return True
 
@@ -224,7 +199,7 @@ class Tabulator:
         if word is None:
             return 0
         try:
-            s = reduce(lambda x, y: x + _scores[y], word, 0)
+            s = reduce(lambda x, y: x + Icelandic.scores[y], word, 0)
         except KeyError:
             # Word contains an unrecognized letter: return a zero score
             s = 0
@@ -273,7 +248,7 @@ class Tabulator:
         lc = list(self._combinations.items())
         if lc:
             # Sort the combinations properly in alphabetical order before returning them
-           lc.sort(key = lambda x: _order.index(x[0]))
+           lc.sort(key = lambda x: Icelandic.order.index(x[0]))
            return lc
         # No combinations
         return None
