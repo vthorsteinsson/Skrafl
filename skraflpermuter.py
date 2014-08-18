@@ -158,6 +158,12 @@ class Tabulator:
 
     def process(self, rack):
         """ Iterate over all permutations of the rack, i.e. with length from 2 to the rack length """
+        # Start with basic hygiene
+        if not rack:
+            return False
+        rack = rack.strip()
+        if not rack:
+            return False
         # Make sure we reset all state in case we're called multiple times
         self._counter = 0
         self._allwords = []
@@ -169,16 +175,25 @@ class Tabulator:
         # checking whether all the letters are valid
         score = 0
         rack_lower = u'' # Rack converted to lowercase
+        wildcards = 0 # Number of wildcard characters
         try:
             for c in rack:
                 ch = c
                 if ch in _upper:
                     # Uppercase: find corresponding lowercase letter
                     ch = _order[_upper.index(ch)]
-                score += _scores[ch]
+                if ch in u'?_*':
+                    # This is one of the allowed wildcard characters
+                    wildcards += 1
+                    ch = u'?'
+                else:
+                    score += _scores[ch]
                 rack_lower += ch
         except KeyError:
             # A letter in the rack is not valid, even after conversion to lower case
+            return False
+        if wildcards > 2:
+            # Too many wildcards - need to constrain result set size
             return False
         # The rack contains only valid letters
         self._rack = rack_lower

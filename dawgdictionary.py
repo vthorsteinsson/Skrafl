@@ -145,9 +145,9 @@ class DawgDictionary:
             # Nothing more to do (we assume that a match has already been recorded)
             return
         # Go through the edges of this node and follow all that match a
-        # letter in the rack
+        # letter in the rack (which can be '?', matching all edges)
         for prefix, nextnode in node.edges.items():
-            if prefix[0] in rack:
+            if (prefix[0] in rack) or (u'?' in rack):
                 # This edge is a candidate: navigate through it
                 self._append_perm_from_edge(matched, rack, prefix, nextnode, permlist)
 
@@ -156,13 +156,18 @@ class DawgDictionary:
         lenp = len(prefix)
         j = 0
         while j < lenp and rack:
-            if prefix[j] not in rack:
+            # We first try an exact match and only resort to the wildcard '?' if necessary
+            exactmatch = prefix[j] in rack
+            if (not exactmatch) and (u'?' not in rack):
                 # Can't continue with this prefix - we no longer have rack letters matching it
                 return
             # Add a letter to the matched path
             matched += prefix[j]
-            # Remove the letter from the rack
-            rack = rack.replace(prefix[j], '', 1)
+            # Remove the letter or the wildcard from the rack
+            if exactmatch:
+                rack = rack.replace(prefix[j], '', 1)
+            else:
+                rack = rack.replace(u'?', '', 1)
             # So far, we have a match
             j += 1
             final = False
@@ -189,7 +194,11 @@ class DawgDictionary:
             self._append_perm_from_node(nextnode, matched, rack, permlist)
 
     def find_permutations(self, rack):
-        """ Returns a list of legal permutations of a rack of letters """
+        """ Returns a list of legal permutations of a rack of letters.
+            The rack may contain question marks '?' as wildcards, matching all letters.
+            Question marks should be used carefully as they can
+            yield very large result sets.
+        """
         permlist = []
         if self._nodes is None:
             # No graph: no permutations
