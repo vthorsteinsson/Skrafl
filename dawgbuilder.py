@@ -40,25 +40,38 @@ separated by underscores ('_'). The prefix string can contain
 embedded vertical bars indicating that the previous character was
 a final character in a valid word.
 
-Example output:
+Example:
 
-ab:2
-|_a:0_ni:3
-|_ð:4_nu:0
-a:0_um:0_n:5
-|_in|nar:0_stof:0
+The following input word list (cf. http://tinyurl.com/kvhbyo2):
 
-The root (in line 1) has the edge "ab" leading to node 2. This graph thus only
-accepts words starting with the letters "ab".
-Node 2 is a final node (cf. the "|_" at the start), indicating that "ab" is a
-valid word in itself. However there are also edges "a", leading to zero (i.e.
-final) and thus accepting "aba" as valid, and "ni" leading to node 3.
-Node 3 is again a final node, indicating that "abni" is a valid word.
-The edge "ð" leads to node 4 and the edge "nu" is final, meaning that "abninu" is valid.
-Node 4 is not final, but has final edges "a" and "um" so "abniða" and "abniðum" are valid.
-It also has the edge "n" leading to node 5.
-Node 5 is final, so "abniðn" is valid, and the edge "in|nar" means that both
-"abniðnin" and "abniðninnar" are valid, as well as "abniðnstof" (the last edge).
+car
+cars
+cat
+cats
+do
+dog
+dogs
+done
+ear
+ears
+eat
+eats
+
+generates this output graph:
+
+do:3_ca:2_ea:2
+t|s:0_r|s:0
+|_g|s:0_ne:0
+
+The root node in line 1 has three outgoing edges, "do" to node 3, "ca" to node 2, and "ea" to node 2.
+
+Node 2 (in line 2) has two edges, "t|s" to node 0 and "r|s" to node 0. This means that "cat" and
+"cats", "eat" and "eats" are valid words (on the first edge), as well as "car" and "cars",
+"ear" and "ears" (on the second edge).
+
+Node 3 (in line 3) is itself a final node, denoted by the vertical bar at the start of the line.
+Thus, "do" (coming in from the root) is a valid word, but so are "dog" and "dogs" (on the first edge)
+as well as "done" (on the second edge).
 
 Dictionary structure:
 
@@ -708,6 +721,20 @@ def filter_skrafl(word):
     return True
 
 import time
+
+def run_test():
+    """ Build a DAWG from the files listed """
+    # This creates a DAWG from a single file named testwords.txt
+    print(u"Starting DAWG build for testwords.txt")
+    db = DawgBuilder()
+    t0 = time.time()
+    # "isl" specifies Icelandic sorting order - modify this for other languages
+    db.build(
+        ["testwords.txt"], # Input files to be merged
+        "testwords", # Output file - full name will be ordalisti-bin.text.dawg
+        "resources") # Subfolder of input and output files
+    t1 = time.time()
+    print("Build took {0:.2f} seconds".format(t1 - t0))
 
 def run_full_bin():
     """ Build a DAWG from the files listed """
