@@ -1,5 +1,34 @@
 ## Skraflhjálp (Scrabble Helper)
 
+### English summary
+
+This set of pure Python 2.7 programs and modules implements a word permutation
+engine for the Icelandic language. The engine is helpful for Scrabble players, crossword
+enthusiasts and others who are interested in fast and flexible Icelandic dictionary
+lookup. The software uses a *DAWG* (*Directed Acyclic Word Graph*, also called
+*Minimal Acyclic Finite State Automaton*, *MA-FSA*) to store the dictionary in a
+compact - yet Pythonistic - text-based form for very fast lookup and permutation,
+even of long letter sequences.
+
+The algorithm for building an optimal DAWG from lists of valid words is based on the theory
+of [Daciuk et al](http://www.aclweb.org/anthology/J00-1002.pdf), with reference
+to [Steve Hanov's implementation](http://stevehanov.ca/blog/index.php?id=115)
+(and a nod to [ftbe's Go code on GitHub](https://github.com/ftbe/dawg)).
+However it optimizes further than Hanov does by collapsing chains of nodes connected by single
+edges into multi-letter edges, reducing the node count significantly.
+
+At run time, permutations are found in an efficient way, even in the presence of
+wildcards (blank tiles), by direct traversal of the graph.
+For details see the ```dawgbuilder.py``` and ```dawgdictionary.py``` files.
+
+The code builds a 103,000 node DAWG for the Icelandic language, 2.6 million words, in about
+160 seconds on a medium-powered Windows desktop PC. The resulting graph structure takes
+under 4 seconds to load into memory. Generation of all permutations
+of a 7-letter Scrabble rack, as well as combinations of the rack with one
+additional letter, typically takes 30-70 milliseconds.
+
+### Íslenskt yfirlit
+
 Vefur sem hjálpar skröflurum að finna orð í rekkanum og tengja þau við stafi sem fyrir eru.
 
 Vefurinn er byggður á Python 2.7 og notar [Flask](http://flask.pocoo.org/)
@@ -10,11 +39,11 @@ mismunandi skjám, þ.e. síma, spjaldtölvu eða borðtölvu.
 
 Vefinn má nálgast á [http://skraflhjalp.appspot.com](http://skraflhjalp.appspot.com)
 
-## Notkun vefsins
+### Notkun vefsins
 Ef farið er inn á vefslóðina / kemur upp aðalsíða Skraflhjálpar.
 Slóðin /help gefur hjálparsíðu.
 
-## Til að keyra á eigin tölvu
+### Til að keyra á eigin tölvu
 1. Settu upp [Python 2.7](https://www.python.org/download/releases/2.7.8/).
 
 2. Sæktu þetta Git safn:
@@ -52,5 +81,6 @@ Slóðin /help gefur hjálparsíðu.
    
    Venjuleg Python 2.7 uppsetning með Flask/Werkzeug [http://localhost:5000](http://localhost:5000)
 
-## Höfundur
+### Höfundur
 Vilhjálmur Þorsteinsson
+
