@@ -2,12 +2,12 @@
 
 ### English summary
 
-This set of pure Python 2.7 programs and modules implements a word permutation
+This set of pure Python 2.7 programs and modules implements a dictionary and word permutation
 engine that is the core of an [Icelandic Scrabble Helper website](http://skraflhjalp.appspot.com).
 
 The web and its engine are helpful for Scrabble players, crossword
 enthusiasts and others - including programmers - who are interested in fast and
-flexible dictionary lookup, for Icelandic and other languages.
+flexible dictionary implementation, for Icelandic and other languages.
 
 The software uses a *DAWG* (*Directed Acyclic Word Graph*, also called
 *Minimal Acyclic Finite State Automaton*, *MA-FSA*) to store the dictionary in a
