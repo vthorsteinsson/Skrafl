@@ -731,7 +731,22 @@ def run_test():
     # "isl" specifies Icelandic sorting order - modify this for other languages
     db.build(
         ["testwords.txt"], # Input files to be merged
-        "testwords", # Output file - full name will be ordalisti-bin.text.dawg
+        "testwords", # Output file - full name will be testwords.text.dawg
+        "resources") # Subfolder of input and output files
+    t1 = time.time()
+    print("Build took {0:.2f} seconds".format(t1 - t0))
+
+def run_twl06():
+    """ Build a DAWG from the files listed """
+    # This creates a DAWG from a single file named TWL06.txt,
+    # the Scrabble Tournament Word List version 6
+    print(u"Starting DAWG build for TWL06.txt")
+    db = DawgBuilder()
+    t0 = time.time()
+    # "isl" specifies Icelandic sorting order - modify this for other languages
+    db.build(
+        ["TWL06.txt"], # Input files to be merged
+        "TWL06", # Output file - full name will be TWL06.text.dawg
         "resources") # Subfolder of input and output files
     t1 = time.time()
     print("Build took {0:.2f} seconds".format(t1 - t0))

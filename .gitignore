@@ -10,6 +10,8 @@ __pycache__/
 
 # Original files from BIN
 resources/smaord.txt
+resources/TWL06.txt
+resources/testwords.txt
 
 # Distribution / packaging
 .Python
