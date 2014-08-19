@@ -3,9 +3,13 @@
 ### English summary
 
 This set of pure Python 2.7 programs and modules implements a word permutation
-engine for the Icelandic language. The engine is helpful for Scrabble players, crossword
-enthusiasts and others who are interested in fast and flexible Icelandic dictionary
-lookup. The software uses a *DAWG* (*Directed Acyclic Word Graph*, also called
+engine that is the core of an [Icelandic Scrabble Helper website](http://skraflhjalp.appspot.com).
+
+The web and its engine are helpful for Scrabble players, crossword
+enthusiasts and others - including programmers - who are interested in fast and
+flexible dictionary lookup, for Icelandic and other languages.
+
+The software uses a *DAWG* (*Directed Acyclic Word Graph*, also called
 *Minimal Acyclic Finite State Automaton*, *MA-FSA*) to store the dictionary in a
 compact - yet Pythonistic - text-based form for very fast lookup and permutation,
 even of long letter sequences.
@@ -22,10 +26,14 @@ wildcards (blank tiles), by direct traversal of the graph.
 For details see the ```dawgbuilder.py``` and ```dawgdictionary.py``` files.
 
 The code builds a 103,000 node DAWG for the Icelandic language, 2.6 million words, in about
-160 seconds on a medium-powered Windows desktop PC. The resulting graph structure takes
-under 4 seconds to load into memory. Generation of all permutations
-of a 7-letter Scrabble rack, as well as combinations of the rack with one
-additional letter, typically takes 30-70 milliseconds.
+160 seconds on a medium-powered Windows desktop PC. The resulting graph structure is stored
+in a 3,466 KB file and takes under 4 seconds to load into memory.
+
+For English, it converts the 178,691 words of the Scrabble Tournament World List v6 (TWL06)
+into a graph of 29,691 nodes in under 10 seconds. The resulting .dawg.text file is 772 KB.
+
+Generation of all permutations of a 7-letter Scrabble rack, as well as combinations of the
+rack with one additional letter, typically takes 30-70 milliseconds.
 
 ### Íslenskt yfirlit
 
