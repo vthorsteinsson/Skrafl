@@ -17,7 +17,8 @@ rack with a single additional letter.
 
 WordDatabase can judge whether a particular word is valid
 in (Icelandic) Scrabble. It uses a preprocessed word graph
-loaded from text files.
+(DAWG) loaded from a text file. The word graph is implemented
+in class DawgDictionary in dawgdictionary.py.
 
 """
 
@@ -31,7 +32,6 @@ import dawgdictionary
 
 from languages import Icelandic as Icelandic
 
-# Singleton instance of Referee class that manages the list of legal words
 
 class WordDatabase:
 
@@ -43,10 +43,11 @@ class WordDatabase:
 
     The word database is fairly big (several megabytes) so it is important to avoid multiple
     instances of it. The Tabulator implementation below makes sure to use a singleton
-    instance of this class, in the class variable _word_db, across all invocations.
+    instance of the WordDatabase class, in the class variable _word_db, across all invocations.
 
     The word graph is loaded from a text file, 'ordalisti.text.dawg', assumed to be in
-    the 'resources' folder. The file is generated using DawgBuilder.build() in dawgbuilder.py.
+    the 'resources' folder. This file is separately pre-generated using DawgBuilder.run_skrafl()
+    in dawgbuilder.py.
 
     The graph contains a cleaned-up version of a database originally from bin.arnastofnun.is,
     used under license conditions from "Stofnun Árna Magnússonar í íslenskum fræðum".
@@ -64,12 +65,12 @@ class WordDatabase:
             # Already loaded, nothing to do
             return
         fname = os.path.abspath(os.path.join("resources", "ordalisti.text.dawg"))
-        logging.info("Loading graph from file {0}".format(fname))
+        logging.info(u"Loading graph from file {0}".format(fname))
         t0 = time.time()
         self._dawg = dawgdictionary.DawgDictionary()
         self._dawg.load(fname)
         t1 = time.time()
-        logging.info("Loaded {0} graph nodes in {1:.2f} seconds".format(self._dawg.num_nodes(), t1 - t0))
+        logging.info(u"Loaded {0} graph nodes in {1:.2f} seconds".format(self._dawg.num_nodes(), t1 - t0))
 
     def initialize(self):
         """ Force preloading of word lists into memory """
@@ -97,12 +98,16 @@ class WordDatabase:
 
 class Tabulator:
 
-    """ Processes and tabulates the possibilities within a given rack that is passed to the constructor.
+    """ Processes and tabulates the possible permutations and combinations
+        within a given rack.
 
-    The rack should normally be 1..7 letters in length.
+        An instance of this class is passed to the result.html web page
+        for display using the Jinja2 template mechanism.
 
     """
 
+    # A singleton instance of the WordDatabase class, used by
+    # all Tabulator instances throughout a server session
     _word_db = None
 
     def __init__(self):
@@ -114,11 +119,14 @@ class Tabulator:
         self._rack = u''
         self._rack_is_valid = False # True if the rack is itself a valid word
         if Tabulator._word_db is None:
-            # The Referee word graph will be lazily loaded from file upon first use
+            # The word database will be lazily loaded from file upon first use
             Tabulator._word_db = WordDatabase()
 
     def process(self, rack):
-        """ Iterate over all permutations of the rack, i.e. with length from 2 to the rack length """
+        """ Generate the data that will be shown to the user on the result page.
+            This includes a list of permutations of the rack, as well as combinations
+            of the rack with a single additional letter. High scoring words are also
+            tabulated. """
         # Start with basic hygiene
         if not rack:
             return False
@@ -177,20 +185,23 @@ class Tabulator:
         if len(self._rack) < 2:
             return True
         p = self._word_db.find_permutations(self._rack)
-        if p is not None:
-            for word in p:
-                if len(word) > 1:
-                    # Don't show single letter words
-                    score = self.score(word)
-                    if wildcards:
-                        # Don't count the score of the wildcard tile
-                        # (The code below is not terribly efficient but also not time critical)
-                        wchars = word
-                        for c in self._rack:
-                            wchars = wchars.replace(c, u'', 1)
-                        # What we have left are the wildcard substitutes
-                        score -= self.score(wchars)
-                    self._add_permutation(word, score)
+        if p is None:
+            return True
+        for word in p:
+            if len(word) < 2:
+                # Don't show single letter words
+                continue
+            # Calculate the basic score of the word
+            score = self.score(word)
+            if wildcards:
+                # Complication: Make sure we don't count the score of the wildcard tile
+                # (The code below is not terribly efficient but also not time critical)
+                wchars = word
+                for c in self._rack:
+                    wchars = wchars.replace(c, u'', 1)
+                # What we have left are the wildcard substitutes: subtract'em
+                score -= self.score(wchars)
+            self._add_permutation(word, score)
         # Successful
         return True
 
@@ -199,7 +210,7 @@ class Tabulator:
         if word is None:
             return 0
         try:
-            s = reduce(lambda x, y: x + Icelandic.scores[y], word, 0)
+            s = sum(Icelandic.scores[c] for c in word)
         except KeyError:
             # Word contains an unrecognized letter: return a zero score
             s = 0
