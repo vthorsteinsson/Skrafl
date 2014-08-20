@@ -95,6 +95,15 @@ class WordDatabase:
         assert self._dawg is not None
         return self._dawg.find_permutations(rack)
 
+    def find_matches(self, pattern):
+        """ Find all words that match a pattern """
+        if not pattern:
+            return None
+        if self._dawg is None:
+            self._load()
+        assert self._dawg is not None
+        return self._dawg.find_matches(pattern)
+
 
 class Tabulator:
 
@@ -118,6 +127,7 @@ class Tabulator:
         self._combinations = { }
         self._rack = u''
         self._rack_is_valid = False # True if the rack is itself a valid word
+        self._pattern = False # True if the result is a pattern match ('=')
         if Tabulator._word_db is None:
             # The word database will be lazily loaded from file upon first use
             Tabulator._word_db = WordDatabase()
@@ -140,11 +150,19 @@ class Tabulator:
         self._highwords = []
         self._combinations = { }
         self._rack = u''
+        self._pattern = False
         # Do a sanity check on the input by calculating its raw score, thereby
         # checking whether all the letters are valid
         score = 0
         rack_lower = u'' # Rack converted to lowercase
         wildcards = 0 # Number of wildcard characters
+        # If the rack starts with an equals sign ('=') we do a pattern match
+        # instead of a permutation search
+        if rack[0] == u'=':
+            self._pattern = True
+            rack = rack[1:]
+        # Sanitize the rack, converting upper case to lower case and
+        # catching invalid characters
         try:
             for c in rack:
                 ch = c
@@ -161,12 +179,12 @@ class Tabulator:
         except KeyError:
             # A letter in the rack is not valid, even after conversion to lower case
             return False
-        if wildcards > 2:
-            # Too many wildcards - need to constrain result set size
+        if not self._pattern and (wildcards > 2):
+            # Too many wildcards in a permutation search - need to constrain result set size
             return False
         # The rack contains only valid letters
         self._rack = rack_lower
-        if not wildcards:
+        if not self._pattern and not wildcards:
             # If no wildcards given, check combinations with one additional letter
             # !!! TBD !!!: leftover from older code; will be optimized to one graph traversal
             for i in Icelandic.order:
@@ -184,7 +202,12 @@ class Tabulator:
         # The shortest possible rack to check for permutations is 2 letters
         if len(self._rack) < 2:
             return True
-        p = self._word_db.find_permutations(self._rack)
+        if self._pattern:
+            # Use pattern matching
+            p = self._word_db.find_matches(self._rack)
+        else:
+            # Find permutations
+            p = self._word_db.find_permutations(self._rack)
         if p is None:
             return True
         for word in p:
@@ -193,7 +216,7 @@ class Tabulator:
                 continue
             # Calculate the basic score of the word
             score = self.score(word)
-            if wildcards:
+            if wildcards and not self._pattern:
                 # Complication: Make sure we don't count the score of the wildcard tile
                 # (The code below is not terribly efficient but also not time critical)
                 wchars = word
@@ -233,8 +256,8 @@ class Tabulator:
         self._combinations[ch] = wordlist
 
     def rack(self):
-        """ Returns the rack that has been tabulated """
-        return self._rack
+        """ Returns a display form of the rack that was tabulated """
+        return (u'= ' + self._rack) if self._pattern else self._rack
 
     def count(self):
         """ Returns a count of all valid letter permutations in the rack """

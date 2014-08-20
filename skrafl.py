@@ -69,8 +69,8 @@ def main():
             rack = u''
     if rack:
         # We have something to do: process the entered rack
-        # Currently we do not do anything useful with racks of more than 7 characters
-        rack = rack[0:7]
+        # Currently we do not do anything useful with racks of more than 15 characters
+        rack = rack[0:15]
         return _process_rack(rack)
     # If nothing to do, just show the main rack entry form
     return render_template("main.html")
