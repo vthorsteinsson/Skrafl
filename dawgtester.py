@@ -14,7 +14,7 @@ import time
 
 from dawgdictionary import DawgDictionary
 
-from languages import Icelandic
+from languages import Alphabet
 
 class DawgTester:
 
@@ -102,8 +102,8 @@ class DawgTester:
         print("Checking small words:")
 
         # Check all possible two-letter combinations, allowing only those in the list
-        for first in Icelandic.order:
-            for second in Icelandic.order:
+        for first in Alphabet.order:
+            for second in Alphabet.order:
                 word = first + second
                 if word in smallwords:
                     self._test_true(word)

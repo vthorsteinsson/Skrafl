@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 
-""" The classes in this module encapsulate particulars of supported
+""" Language and alphabet encapsulation module
+
+    Author: Vilhjalmur Thorsteinsson, 2014
+
+    The classes in this module encapsulate particulars of supported
     languages.
 
     Currently the only supported language is Icelandic.
 
 """
 
-class Icelandic:
+class Alphabet:
 
-    """ Class Icelandic encapsulates particulars of the Icelandic language
-        and Scrabble rules. Add similar data and functions for
-        other languages.
+    """ This implementation of the Alphabet class encapsulates particulars of the Icelandic
+        language and Scrabble rules. Other languages can be supported by modifying
+        or subclassing this class.
     """
 
     # Dictionary of Scrabble letter scores
@@ -58,17 +62,29 @@ class Icelandic:
 
     @staticmethod
     def lowercase(ch):
-        return Icelandic.order[Icelandic.upper.index(ch)]
+        """ Convert an uppercase character to lowercase """
+        return Alphabet.order[Alphabet.upper.index(ch)]
 
     @staticmethod
     def sortkey(word):
-        return [Icelandic.order.index(ch) for ch in word]
+        """ Return a sort key with the proper lexicographic ordering
+            for the given word. """
+        # This assumes that Alphabet.order is correctly ordered in ascending order.
+        return [Alphabet.order.index(ch) for ch in word]
 
     @staticmethod
     def sort(l):
-        l.sort(key = Icelandic.sortkey)
+        """ Sort a list in-place by lexicographic ordering according to this Alphabet """
+        l.sort(key = Alphabet.sortkey)
 
     @staticmethod
     def sorted(l):
-        return sorted(l, key = Icelandic.sortkey)
+        """ Return a list sorted by lexicographic ordering according to this Alphabet """
+        return sorted(l, key = Alphabet.sortkey)
 
+    @staticmethod
+    def string_subtract(a, b):
+        """ Subtract all letters in b from a, counting each instance separately """
+        # Note that this cannot be done with sets, as they fold multiple letter instances into one
+        lcount = [a.count(c) - b.count(c) for c in Alphabet.order]
+        return u''.join([Alphabet.order[ix] * lcount[ix] for ix in range(len(lcount)) if lcount > 0])

@@ -30,7 +30,7 @@ import time
 
 import dawgdictionary
 
-from languages import Icelandic as Icelandic
+from languages import Alphabet
 
 
 class WordDatabase:
@@ -166,15 +166,15 @@ class Tabulator:
         try:
             for c in rack:
                 ch = c
-                if ch in Icelandic.upper:
+                if ch in Alphabet.upper:
                     # Uppercase: find corresponding lowercase letter
-                    ch = Icelandic.lowercase(ch)
+                    ch = Alphabet.lowercase(ch)
                 if ch in u'?_*':
                     # This is one of the allowed wildcard characters
                     wildcards += 1
                     ch = u'?'
                 else:
-                    score += Icelandic.scores[ch]
+                    score += Alphabet.scores[ch]
                 rack_lower += ch
         except KeyError:
             # A letter in the rack is not valid, even after conversion to lower case
@@ -184,20 +184,20 @@ class Tabulator:
             return False
         # The rack contains only valid letters
         self._rack = rack_lower
+        # Generate combinations
         if not self._pattern and not wildcards:
             # If no wildcards given, check combinations with one additional letter
-            # !!! TBD !!!: leftover from older code; will be optimized to one graph traversal
-            for i in Icelandic.order:
-                # Permute the rack with the additional letter
-                p = self._word_db.find_permutations(self._rack + i)
-                # Check the permutations to find valid words and their scores
-                if p is not None:
-                    result = [word for word in p if len(word) == len(self._rack) + 1]
-                    if result:
-                        # We found at least one legal word from the combinations with this letter
-                        # Sort the result list in ascending order
-                        Icelandic.sort(result)
-                        self._add_combination(i, result)
+            query = self._rack + u'?'
+            # Permute the rack with one additional letter
+            p = self._word_db.find_permutations(query)
+            # Check the permutations to find valid words and their scores
+            if p is not None:
+                for word in p:
+                    # Only interested in full-length permutations, i.e. with the additional letter
+                    if len(word) == len(query):
+                        # Find out which letter was added
+                        addedletter = Alphabet.string_subtract(word, self._rack)
+                        self._add_combination(addedletter, word)
         # Check permutations
         # The shortest possible rack to check for permutations is 2 letters
         if len(self._rack) < 2:
@@ -217,13 +217,10 @@ class Tabulator:
             # Calculate the basic score of the word
             score = self.score(word)
             if wildcards and not self._pattern:
-                # Complication: Make sure we don't count the score of the wildcard tile
-                # (The code below is not terribly efficient but also not time critical)
-                wchars = word
-                for c in self._rack:
-                    wchars = wchars.replace(c, u'', 1)
+                # Complication: Make sure we don't count the score of the wildcard tile(s)
+                wildchars = Alphabet.string_subtract(word, self._rack)
                 # What we have left are the wildcard substitutes: subtract'em
-                score -= self.score(wchars)
+                score -= self.score(wildchars)
             self._add_permutation(word, score)
         # Successful
         return True
@@ -233,7 +230,7 @@ class Tabulator:
         if word is None:
             return 0
         try:
-            s = sum(Icelandic.scores[c] for c in word)
+            s = sum(Alphabet.scores[c] for c in word)
         except KeyError:
             # Word contains an unrecognized letter: return a zero score
             s = 0
@@ -251,9 +248,12 @@ class Tabulator:
             # Equal score to the previous high scorer: append to the list
             self._highwords.append(word)
 
-    def _add_combination(self, ch, wordlist):
+    def _add_combination(self, ch, word):
         """ Add to a list of legal combinations that are possible if the letter ch is added to the rack """
-        self._combinations[ch] = wordlist
+        if ch in self._combinations:
+            self._combinations[ch].append(word)
+        else:
+            self._combinations[ch] = [word]
 
     def rack(self):
         """ Returns a display form of the rack that was tabulated """
@@ -282,7 +282,7 @@ class Tabulator:
         lc = list(self._combinations.items())
         if lc:
             # Sort the combinations properly in alphabetical order before returning them
-           lc.sort(key = lambda x: Icelandic.order.index(x[0]))
+           lc.sort(key = lambda x: Alphabet.order.index(x[0]))
            return lc
         # No combinations
         return None

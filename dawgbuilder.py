@@ -101,7 +101,7 @@ import binascii
 import struct
 import io
 
-from languages import Icelandic as Icelandic
+from languages import Alphabet
 
 MAXLEN = 48 # Longest possible word to be processed
 SCRABBLE_MAXLEN = 15 # Longest possible word in a Scrabble database
@@ -417,8 +417,8 @@ class _BinaryDawgPacker:
 
     """
 
-    CODING_UCASE = Icelandic.upper
-    CODING_LCASE = Icelandic.order
+    CODING_UCASE = Alphabet.upper
+    CODING_LCASE = Alphabet.order
 
     def __init__(self, stream):
         self._stream = stream
@@ -728,7 +728,6 @@ def run_test():
     print(u"Starting DAWG build for testwords.txt")
     db = DawgBuilder()
     t0 = time.time()
-    # "isl" specifies Icelandic sorting order - modify this for other languages
     db.build(
         ["testwords.txt"], # Input files to be merged
         "testwords", # Output file - full name will be testwords.text.dawg
@@ -743,7 +742,6 @@ def run_twl06():
     print(u"Starting DAWG build for TWL06.txt")
     db = DawgBuilder()
     t0 = time.time()
-    # "isl" specifies Icelandic sorting order - modify this for other languages
     db.build(
         ["TWL06.txt"], # Input files to be merged
         "TWL06", # Output file - full name will be TWL06.text.dawg

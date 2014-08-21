@@ -35,7 +35,7 @@ Test code for this module is found in dawgtester.py
 import os
 import codecs
 
-from languages import Icelandic
+from languages import Alphabet
 
 class DawgDictionary:
 
@@ -238,7 +238,7 @@ class DawgDictionary:
             return matchlist
         self._match_from_node(root, pattern, 0, u'', matchlist)
         # Sort results in ascending lexicographic order
-        matchlist.sort(key = lambda x: Icelandic.sortkey(x))
+        matchlist.sort(key = Alphabet.sortkey)
         return matchlist
 
     def _perm_from_node(self, node, matched, rack, permlist):
@@ -316,6 +316,6 @@ class DawgDictionary:
         self._perm_from_node(root, u'', rack, permlist)
         # Sort in descending order by length of permutation
         # and within that, in ascending lexicographic order
-        permlist.sort(key = lambda x: (-len(x), Icelandic.sortkey(x)))
+        permlist.sort(key = lambda x: (-len(x), Alphabet.sortkey(x)))
         return permlist
 
