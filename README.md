@@ -1,11 +1,11 @@
-## Skraflhjálp (Scrabble Helper)
+## Skraflhjálp (Scrabble(tm) Helper)
 
 ### English summary
 
 This set of pure Python 2.7 programs and modules implements a dictionary and word permutation
-engine that is the core of an [Icelandic Scrabble Helper website](http://skraflhjalp.appspot.com).
+engine that is the core of an [Icelandic Scrabble(tm) Helper website](http://skraflhjalp.appspot.com).
 
-The web and its engine are helpful for Scrabble players, crossword
+The web and its engine are helpful for Scrabble(tm) players, crossword
 enthusiasts and others - including programmers - who are interested in fast and
 flexible dictionary implementation, for Icelandic and other languages.
 
@@ -29,11 +29,14 @@ The code builds a 103,000 node DAWG for the Icelandic language, 2.6 million word
 160 seconds on a medium-powered Windows desktop PC. The resulting graph structure is stored
 in a 3,466 KB file and takes under 4 seconds to load into memory.
 
-For English, it converts the 178,691 words of the Scrabble Tournament World List v6 (TWL06)
+For English, it converts the 178,691 words of the Scrabble(tm) Tournament World List v6 (TWL06)
 into a graph of 29,691 nodes in under 10 seconds. The resulting .dawg.text file is 772 KB.
 
-Generation of all permutations of a 7-letter Scrabble rack, as well as combinations of the
+Generation of all permutations of a 7-letter Scrabble(tm) rack, as well as combinations of the
 rack with one additional letter, typically takes 30-70 milliseconds.
+
+*Scrabble(tm) is a registered trademark. This software or its author are in no way affiliated
+with or endorsed by the owners or licensees of the Scrabble trademark.*
 
 ### Íslenskt yfirlit
 
