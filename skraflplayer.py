@@ -73,7 +73,7 @@ class Skraflboard:
 
     def letter_at(self, row, col):
         """ Return the letter at the specified co-ordinate """
-        return self._letters[row][col]
+        return self._letters[row][col:col + 1]
 
     def set_letter(self, letter, row, col):
         """ Set the letter at the specified co-ordinate """
@@ -90,7 +90,7 @@ class Skraflboard:
 
     def tile_at(self, row, col):
         """ Return the tile at the specified co-ordinate (may be '?' for blank tile) """
-        return self._tiles[row][col]
+        return self._tiles[row][col:col + 1]
 
     def set_tile(self, tile, row, col):
         """ Set the tile at the specified co-ordinate """
@@ -107,11 +107,11 @@ class Skraflboard:
 
     @staticmethod
     def wordscore(row, col):
-        return int(Skraflboard._wordscore[row][col])
+        return int(Skraflboard._wordscore[row][col:col + 1])
 
     @staticmethod
     def letterscore(row, col):
-        return int(Skraflboard._letterscore[row][col])
+        return int(Skraflboard._letterscore[row][col:col + 1])
 
 
 class Skraflsquare:
@@ -228,9 +228,9 @@ class Skraflstate:
         """ Load a Skraflboard into this state """
         self._board = board
 
-    def is_play_valid(self, play):
-        """ Is the play valid in this state? """
-        return True
+    def is_play_legal(self, play):
+        """ Is the play legal in this state? """
+        return play.is_legal(self._board)
 
     def apply_play(self, play):
         """ Apply the given Skraflplay to this state """
@@ -271,7 +271,7 @@ class Skraflplay:
                     horiz = False
                 if ncol != col:
                     vert = False
-        if not horiz and not vert:
+        if (not horiz) and (not vert):
             # Spread all over: not legal
             return False
         if horiz:
@@ -284,14 +284,28 @@ class Skraflplay:
             if board.is_covered(nrow, ncol):
                 # We already have a tile in the square
                 return False
+            pass
         # Find the start and end of the word that is being formed, including
         # tiles aready on the board
         pass
+        # Check that the play is adjacent to some previously placed tile
+        # (unless this is the first move, i.e. the board is empty)
+        pass
         # Create a succinct representation of the play
         pass
+        # All checks pass: the play is legal
+        return True
 
 
 def test():
 
     state = Skraflstate()
-    play = 
+    play = Skraflplay()
+    play.add_cover(6, 7, u'þ', u'þ')
+    play.add_cover(7, 7, u'ú', u'ú')
+    if not state.is_play_legal(play):
+        print("Play is not legal")
+        return
+    print("Play is legal")
+
+
