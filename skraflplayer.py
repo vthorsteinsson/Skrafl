@@ -9,13 +9,40 @@ a Scrabble(tm)-like board.
 
 """
 
+
 from languages import Alphabet
-
-# A standard Scrabble board is 15 x 15 squares
-BOARDSIZE = 15
+from skraflpermuter import WordDatabase
 
 
-class Skraflboard:
+class Manager:
+
+    # A singleton instance of the WordDatabase class, used by
+    # all Manager instances throughout a server session
+    _word_db = None
+
+    def __init__(self):
+        if Manager._word_db is None:
+            # The word database will be lazily loaded from file upon first use
+            Manager._word_db = WordDatabase()
+
+    @staticmethod
+    def word_db():
+        if Manager._word_db is None:
+            # The word database will be lazily loaded from file upon first use
+            Manager._word_db = WordDatabase()
+        return Manager._word_db
+
+
+class Board:
+
+    """ Represents the characteristics and the contents of a Scrabble board.
+    """
+
+    # A standard Scrabble board is 15 x 15 squares
+    SIZE = 15
+
+    # The rows are identified by letter
+    ROWIDS = u"ABCDEFGHIJKLMNO"
 
     # Board squares with word scores (1=normal/single, 2=double, 3=triple word score)
     _wordscore = [
@@ -55,9 +82,9 @@ class Skraflboard:
 
     def __init__(self):
         # Store letters on the board in list of strings
-        self._letters = [u' ' * BOARDSIZE for _ in range(BOARDSIZE)]
+        self._letters = [u' ' * Board.SIZE for _ in range(Board.SIZE)]
         # Store tiles on the board in list of strings
-        self._tiles = [u' ' * BOARDSIZE for _ in range(BOARDSIZE)]
+        self._tiles = [u' ' * Board.SIZE for _ in range(Board.SIZE)]
         # The two counts below should always stay in sync
         self._numletters = 0
         self._numtiles = 0
@@ -75,17 +102,17 @@ class Skraflboard:
         """ Check whether there are any tiles on the board adjacent to this square """
         if row > 0 and self.is_covered(row - 1, col):
             return True
-        if row < BOARDSIZE and self.is_covered(row + 1, col):
+        if row < Board.SIZE - 1 and self.is_covered(row + 1, col):
             return True
         if col > 0 and self.is_covered(row, col - 1):
             return True
-        if col < BOARDSIZE and self.is_covered(row, col + 1):
+        if col < Board.SIZE - 1 and self.is_covered(row, col + 1):
             return True
         return False
 
     def letter_at(self, row, col):
         """ Return the letter at the specified co-ordinate """
-        return self._letters[row][col:col + 1]
+        return self._letters[row][col]
 
     def set_letter(self, row, col, letter):
         """ Set the letter at the specified co-ordinate """
@@ -102,7 +129,7 @@ class Skraflboard:
 
     def tile_at(self, row, col):
         """ Return the tile at the specified co-ordinate (may be '?' for blank tile) """
-        return self._tiles[row][col:col + 1]
+        return self._tiles[row][col]
 
     def set_tile(self, row, col, tile):
         """ Set the tile at the specified co-ordinate """
@@ -117,7 +144,104 @@ class Skraflboard:
             self._numtiles += 1
         self._tiles[row] = self._tiles[row][0:col] + tile + self._tiles[row][col + 1:]
 
+    def letters_above(self, row, col):
+        """ Return the letters immediately above the given square, if any """
+        above = u''
+        r = row
+        while r > 0:
+            r -= 1
+            ltr = self.letter_at(r, col)
+            if ltr == u' ':
+                break
+            above = ltr + above
+        return above
+
+    def letters_below(self, row, col):
+        """ Return the letters immediately below the given square, if any """
+        below = u''
+        r = row + 1
+        while r < Board.SIZE:
+            ltr = self.letter_at(r, col)
+            if ltr == u' ':
+                break
+            below += ltr
+            r += 1
+        return below
+
+    def tiles_above(self, row, col):
+        """ Return the tiles immediately above the given square, if any """
+        above = u''
+        r = row
+        while r > 0:
+            r -= 1
+            ltr = self.tile_at(r, col)
+            if ltr == u' ':
+                break
+            above = ltr + above
+        return above
+
+    def tiles_below(self, row, col):
+        """ Return the tiles immediately below the given square, if any """
+        below = u''
+        r = row + 1
+        while r < Board.SIZE:
+            ltr = self.tile_at(r, col)
+            if ltr == u' ':
+                break
+            below += ltr
+            r += 1
+        return below
+
+    def tiles_left(self, row, col):
+        """ Return the tiles immediately to the left of the given square, if any """
+        above = u''
+        c = col
+        while c > 0:
+            c -= 1
+            ltr = self.tile_at(row, c)
+            if ltr == u' ':
+                break
+            above = ltr + above
+        return above
+
+    def tiles_right(self, row, col):
+        """ Return the tiles immediately to the right of the given square, if any """
+        below = u''
+        c = col + 1
+        while c < Board.SIZE:
+            ltr = self.tile_at(row, c)
+            if ltr == u' ':
+                break
+            below += ltr
+            c += 1
+        return below
+
+    def letters_left(self, row, col):
+        """ Return the letters immediately to the left of the given square, if any """
+        above = u''
+        c = col
+        while c > 0:
+            c -= 1
+            ltr = self.letter_at(row, c)
+            if ltr == u' ':
+                break
+            above = ltr + above
+        return above
+
+    def letters_right(self, row, col):
+        """ Return the letters immediately to the right of the given square, if any """
+        below = u''
+        c = col + 1
+        while c < Board.SIZE:
+            ltr = self.letter_at(row, c)
+            if ltr == u' ':
+                break
+            below += ltr
+            c += 1
+        return below
+
     def __str__(self):
+        """ Simple text dump of the contents of the board """
         l = []
         for row in self._letters:
             l.append(u' '.join([u'.' if c == u' ' else c for c in row]))
@@ -125,14 +249,21 @@ class Skraflboard:
 
     @staticmethod
     def wordscore(row, col):
-        return int(Skraflboard._wordscore[row][col:col + 1])
+        """ Returns the word score factor of the indicated square, 1, 2 or 3 """
+        return int(Board._wordscore[row][col])
 
     @staticmethod
     def letterscore(row, col):
-        return int(Skraflboard._letterscore[row][col:col + 1])
+        """ Returns the letter score factor of the indicated square, 1, 2 or 3 """
+        return int(Board._letterscore[row][col])
 
 
-class Skraflsquare:
+class Square:
+
+    """ Represents a single square within an axis. This includes
+        the cross-checks, i.e. word parts above/left and below/right
+        of the square.
+    """
 
     def __init__(self):
         # Cross checks
@@ -159,14 +290,14 @@ class Skraflsquare:
         self._below = wordpart
 
 
-class Skraflaxis:
+class Axis:
 
-    """ Represents an one-dimensional axis on the board, either
+    """ Represents a one-dimensional axis on the board, either
         horizontal or vertical.
     """
 
     def __init__(self, horizontal):
-        self._axis = [Skraflsquare()] * BOARDSIZE
+        self._axis = [Square()] * Board.SIZE
         self._horizontal = horizontal
 
     def is_horizontal(self):
@@ -177,29 +308,13 @@ class Skraflaxis:
 
     @staticmethod
     def from_row(board, row):
-        """ Creates a Skraflaxis from a board row.
+        """ Creates an Axis from a board row.
             Loads letters and tiles and initializes the cross-checks. """
-        axis = Skraflaxis(True) # Horizontal
-        for ix in range(BOARDSIZE):
+        axis = Axis(True) # Horizontal
+        for ix in range(Board.SIZE):
             axis._axis[ix].load(board, row, ix)
-            # Get the word part above the square, if any
-            above = u''
-            r = row
-            while r > 0:
-                r -= 1
-                ltr = board.letter_at(r, ix)
-                if ltr == u' ':
-                    break
-                above = ltr + above
-            # Get the word part below the square, if any
-            below = u''
-            r = row + 1
-            while r < BOARDSIZE:
-                ltr = board.letter_at(r, ix)
-                if ltr == u' ':
-                    break
-                below += ltr
-                r += 1
+            above = board.letters_above(row, ix)
+            below = board.letters_below(row, ix)
             if above:
                 axis._axis[ix].set_above(above)
             if below:
@@ -208,60 +323,103 @@ class Skraflaxis:
 
     @staticmethod
     def from_column(board, col):
-        """ Creates a Skraflaxis from a board column.
+        """ Creates an Axis from a board column.
             Loads letters and tiles and initializes the cross-checks. """
-        axis = Skraflaxis(False) # Vertical
-        for ix in range(BOARDSIZE):
+        axis = Axis(False) # Vertical
+        for ix in range(Board.SIZE):
             axis._axis[ix].load(board, ix, col)
-            # Get the word part left of (above) the square, if any
-            above = u''
-            c = col
-            while c > 0:
-                c -= 1
-                ltr = board.letter_at(ix, c)
-                if ltr == u' ':
-                    break
-                above = ltr + above
-            # Get the word part right of (below) the square, if any
-            below = u''
-            c = col + 1
-            while c < BOARDSIZE:
-                ltr = board.letter_at(ix, c)
-                if ltr == u' ':
-                    break
-                below += ltr
-                c += 1
-            if above:
-                axis._axis[ix].set_above(above)
-            if below:
-                axis._axis[ix].set_below(below)
+            left = board.letters_left(ix, col)
+            right = board.letters_right(ix, col)
+            if left:
+                axis._axis[ix].set_above(left)
+            if right:
+                axis._axis[ix].set_below(right)
         return axis
 
-class Skraflstate:
+
+class Bag:
+
+    """ Represents a bag of tiles """
 
     def __init__(self):
-        self._board = Skraflboard()
+        # !!! TBD: Initialize the bag from the Alphabet
+        self._tiles = None
+
+    def draw_tile(self):
+        """ Draw a single tile from the bag """
+        # !!! TBD
+        return u'?'
+
+    def is_empty(self):
+        """ Returns True if the bag is empty, i.e. all tiles have been drawn """
+        # !!! TBD
+        return False
+
+
+class Rack:
+
+    """ Represents a player's rack of tiles """
+
+    MAX_TILES = 7
+
+    def __init__(self):
+        self._rack = u''
+
+    def remove_tile(self, tile):
+        """ Remove a tile from the rack """
+        self._rack = self._rack.replace(tile, u'', 1)
+
+    def replenish(self, bag):
+        """ Draw tiles from the bag until we have 7 tiles or the bag is empty """
+        while len(self._rack) < Rack.MAX_TILES and not bag.is_empty():
+            self._rack += bag.draw_tile()
+
+class State:
+
+    """ Represents the state of a game at a particular point.
+        Contains the current board, the racks, scores, etc.
+    """
+
+    def __init__(self):
+        self._board = Board()
+        self._player_to_move = 0
+        self._scores = [0] * 2
+        self._racks = [Rack()] * 2
+        self._bag = Bag()
+        for rack in self._racks:
+            rack.replenish(self._bag)
 
     def load_board(self, board):
-        """ Load a Skraflboard into this state """
+        """ Load a Board into this state """
         self._board = board
 
-    def check_legality(self, play):
-        """ Is the play legal in this state? """
-        return play.check_legality(self._board)
+    def check_legality(self, move):
+        """ Is the move legal in this state? """
+        return move.check_legality(self._board)
 
-    def apply_play(self, play):
-        """ Apply the given Skraflplay to this state """
-        play.apply(self._board)
+    def apply_move(self, move):
+        """ Apply the given move to this state """
+        # Update the player's score
+        self._scores[self._player_to_move] += self.score(move)
+        # Update the board and the rack
+        rack = self._racks[self._player_to_move]
+        move.apply(self._board, rack)
+        # Draw new tiles
+        rack.replenish(self._bag)
+        # It's the other player's move
+        self._player_to_move = 1 - self._player_to_move
 
-    def score(self, play):
-        """ Calculate the score of the play """
-        return play.score(self._board)
+    def score(self, move):
+        """ Calculate the score of the move """
+        return move.score(self._board)
 
     def __str__(self):
-        return self._board.__str__()
+        return self._board.__str__() + u"\n{0} vs {1}".format(self._scores[0], self._scores[1])
+
 
 class Cover:
+
+    """ Represents a covering of a square by a tile """
 
     def __init__(self, row, col, tile, letter):
         self.row = row
@@ -269,9 +427,12 @@ class Cover:
         self.tile = tile
         self.letter = letter
 
-class Skraflplay:
 
-    # Error return codes from Skraflplay.check_legality()
+class Move:
+
+    """ Represents a move by a player """
+
+    # Error return codes from Move.check_legality()
     LEGAL = 0
     NULL_MOVE = 1
     FIRST_MOVE_NOT_IN_CENTER = 2
@@ -279,6 +440,8 @@ class Skraflplay:
     NOT_ADJACENT = 4
     SQUARE_ALREADY_OCCUPIED = 5
     HAS_GAP = 6
+    WORD_NOT_IN_DICTIONARY = 7
+    CROSS_WORD_NOT_IN_DICTIONARY = 8
 
     @staticmethod
     def errortext(errcode):
@@ -288,7 +451,9 @@ class Skraflplay:
             u"DISJOINT", 
             u"NOT_ADJACENT", 
             u"SQUARE_ALREADY_OCCUPIED", 
-            u"HAS_GAP"][errcode]
+            u"HAS_GAP",
+            u"WORD_NOT_IN_DICTIONARY",
+            u"CROSS_WORD_NOT_IN_DICTIONARY"][errcode]
 
     def __init__(self):
         # A list of squares covered by the play, i.e. actual tiles
@@ -305,35 +470,47 @@ class Skraflplay:
         self._horizontal = True
 
     def short_coordinate(self):
-        """ Return the coordinate of the move in 'Scrabble convention',
+        """ Return the coordinate of the move in 'Scrabble notation',
             i.e. row letter + column number for horizontal moves or
             column number + row letter for vertical ones """
         if self._horizontal:
             # Row letter first, then column number
-            return u"ABCDEFGHIJKLMNO"[self._row:self._row + 1] + str(self._col)
+            return Board.ROWIDS[self._row] + str(self._col)
         else:
             # Column number first, then row letter
-            return str(self._col) + u"ABCDEFGHIJKLMNO"[self._row:self._row + 1]
+            return str(self._col) + Board.ROWIDS[self._row]
 
     def __str__(self):
-        return self.short_coordinate() + u" " + self._word
+        """ Return the standard move notation of a coordinate followed by the word formed """
+        return self.short_coordinate() + u":'" + self._word + u"'"
 
     def add_cover(self, row, col, tile, letter):
+        """ Add a placement of a tile on a board square to this move """
+        # Sanity check the input
+        if row < 0 or row >= Board.SIZE:
+            return False
+        if col < 0 or col >= Board.SIZE:
+            return False
+        if (tile is None) or len(tile) != 1:
+            return False
+        if (letter is None) or len(letter) != 1 or (letter not in Alphabet.order):
+            return False
+        if tile != u'?' and tile != letter:
+            return False
         self._covers.append(Cover(row, col, tile, letter))
+        return True
 
     def check_legality(self, board):
-        """ Performs basic formal checks on the play. Does not check
-            whether the play connects correctly with words that are
-            already on the board. """
+        """ Check whether this move is legal on the board """
         # Must cover at least one square
         if len(self._covers) < 1:
-            return Skraflplay.NULL_MOVE
+            return Move.NULL_MOVE
         row = 0
         col = 0
         horiz = True
         vert = True
         first = True
-        # Play must be purely horizontal or purely vertical
+        # The tiles covered by the move must be purely horizontal or purely vertical
         for c in self._covers:
             if first:
                 row = c.row
@@ -346,21 +523,22 @@ class Skraflplay:
                     vert = False
         if (not horiz) and (not vert):
             # Spread all over: not legal
-            return Skraflplay.DISJOINT
+            return Move.DISJOINT
+        # The move is purely horizontal or vertical
         if horiz:
             self._covers.sort(key = lambda x: x.col) # Sort in ascending column order
             self._horizontal = True
         else:
             self._covers.sort(key = lambda x: x.row) # Sort in ascending row order
             self._horizontal = False
-        # Check whether all missing squares in play sequence are already covered
+        # Check whether eventual missing squares in the move sequence are already covered
         row = 0
         col = 0
         first = True
         for c in self._covers:
             if board.is_covered(c.row, c.col):
                 # We already have a tile in the square: illegal play
-                return Skraflplay.SQUARE_ALREADY_OCCUPIED
+                return Move.SQUARE_ALREADY_OCCUPIED
             # If there is a gap between this cover and the last one,
             # make sure all intermediate squares are covered
             if first:
@@ -373,14 +551,14 @@ class Skraflplay:
                     for ix in range(col + 1, c.col):
                         if not board.is_covered(c.row, ix):
                             # Found gap: illegal play
-                            return Skraflplay.HAS_GAP
+                            return Move.HAS_GAP
                 else:
                     assert vert
                     # Vertical: check squares within column
                     for ix in range(row + 1, c.row):
                         if not board.is_covered(ix, c.col):
                             # Found gap: illegal play
-                            return Skraflplay.HAS_GAP
+                            return Move.HAS_GAP
             row = c.row
             col = c.col
         # Find the start and end of the word that is being formed, including
@@ -390,96 +568,220 @@ class Skraflplay:
             while self._col > 0 and board.is_covered(self._row, self._col - 1):
                 self._col -= 1
             # Look for the end
-            while col + 1 < BOARDSIZE and board.is_covered(self._row, col + 1):
+            while col + 1 < Board.SIZE and board.is_covered(self._row, col + 1):
                 col += 1
+            # Now we know the length
             self._numletters = col - self._col + 1
         else:
             # Look for the beginning
             while self._row > 0 and board.is_covered(self._row - 1, self._col):
                 self._row -= 1
             # Look for the end
-            while row + 1 < BOARDSIZE and board.is_covered(row + 1, self._col):
+            while row + 1 < Board.SIZE and board.is_covered(row + 1, self._col):
                 row += 1
+            # Now we know the length
             self._numletters = row - self._row + 1
+        # !!! For cosmetic purposes, we may want to see if a single cover
+        # !!! creates a longer word vertically than horizontally and switch
+        # !!! orientation in that case
         # Assemble the resulting word
         self._word = u''
+        cix = 0
         for ix in range(self._numletters):
-            # !!! BUG: need to mix in the covers of this play
             if horiz:
-                self._word += board.letter_at(self._row, self._col + ix)
+                if cix < len(self._covers) and self._col + ix == self._covers[cix].col:
+                    # This is one of the new letters
+                    self._word += self._covers[cix].letter
+                    cix += 1
+                else:
+                    # This is a letter that was already on the board
+                    self._word += board.letter_at(self._row, self._col + ix)
             else:
-                self._word += board.letter_at(self._row + ix, self._col)
-        # !!! TODO: Check here whether the word is found in the dictionary
-        pass
+                if cix < len(self._covers) and self._row + ix == self._covers[cix].row:
+                    # This is one of the new letters
+                    self._word += self._covers[cix].letter
+                    cix += 1
+                else:
+                    # This is a letter that was already on the board
+                    self._word += board.letter_at(self._row + ix, self._col)
+        # Check whether the word is in the dictionary
+        if self._word not in Manager.word_db():
+            return Move.WORD_NOT_IN_DICTIONARY
         # Check that the play is adjacent to some previously placed tile
         # (unless this is the first move, i.e. the board is empty)
         if board.is_empty():
             # Must go through the center square
             center = False
             for c in self._covers:
-                if c.row == BOARDSIZE / 2 and c.col == BOARDSIZE / 2:
+                if c.row == Board.SIZE / 2 and c.col == Board.SIZE / 2:
                     center = True
                     break
             if not center:
-                return Skraflplay.FIRST_MOVE_NOT_IN_CENTER
+                return Move.FIRST_MOVE_NOT_IN_CENTER
         else:
             # Must be adjacent to something already on the board
             if not any([board.has_adjacent(c.row, c.col) for c in self._covers]):
-                return Skraflplay.NOT_ADJACENT
-        # Create a succinct representation of the play
-        pass
+                return Move.NOT_ADJACENT
+            # Check all cross words formed by the new tiles
+            for c in self._covers:
+                if self._horizontal:
+                    cross = board.letters_above(c.row, c.col) + c.letter + board.letters_below(c.row, c.col)
+                else:
+                    cross = board.letters_left(c.row, c.col) + c.letter + board.letters_right(c.row, c.col)
+                if len(cross) > 1 and cross not in Manager.word_db():
+                    # print(u"Cross check fails for {0}".format(cross)) # !!! DEBUG
+                    return Move.CROSS_WORD_NOT_IN_DICTIONARY
         # All checks pass: the play is legal
-        return Skraflplay.LEGAL
+        return Move.LEGAL
 
     def score(self, board):
-        """ Calculate the score of this play """
-        # !!! BUG: Missing the letter scores of tiles already on the board
+        """ Calculate the score of this move, which is assumed to be legal """
+        # Sum of letter scores
+        total = 0
         sc = 0
+        # Word score multiplier
         wsc = 1
-        for c in self._covers:
-            lscore = 0 if c.tile == u'?' else Alphabet.scores[c.tile]
-            lscore *= Skraflboard.letterscore(c.row, c.col)
+        # Cover index
+        cix = 0
+        # Tally the score of the primary word
+        for ix in range(self._numletters):
+            if self._horizontal:
+                if cix < len(self._covers) and self._col + ix == self._covers[cix].col:
+                    # This is one of the new tiles
+                    c = self._covers[cix]
+                    lscore = 0 if c.tile == u'?' else Alphabet.scores[c.tile]
+                    lscore *= Board.letterscore(c.row, c.col)
+                    wsc *= Board.wordscore(c.row, c.col)
+                    cix += 1
+                else:
+                    # This is a letter that was already on the board
+                    lscore = Alphabet.scores[self._word[ix]]
+            else:
+                if cix < len(self._covers) and self._row + ix == self._covers[cix].row:
+                    # This is one of the new tiles
+                    c = self._covers[cix]
+                    lscore = 0 if c.tile == u'?' else Alphabet.scores[c.tile]
+                    lscore *= Board.letterscore(c.row, c.col)
+                    wsc *= Board.wordscore(c.row, c.col)
+                    cix += 1
+                else:
+                    # This is a letter that was already on the board
+                    lscore = Alphabet.scores[self._word[ix]]
             sc += lscore
-            wsc *= Skraflboard.wordscore(c.row, c.col)
-        return sc * wsc
+        total = sc * wsc
+        # Tally the scores of words formed across the primary word
+        for c in self._covers:
+            if self._horizontal:
+                cross = board.tiles_above(c.row, c.col) + board.tiles_below(c.row, c.col)
+            else:
+                cross = board.tiles_left(c.row, c.col) + board.tiles_right(c.row, c.col)
+            if cross:
+                sc = 0 if c.tile == u'?' else Alphabet.scores[c.tile]
+                sc *= Board.letterscore(c.row, c.col)
+                wsc = Board.wordscore(c.row, c.col)
+                for tile in cross:
+                    sc += 0 if tile == u'?' else Alphabet.scores[tile]
+                # print(u"Cross {0} scores {1}".format(cross, sc * wsc)) # !!! DEBUG
+                total += sc * wsc
+        return total
 
-    def apply(self, board):
-        """ Apply this play, assumed to have been checked for legality, to the board """
+    def apply(self, board, rack):
+        """ Apply this move, assumed to be legal, to the board """
         for c in self._covers:
             board.set_letter(c.row, c.col, c.letter)
             board.set_tile(c.row, c.col, c.tile)
+            rack.remove_tile(c.tile)
+
 
 def test():
 
-    state = Skraflstate()
+    manager = Manager()
+
+    state = State()
     print unicode(state)
 
-    # Test placing a simple play
-    play = Skraflplay()
-    play.add_cover(7, 7, u"þ", u"þ")
-    play.add_cover(8, 7, u"ú", u"ú")
-    legal = state.check_legality(play)
-    if legal != Skraflplay.LEGAL:
-        print(u"Play is not legal, code {0}".format(Skraflplay.errortext(legal)))
+    # Test placing a simple move
+    move = Move()
+    move.add_cover(7, 7, u"þ", u"þ")
+    move.add_cover(8, 7, u"ú", u"ú")
+    legal = state.check_legality(move)
+    if legal != Move.LEGAL:
+        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
         return
-    print(u"Play {0} is legal and scores {1} points".format(unicode(play), state.score(play)))
+    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
 
-    state.apply_play(play)
+    state.apply_move(move)
 
     print(unicode(state))
 
-    play = Skraflplay()
-    play.add_cover(7, 8, u"e", u"e")
-    play.add_cover(7, 9, u"s", u"s")
-    play.add_cover(7, 10, u"s", u"s")
-    play.add_cover(7, 11, u"i", u"i")
-    legal = state.check_legality(play)
-    if legal != Skraflplay.LEGAL:
-        print(u"Play is not legal, code {0}".format(Skraflplay.errortext(legal)))
+    move = Move()
+    move.add_cover(7, 8, u"e", u"e")
+    move.add_cover(7, 9, u"s", u"s")
+    move.add_cover(7, 10, u"s", u"s")
+    move.add_cover(7, 11, u"i", u"i")
+    legal = state.check_legality(move)
+    if legal != Move.LEGAL:
+        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
         return
-    print(u"Play {0} is legal and scores {1} points".format(unicode(play), state.score(play)))
+    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
 
-    state.apply_play(play)
+    state.apply_move(move)
 
     print(unicode(state))
 
+    move = Move()
+    move.add_cover(4, 11, u"k", u"k")
+    move.add_cover(5, 11, u"e", u"e")
+    move.add_cover(6, 11, u"x", u"x")
+    legal = state.check_legality(move)
+    if legal != Move.LEGAL:
+        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
+        return
+    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
+
+    state.apply_move(move)
+
+    print(unicode(state))
+
+    move = Move()
+    move.add_cover(5, 10, u"t", u"t")
+    move.add_cover(6, 10, u"a", u"a")
+    move.add_cover(8, 10, u"k", u"k")
+    move.add_cover(9, 10, u"a", u"a")
+    legal = state.check_legality(move)
+    if legal != Move.LEGAL:
+        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
+        return
+    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
+
+    state.apply_move(move)
+
+    print(unicode(state))
+
+    move = Move()
+    move.add_cover(5, 12, u"f", u"f")
+    move.add_cover(6, 12, u"?", u"a")
+    move.add_cover(7, 12, u"r", u"r")
+    legal = state.check_legality(move)
+    if legal != Move.LEGAL:
+        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
+        return
+    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
+
+    state.apply_move(move)
+
+    print(unicode(state))
+
+    move = Move()
+    move.add_cover(4, 12, u"o", u"o")
+    move.add_cover(4, 13, u"n", u"n")
+    move.add_cover(4, 14, u"a", u"a")
+    legal = state.check_legality(move)
+    if legal != Move.LEGAL:
+        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
+        return
+    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
+
+    state.apply_move(move)
+
+    print(unicode(state))

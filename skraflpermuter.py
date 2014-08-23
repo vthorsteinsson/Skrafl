@@ -86,6 +86,10 @@ class WordDatabase:
         assert self._dawg is not None
         return self._dawg.find(word)
 
+    def __contains__(self, word):
+        """ Enable simple lookup syntax: "word" in word_db """
+        return self.is_valid_word(word)
+
     def find_permutations(self, rack):
         """ Find all embedded words within a rack """
         if not rack:
