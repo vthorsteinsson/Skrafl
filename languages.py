@@ -55,6 +55,42 @@ class Alphabet:
         u'ö': 7
     }
 
+    # Tiles in initial bag, with frequencies
+    bag_tiles = [
+        (u"a", 10),
+        (u"á", 2),
+        (u"b", 1),
+        (u"d", 2),
+        (u"ð", 5),
+        (u"e", 6),
+        (u"é", 1),
+        (u"f", 3),
+        (u"g", 4),
+        (u"h", 2),
+        (u"i", 8),
+        (u"í", 2),
+        (u"j", 1),
+        (u"k", 3),
+        (u"l", 3),
+        (u"m", 3),
+        (u"n", 8),
+        (u"o", 3),
+        (u"ó", 1),
+        (u"p", 1),
+        (u"r", 7),
+        (u"s", 6),
+        (u"t", 5),
+        (u"u", 6),
+        (u"ú", 1),
+        (u"v", 2),
+        (u"x", 1),
+        (u"y", 1),
+        (u"ý", 1),
+        (u"þ", 1),
+        (u"æ", 1),
+        (u"ö", 1),
+        (u"?", 2)] # Blank tiles
+
     # Sort ordering of Icelandic letters
     order = u'aábdðeéfghiíjklmnoóprstuúvxyýþæö'
     # Upper case version of the order string
@@ -88,3 +124,9 @@ class Alphabet:
         # Note that this cannot be done with sets, as they fold multiple letter instances into one
         lcount = [a.count(c) - b.count(c) for c in Alphabet.order]
         return u''.join([Alphabet.order[ix] * lcount[ix] for ix in range(len(lcount)) if lcount > 0])
+
+    @staticmethod
+    def full_bag():
+        """ Return a full bag of tiles """
+        return u''.join([tile * count for (tile, count) in Alphabet.bag_tiles])
+
