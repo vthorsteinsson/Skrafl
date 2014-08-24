@@ -12,7 +12,7 @@ import os
 import codecs
 import time
 
-from dawgdictionary import DawgDictionary, FindNavigator, PermutationNavigator
+from dawgdictionary import DawgDictionary
 
 from languages import Alphabet
 
@@ -21,26 +21,17 @@ class DawgTester:
     def __init__(self):
         self._dawg = None
 
-    def _find_with_nav(self, word):
-        nav = FindNavigator(word)
-        self._dawg.navigate(nav)
-        return nav.is_found()
-
     def _test(self, word):
         print(u"\"{0}\" is {1}found".format(word, u"" if word in self._dawg else u"not "))
 
     def _test_true(self, word):
         if word not in self._dawg:
             print(u"Error: \"{0}\" was not found".format(word))
-        if not self._find_with_nav(word):
-            print(u"Error: \"{0}\" was not found with navigate()".format(word))
 
     def _test_false(self, word):
         if word in self._dawg:
             # Tests the __contains__ operator
             print(u"Error: \"{0}\" was found".format(word))
-        if self._find_with_nav(word):
-            print(u"Error: \"{0}\" was found with navigate()".format(word))
 
     def run(self, fname, relpath):
         """ Load a DawgDictionary and test its functionality """
@@ -61,6 +52,9 @@ class DawgTester:
         self._test_true(u"absintufyllirí")
         self._test_false(u"absolútt")
         self._test_true(u"aborri")
+        self._test_false(u"eipaði")
+        self._test_true(u"geipaði")
+        self._test_false(u"eipeði")
         self._test_false(u"abs")
         self._test_true(u"halló")
         self._test_true(u"hraðskákmótin")
@@ -134,14 +128,9 @@ class DawgTester:
         print
         print(u"{0} permutations found in {1:.2f} seconds".format(cnt, t1 - t0))
         print
-
-        print("Finding permutations with navigate():")
         t0 = time.time()
-        word = u"einstök"
-
-        nav = PermutationNavigator(word)
-        self._dawg.navigate(nav)
-        permlist = nav.result()
+        word = u"pr?óf"
+        permlist = self._dawg.find_permutations(word)
         t1 = time.time()
         print(u"Permutations of \"{0}\":".format(word))
         cnt = 0

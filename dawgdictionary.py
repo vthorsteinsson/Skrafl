@@ -1,34 +1,53 @@
 # -*- coding: utf-8 -*-
 
-""" Word dictionary implemented using DAWG
+""" Word dictionary implemented with a DAWG
 
-Author: Vilhjalmur Thorsteinsson, 2014
+    Author: Vilhjalmur Thorsteinsson, 2014
 
-DawgDictionary uses a Directed Acyclic Word Graph (DAWG) internally
-to store a large set of words in an efficient structure in terms
-of storage and speed.
+    DawgDictionary uses a Directed Acyclic Word Graph (DAWG) internally
+    to store a large set of words in an efficient structure in terms
+    of storage and speed.
 
-The class supports three main query functions:
+    The graph is pre-built using the code in dawgbuilder.py and stored
+    in a text-based file to be loaded at run-time by DawgDictionary.
 
-DawgDictionary.find(word)
-    Returns True if the word is found in the dictionary, or False if not.
-    The __contains__ operator is supported, so "'myword' in dawgdict" also works.
+    The main class supports three fundamental query functions:
 
-DawgDictionary.find_matches(pattern)
-    Returns a list of words that match the pattern. The pattern can contain
-    wildcards ('?'). For example, result = dawgdict.find_matches("ex???") returns
-    a list of all 5-letter words starting with "ex".
+    DawgDictionary.find(word)
+        Returns True if the word is found in the dictionary, or False if not.
+        The __contains__ operator is supported, so "'myword' in dawgdict" also works.
 
-DawgDictionary.find_permutations(rack)
-    Returns a list of all permutations of the given rack, i.e. valid words
-    consisting of one or more letters from the rack in various orders.
-    The rack may contain wildcards ('?'). For example, result = dawgdict.find_permutations("se?")
-    returns a list of all words from 1 to 3 characters that can be constructed from
-    the letters "s" and "e" and any one additional letter.
+    DawgDictionary.find_matches(pattern)
+        Returns a list of words that match the pattern. The pattern can contain
+        wildcards ('?'). For example, result = dawgdict.find_matches("ex???") returns
+        a list of all 5-letter words starting with "ex".
 
-See also comments in dawgbuilder.py
+    DawgDictionary.find_permutations(rack)
+        Returns a list of all permutations of the given rack, i.e. valid words
+        consisting of one or more letters from the rack in various orders.
+        The rack may contain wildcards ('?'). For example, result = dawgdict.find_permutations("se?")
+        returns a list of all words from 1 to 3 characters that can be constructed from
+        the letters "s" and "e" and any one additional letter.
 
-Test code for this module is found in dawgtester.py
+    All of the above query functions are built on top of a generic DAWG navigation function:
+
+    DawgDictionary.navigate(navigator)
+        Uses a navigation object to control the traversal of the graph and tabulate
+        results. The navigation object should implement a number of interface functions,
+        as documented in comments for the navigate() function.
+
+    DawgDictionary.FindNavigator(word)
+        A navigation class to find words by exact match. Used by DawgDictionary.find()
+
+    DawgDictionary.PermutationNavigator(rack, minlen)
+        A navigation class to find rack permutations. Used by DawgDictionary.find_permutations()
+
+    DawgDictionary.MatchNavigator(rack, minlen)
+        A navigation class to find words matching a pattern. Used by DawgDictionary.find_matches()
+
+    See also comments in dawgbuilder.py
+
+    Test code for this module is found in dawgtester.py
 
 """
 
@@ -111,277 +130,102 @@ class DawgDictionary:
         """ Return a count of unique nodes in the DAWG """
         return 0 if self._nodes is None else len(self._nodes)
 
-    def _find_from_node(self, node, word, index):
-        """ Starting from a given node, navigate the graph using the word and an index into it """
-        if index >= len(word):
-            # The word is exhausted: it is valid if we're at a null or final node
-            return (node is None) or node.final
-        if node is None:
-            # The word is not exhausted but we're at a null node: no match
-            return False
-        # Go through the edges of this node and try to find a path
-        for prefix, nextnode in node.edges.items():
-            if prefix[0] == word[index]:
-                # Found a matching prefix: navigate it
-                return self._follow_edge(word, index, prefix, nextnode)
-        # No matching prefix, so no outgoing edges: no match
-        return False
-
-    def _follow_edge(self, word, index, prefix, nextnode):
-        """ Found an edge with a matching prefix: loop through the prefix """
-        lenp = len(prefix)
-        j = 0
-        while j < lenp:
-            if word[index] != prefix[j]:
-                # The prefix does not match the word: we're done
-                return False
-            # So far, we have a match
-            index += 1
-            j += 1
-            final = False
-            # Check whether the next prefix character is a vertical bar, denoting finality
-            if j < lenp and prefix[j] == '|':
-                final = True
-                j += 1
-            if index >= len(word):
-                # The word is hereby exhausted:
-                # We have a match if this was a final char in the prefix,
-                # or if the prefix is exhausted and the next node is terminal
-                return final or ((j >= lenp) and ((nextnode is None) or nextnode.final))
-        return self._find_from_node(nextnode, word, index)
-
     def find(self, word):
         """ Look for a word in the graph, returning True if it is found or False if not """
-        if not word:
-            return False
-        if self._nodes is None:
-            # Must load the graph before searching
-            return False
-        root = self._nodes[0] # Start at the root
-        if root is None:
-            # No root: no match
-            return False
-        return self._find_from_node(root, word, 0)
+        nav = FindNavigator(word)
+        self.navigate(nav)
+        return nav.is_found()
 
     def __contains__(self, word):
         """ Enable simple lookup syntax: "word" in dawgdict """
         return self.find(word)
-
-    def _match_from_node(self, node, pattern, index, matched, matchlist):
-        """ Starting from a given node, navigate the graph attempting to
-            match the pattern from the index position """
-        if node is None:
-            # Nothing more to do (we assume that a match has already been recorded)
-            return
-        assert pattern is not None
-        assert index < len(pattern)
-        # Go through the edges of this node and follow all that match a
-        # letter in the rack (which can be '?', matching all edges)
-        chmatch = pattern[index]
-        wildcard = (chmatch == u'?')
-        for prefix, nextnode in node.edges.items():
-            if wildcard or (prefix[0] == chmatch):
-                # This edge is a candidate: navigate through it
-                self._match_from_edge(pattern, index, prefix, nextnode, matched, matchlist)
-                if not wildcard:
-                    # No more than one edge can match the pattern if it's not a wildcard
-                    return
-
-    def _match_from_edge(self, pattern, index, prefix, nextnode, matched, matchlist):
-        """ The letter at pattern[index] matches the prefix of this edge """
-        assert index < len(pattern)
-        assert (pattern[index] == u'?') or (pattern[index] == prefix[0])
-        lenp = len(prefix)
-        j = 0
-        while j < lenp:
-            prefj = prefix[j]
-            if (pattern[index] != u'?') and (pattern[index] != prefj):
-                # Not a wildcard and the prefix does not match the pattern: we're done
-                return
-            # So far, we have a match
-            matched += prefj
-            index += 1
-            j += 1
-            final = False
-            # Check whether the next prefix character is a vertical bar, denoting finality
-            if j < lenp and prefix[j] == '|':
-                final = True
-                j += 1
-            if index >= len(pattern):
-                # The pattern is hereby exhausted:
-                # We have a match if this was a final char in the prefix,
-                # or if the prefix is exhausted and the next node is terminal
-                if final or ((j >= lenp) and ((nextnode is None) or nextnode.final)):
-                    matchlist.append(matched)
-                return
-        # This edge is exchausted and fully matched: proceed to the following node,
-        # if we have one
-        if nextnode:
-            assert index < len(pattern)
-            self._match_from_node(nextnode, pattern, index, matched, matchlist)
 
     def find_matches(self, pattern):
         """ Returns a list of words matching a pattern.
             The pattern contains characters and '?'-signs denoting wildcards.
             Characters are matched exactly, while the wildcards match any character.
         """
-        matchlist = []
-        if self._nodes is None:
-            # No graph: no matches
-            return matchlist
-        if not pattern:
-            # Nothing to search for
-            return matchlist
-        root = self._nodes[0] # Start at the root
-        if root is None:
-            # No root: no matches
-            return matchlist
-        self._match_from_node(root, pattern, 0, u'', matchlist)
-        # Sort results in ascending lexicographic order
-        matchlist.sort(key = Alphabet.sortkey)
-        return matchlist
+        nav = MatchNavigator(pattern)
+        self.navigate(nav)
+        return nav.result()
 
-    def _perm_from_node(self, node, matched, rack, permlist):
-        """ Starting from a given node, navigate the graph using the word and an index into it """
-        if (not rack) or (node is None):
-            # Nothing more to do (we assume that a match has already been recorded)
-            return
-        # Go through the edges of this node and follow all that match a
-        # letter in the rack (which can be '?', matching all edges)
-        for prefix, nextnode in node.edges.items():
-            if (prefix[0] in rack) or (u'?' in rack):
-                # This edge is a candidate: navigate through it
-                self._perm_from_edge(matched, rack, prefix, nextnode, permlist)
-
-    def _perm_from_edge(self, matched, rack, prefix, nextnode, permlist):
-        """ There is a letter in the rack matching the prefix of this edge """
-        lenp = len(prefix)
-        j = 0
-        while j < lenp and rack:
-            # We first try an exact match and only resort to the wildcard '?' if necessary
-            exactmatch = prefix[j] in rack
-            if (not exactmatch) and (u'?' not in rack):
-                # Can't continue with this prefix - we no longer have rack letters matching it
-                return
-            # Add a letter to the matched path
-            matched += prefix[j]
-            # Remove the letter or the wildcard from the rack
-            if exactmatch:
-                rack = rack.replace(prefix[j], '', 1)
-            else:
-                rack = rack.replace(u'?', '', 1)
-            # So far, we have a match
-            j += 1
-            final = False
-            # Check whether the next prefix character is a vertical bar, denoting finality
-            if j < lenp and prefix[j] == '|':
-                final = True
-                j += 1
-            if final:
-                # We have found a complete valid word
-                permlist.append(matched)
-        # We're done following the prefix for as long as it goes and
-        # as long as the rack lasts
-        if j < lenp:
-            # We didn't complete the prefix, so the rack must be out:
-            # we're done
-            return
-        # We completed the prefix
-        if (nextnode is None) or nextnode.final:
-            # We're at a final state, explicit or implicit: add the match
-            permlist.append(matched)
-        if rack and (nextnode is not None):
-            # Gone through the entire edge and still have rack letters left:
-            # continue with the next node
-            self._perm_from_node(nextnode, matched, rack, permlist)
-
-    def find_permutations(self, rack):
+    def find_permutations(self, rack, minlen = 0):
         """ Returns a list of legal permutations of a rack of letters.
             The list is sorted in descending order by permutation length.
             The rack may contain question marks '?' as wildcards, matching all letters.
             Question marks should be used carefully as they can
             yield very large result sets.
         """
-        permlist = []
-        if self._nodes is None:
-            # No graph: no permutations
-            return permlist
-        if not rack:
-            # No rack to permute
-            return permlist
-        root = self._nodes[0] # Start at the root
-        if root is None:
-            # No root: no permutations
-            return permlist
-        self._perm_from_node(root, u'', rack, permlist)
-        # Sort in descending order by length of permutation
-        # and within that, in ascending lexicographic order
-        permlist.sort(key = lambda x: (-len(x), Alphabet.sortkey(x)))
-        return permlist
+        nav = PermutationNavigator(rack, minlen)
+        self.navigate(nav)
+        return nav.result()
 
     def _navigate_from_node(self, nav, node, matched):
-        """ Starting from a given node, navigate the graph using the word and an index into it """
-        if (not nav.accepting()) or (node is None):
-            # Nothing more to do (we assume that a match has already been recorded)
-            return
-        # Go through the edges of this node and follow all that match a
-        # letter in the rack (which can be '?', matching all edges)
+        """ Starting from a given node, navigate outgoing edges """
+        # Go through the edges of this node and follow the ones
+        # okayed by the navigator
         for prefix, nextnode in node.edges.items():
             if nav.push_edge(prefix[0]):
                 # This edge is a candidate: navigate through it
                 self._navigate_from_edge(nav, prefix, nextnode, matched)
-                nav.pop_edge()
+                if not nav.pop_edge():
+                    # Short-circuit and finish the loop if pop_edge() returns False
+                    break
 
     def _navigate_from_edge(self, nav, prefix, nextnode, matched):
-        """ The navigator permitted the prefix of this edge """
+        """ Navigate along an edge, accepting partial and full matches """
+        # Go along the edge as long as the navigator is accepting
         lenp = len(prefix)
         j = 0
         while j < lenp and nav.accepting():
             # See if the navigator is OK with accepting the current character
             if not nav.accepts(prefix[j]):
+                # Nope: we're done with this edge
                 return
-            # Add a letter to the matched path
+            # So far, we have a match: add a letter to the matched path
             matched += prefix[j]
-            # So far, we have a match
             j += 1
-            final = False
             # Check whether the next prefix character is a vertical bar, denoting finality
-            if j < lenp and prefix[j] == '|':
+            final = False
+            if j < lenp and prefix[j] == u'|':
                 final = True
                 j += 1
-            # Tell the navigator where we are before moving on
+            elif (j >= lenp) and ((nextnode is None) or nextnode.final):
+                # If we're at the final char of the prefix and the next node is final,
+                # set the final flag as well (there is no trailing vertical bar in this case)
+                final = True
+            # Tell the navigator where we are
             nav.accept(matched, final)
         # We're done following the prefix for as long as it goes and
         # as long as the navigator was accepting
         if j < lenp:
             # We didn't complete the prefix, so the navigator must no longer
-            # be accepting: we're done
+            # be interested (accepting): we're done
             return
-        # We completed the prefix
-        if (nextnode is None) or nextnode.final:
-            # We're at a final state, explicit or implicit: add the match
-            nav.accept(matched, True)
         if nav.accepting() and (nextnode is not None):
             # Gone through the entire edge and still have rack letters left:
             # continue with the next node
             self._navigate_from_node(nav, nextnode, matched)
 
     def navigate(self, nav):
-        """ Navigate through the dictionary under the control of
-            a navigation object.
+        """ A generic function to navigate through the DAWG under
+            the control of a navigation object.
+
             The navigation object should implement the following interface:
+
             def push_edge(firstchar)
                 returns True if the edge should be entered or False if not
             def accepting()
                 returns False if the navigator does not want more characters
             def accepts(newchar)
-                returns True if the navigator will accept the new character
+                returns True if the navigator will accept and 'eat' the new character
             def accept(matched, final)
                 called to inform the navigator of a match and whether it is a final word
             def pop_edge()
-                called when leaving an edge that has been navigated
+                called when leaving an edge that has been navigated; returns False
+                if there is no need to visit other edges
             def done()
-                called when the whole navigation is done
+                called when the navigation is completed
         """
         if self._nodes is None:
             # No graph: no navigation
@@ -392,7 +236,10 @@ class DawgDictionary:
             # No root: no navigation
             nav.done()
             return
-        self._navigate_from_node(nav, root, u'')
+        # The ship is ready to go
+        if nav.accepting():
+            # Leave shore and navigate the open seas
+            self._navigate_from_node(nav, root, u'')
         nav.done()
 
 
@@ -406,23 +253,17 @@ class FindNavigator:
         self._word = word
         self._len = len(word)
         self._index = 0
-        self._stack = []
         self._found = False
 
     def push_edge(self, firstchar):
         """ Returns True if the edge should be entered or False if not """
-        assert self._index < self._len
         # Enter the edge if it fits where we are in the word
-        if self._word[self._index] != firstchar:
-            return False
-        # Fit: save our position and move into the edge
-        self._stack.append(self._index)
-        return True
+        return self._word[self._index] == firstchar
 
     def accepting(self):
         """ Returns False if the navigator does not want more characters """
-        # If we've already found the word or if we've gone too deep, return False
-        return not self._found and (self._index < self._len)
+        # Don't go too deep
+        return self._index < self._len
 
     def accepts(self, newchar):
         """ Returns True if the navigator will accept the new character """
@@ -434,14 +275,15 @@ class FindNavigator:
 
     def accept(self, matched, final):
         """ Called to inform the navigator of a match and whether it is a final word """
-        if final and matched == self._word:
+        if final and self._index == self._len:
             # Yes, this is what we were looking for
-            assert self._index == self._len
+            assert matched == self._word
             self._found = True
 
     def pop_edge(self):
         """ Called when leaving an edge that has been navigated """
-        self._index = self._stack.pop()
+        # We only need to visit one outgoing edge, so short-circuit the edge loop
+        return False
 
     def done(self):
         """ Called when the whole navigation is done """
@@ -457,10 +299,11 @@ class PermutationNavigator:
         to find all permutations of a rack
     """
 
-    def __init__(self, rack):
+    def __init__(self, rack, minlen = 0):
         self._rack = rack
         self._stack = []
         self._result = []
+        self._minlen = minlen
 
     def push_edge(self, firstchar):
         """ Returns True if the edge should be entered or False if not """
@@ -492,16 +335,79 @@ class PermutationNavigator:
 
     def accept(self, matched, final):
         """ Called to inform the navigator of a match and whether it is a final word """
-        if final:
+        if final and len(matched) >= self._minlen:
             self._result.append(matched)
 
     def pop_edge(self):
         """ Called when leaving an edge that has been navigated """
         self._rack = self._stack.pop()
+        # We need to visit all outgoing edges, so return True
+        return True
 
     def done(self):
         """ Called when the whole navigation is done """
         self._result.sort(key = lambda x: (-len(x), Alphabet.sortkey(x)))
+
+    def result(self):
+        return self._result
+
+
+class MatchNavigator:
+
+    """ A navigation class to be used with DawgDictionary.navigate()
+        to find all words matching a pattern
+    """
+
+    def __init__(self, pattern):
+        self._pattern = pattern
+        self._lenp = len(pattern)
+        self._index = 0
+        self._chmatch = pattern[0]
+        self._wildcard = (self._chmatch == u'?')
+        self._stack = []
+        self._result = []
+
+    def push_edge(self, firstchar):
+        """ Returns True if the edge should be entered or False if not """
+        # Follow all edges that match a letter in the rack
+        # (which can be '?', matching all edges)
+        if not self._wildcard and (firstchar != self._chmatch):
+            return False
+        # Fit: save our index and move into the edge
+        self._stack.append((self._index, self._chmatch, self._wildcard))
+        return True
+
+    def accepting(self):
+        """ Returns False if the navigator does not want more characters """
+        # Continue as long as there is something left to match
+        return self._index < self._lenp
+
+    def accepts(self, newchar):
+        """ Returns True if the navigator will accept the new character """
+        if not self._wildcard and (newchar != self._chmatch):
+            return False
+        self._index += 1
+        if self._index < self._lenp:
+            self._chmatch = self._pattern[self._index]
+            self._wildcard = (self._chmatch == u'?')
+        return True
+
+    def accept(self, matched, final):
+        """ Called to inform the navigator of a match and whether it is a final word """
+        if final and self._index == self._lenp:
+            # We have an entire pattern match
+            # (Note that this could be relaxed to also return partial (shorter) pattern matches)
+            self._result.append(matched)
+
+    def pop_edge(self):
+        """ Called when leaving an edge that has been navigated """
+        self._index, self._chmatch, self._wildcard = self._stack.pop()
+        # We need to continue visiting edges only if this is a wildcard position
+        return self._wildcard
+
+    def done(self):
+        """ Called when the whole navigation is done """
+        self._result.sort(key = Alphabet.sortkey)
 
     def result(self):
         return self._result
