@@ -13,6 +13,9 @@ resources/smaord.txt
 resources/TWL06.txt
 resources/testwords.txt
 
+# Scratch work files
+templates/main-scratch.html
+
 # Distribution / packaging
 .Python
 env/

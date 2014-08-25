@@ -2,94 +2,95 @@
 
 """ DAWG dictionary builder
 
-Author: Vilhjalmur Thorsteinsson, 2014
+    Author: Vilhjalmur Thorsteinsson, 2014
 
-DawgBuilder uses a Directed Acyclic Word Graph (DAWG)
-to store a large set of words in an efficient structure in terms
-of storage and speed.
+    DawgBuilder uses a Directed Acyclic Word Graph (DAWG)
+    to store a large set of words in an efficient structure in terms
+    of storage and speed.
 
-The DAWG implementation is partially based on Steve Hanov's work
-(see http://stevehanov.ca/blog/index.php?id=115), which references
-a paper by Daciuk et al (http://www.aclweb.org/anthology/J00-1002.pdf).
+    The DAWG implementation is partially based on Steve Hanov's work
+    (see http://stevehanov.ca/blog/index.php?id=115), which references
+    a paper by Daciuk et al (http://www.aclweb.org/anthology/J00-1002.pdf).
 
-This implementation compresses node sequences with single edges between
-them into single multi-letter edges. It also removes redundant edges
-to "pure" final nodes.
+    This implementation compresses node sequences with single edges between
+    them into single multi-letter edges. It also removes redundant edges
+    to "pure" final nodes.
 
-DawgBuilder reads a set of text input files containing plain words,
-one word per line, and outputs a text file with a compressed
-graph.
+    DawgBuilder reads a set of text input files containing plain words,
+    one word per line, and outputs a text file with a compressed
+    graph. This file is read by the DawgDictionary class; see
+    dawgdictionary.py
 
-The output file is structured as a sequence of lines. Each line
-represents a node in the graph and contains information about
-outgoing edges from the node. Nodes are referred to by their
-line number, where the starting root node is in line 1 and subsequent
-nodes are numbered starting with 2.
+    The output file is structured as a sequence of lines. Each line
+    represents a node in the graph and contains information about
+    outgoing edges from the node. Nodes are referred to by their
+    line number, where the starting root node is in line 1 and subsequent
+    nodes are numbered starting with 2.
 
-A node (line) is represented as follows:
+    A node (line) is represented as follows:
 
-['|']['_' prefix ':' nextnode]*
+    ['|']['_' prefix ':' nextnode]*
 
-If the node is a final node (i.e. a valid word is completed at
-the node), the first character in the line is
-a vertical bar ('|') followed by an underscore.
-The rest of the line is a sequence of edges where each edge
-is described by a prefix string followed by a colon (':')
-and the line number of the node following that edge. Edges are
-separated by underscores ('_'). The prefix string can contain
-embedded vertical bars indicating that the previous character was
-a final character in a valid word.
+    If the node is a final node (i.e. a valid word is completed at
+    the node), the first character in the line is
+    a vertical bar ('|') followed by an underscore.
+    The rest of the line is a sequence of edges where each edge
+    is described by a prefix string followed by a colon (':')
+    and the line number of the node following that edge. Edges are
+    separated by underscores ('_'). The prefix string can contain
+    embedded vertical bars indicating that the previous character was
+    a final character in a valid word.
 
-Example:
+    Example:
 
-The following input word list (cf. http://tinyurl.com/kvhbyo2):
+    The following input word list (cf. http://tinyurl.com/kvhbyo2):
 
-car
-cars
-cat
-cats
-do
-dog
-dogs
-done
-ear
-ears
-eat
-eats
+    car
+    cars
+    cat
+    cats
+    do
+    dog
+    dogs
+    done
+    ear
+    ears
+    eat
+    eats
 
-generates this output graph:
+    generates this output graph:
 
-do:3_ca:2_ea:2
-t|s:0_r|s:0
-|_g|s:0_ne:0
+    do:3_ca:2_ea:2
+    t|s:0_r|s:0
+    |_g|s:0_ne:0
 
-The root node in line 1 has three outgoing edges, "do" to node 3, "ca" to node 2, and "ea" to node 2.
+    The root node in line 1 has three outgoing edges, "do" to node 3, "ca" to node 2, and "ea" to node 2.
 
-Node 2 (in line 2) has two edges, "t|s" to node 0 and "r|s" to node 0. This means that "cat" and
-"cats", "eat" and "eats" are valid words (on the first edge), as well as "car" and "cars",
-"ear" and "ears" (on the second edge).
+    Node 2 (in line 2) has two edges, "t|s" to node 0 and "r|s" to node 0. This means that "cat" and
+    "cats", "eat" and "eats" are valid words (on the first edge), as well as "car" and "cars",
+    "ear" and "ears" (on the second edge).
 
-Node 3 (in line 3) is itself a final node, denoted by the vertical bar at the start of the line.
-Thus, "do" (coming in from the root) is a valid word, but so are "dog" and "dogs" (on the first edge)
-as well as "done" (on the second edge).
+    Node 3 (in line 3) is itself a final node, denoted by the vertical bar at the start of the line.
+    Thus, "do" (coming in from the root) is a valid word, but so are "dog" and "dogs" (on the first edge)
+    as well as "done" (on the second edge).
 
-Dictionary structure:
+    Dictionary structure:
 
-Suppose the dictionary contains two words, 'word' and 'wolf'.
-This is represented by Python data structures as follows:
+    Suppose the dictionary contains two words, 'word' and 'wolf'.
+    This is represented by Python data structures as follows:
 
-root _Dawg -> {
-    'w': _DawgNode(final=False, edges -> {
-        'o': _DawgNode(final=False, edges -> {
-            'r': _DawgNode(final=False, edges -> {
-                'd': _DawgNode(final=True, edges -> {})
-                }),
-            'l': _DawgNode(final=False, edges -> {
-                'f': _DawgNode(final=True, edges -> {})
+    root _Dawg -> {
+        'w': _DawgNode(final=False, edges -> {
+            'o': _DawgNode(final=False, edges -> {
+                'r': _DawgNode(final=False, edges -> {
+                    'd': _DawgNode(final=True, edges -> {})
+                    }),
+                'l': _DawgNode(final=False, edges -> {
+                    'f': _DawgNode(final=True, edges -> {})
+                    })
                 })
             })
-        })
-    }
+        }
 
 """
 

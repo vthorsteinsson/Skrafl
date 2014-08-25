@@ -56,6 +56,7 @@ import codecs
 
 from languages import Alphabet
 
+
 class DawgDictionary:
 
     class _Node:

@@ -5,7 +5,8 @@
     Author: Vilhjalmur Thorsteinsson, 2014
 
     The classes in this module encapsulate particulars of supported
-    languages.
+    languages, including the character set, scores, tiles in the
+    initial bag, sorting, etc.
 
     Currently the only supported language is Icelandic.
 

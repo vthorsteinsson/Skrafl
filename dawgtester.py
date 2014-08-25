@@ -2,9 +2,9 @@
 
 """ Test module for DAWG dictionary
 
-Author: Vilhjalmur Thorsteinsson, 2014
+    Author: Vilhjalmur Thorsteinsson, 2014
 
-This module contains test code for dawgdictionary.py
+    This module contains test code for dawgdictionary.py
 
 """
 
@@ -13,8 +13,8 @@ import codecs
 import time
 
 from dawgdictionary import DawgDictionary
-
 from languages import Alphabet
+
 
 class DawgTester:
 
