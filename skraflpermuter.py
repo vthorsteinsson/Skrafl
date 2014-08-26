@@ -108,6 +108,10 @@ class WordDatabase:
         assert self._dawg is not None
         return self._dawg.find_matches(pattern)
 
+    def navigate(self, nav):
+        """ Use a generic navigator to traverse the graph """
+        self._dawg.navigate(nav)
+
 
 class Tabulator:
 

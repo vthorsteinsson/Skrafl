@@ -97,6 +97,19 @@ class Alphabet:
     # Upper case version of the order string
     upper = u'AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ'
 
+    # Letter bit pattern
+    bit = [1 << n for n in range(len(order))]
+
+    @staticmethod
+    def bit_pattern(word):
+        """ Return a pattern of bits indicating which letters are present in the word """
+        return reduce(lambda x, y: x | y, [Alphabet.bit[Alphabet.order.index(c)] for c in word])
+
+    @staticmethod
+    def bit(c):
+        """ Returns the bit corresponding to a character in the alphabet """
+        return Alphabet.bit[Alphabet.order.index(c)]
+
     @staticmethod
     def lowercase(ch):
         """ Convert an uppercase character to lowercase """

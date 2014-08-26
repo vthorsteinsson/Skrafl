@@ -139,6 +139,10 @@ class Board:
         """ Return the letter at the specified co-ordinate """
         return self._letters[row][col]
 
+    def tile_at(self, row, col):
+        """ Return the tile at the specified co-ordinate (may be '?' for blank tile) """
+        return self._tiles[row][col]
+
     def set_letter(self, row, col, letter):
         """ Set the letter at the specified co-ordinate """
         assert letter is not None
@@ -151,10 +155,6 @@ class Board:
             # Putting a letter into a previously empty square
             self._numletters += 1
         self._letters[row] = self._letters[row][0:col] + letter + self._letters[row][col + 1:]
-
-    def tile_at(self, row, col):
-        """ Return the tile at the specified co-ordinate (may be '?' for blank tile) """
-        return self._tiles[row][col]
 
     def set_tile(self, row, col, tile):
         """ Set the tile at the specified co-ordinate """
@@ -169,101 +169,57 @@ class Board:
             self._numtiles += 1
         self._tiles[row] = self._tiles[row][0:col] + tile + self._tiles[row][col + 1:]
 
+    def adjacent(self, row, col, xd, yd, getter):
+        """ Return the letters or tiles adjacent to the given square, in the direction (xd, yd) """
+        result = u''
+        row += xd
+        col += yd
+        while row in range(Board.SIZE) and col in range(Board.SIZE):
+            ltr = getter(row, col)
+            if ltr == u' ':
+                # Empty square: we're done
+                break
+            if xd + yd < 0:
+                # Going up or to the left: add to the beginning
+                result = ltr + result
+            else:
+                # Going down or to the right: add to the end
+                result += ltr
+            row += xd
+            col += yd
+        return result
+
     def letters_above(self, row, col):
         """ Return the letters immediately above the given square, if any """
-        above = u''
-        r = row
-        while r > 0:
-            r -= 1
-            ltr = self.letter_at(r, col)
-            if ltr == u' ':
-                break
-            above = ltr + above
-        return above
+        return self.adjacent(row, col, -1, 0, self.letter_at)
 
     def letters_below(self, row, col):
         """ Return the letters immediately below the given square, if any """
-        below = u''
-        r = row + 1
-        while r < Board.SIZE:
-            ltr = self.letter_at(r, col)
-            if ltr == u' ':
-                break
-            below += ltr
-            r += 1
-        return below
-
-    def tiles_above(self, row, col):
-        """ Return the tiles immediately above the given square, if any """
-        above = u''
-        r = row
-        while r > 0:
-            r -= 1
-            ltr = self.tile_at(r, col)
-            if ltr == u' ':
-                break
-            above = ltr + above
-        return above
-
-    def tiles_below(self, row, col):
-        """ Return the tiles immediately below the given square, if any """
-        below = u''
-        r = row + 1
-        while r < Board.SIZE:
-            ltr = self.tile_at(r, col)
-            if ltr == u' ':
-                break
-            below += ltr
-            r += 1
-        return below
-
-    def tiles_left(self, row, col):
-        """ Return the tiles immediately to the left of the given square, if any """
-        above = u''
-        c = col
-        while c > 0:
-            c -= 1
-            ltr = self.tile_at(row, c)
-            if ltr == u' ':
-                break
-            above = ltr + above
-        return above
-
-    def tiles_right(self, row, col):
-        """ Return the tiles immediately to the right of the given square, if any """
-        below = u''
-        c = col + 1
-        while c < Board.SIZE:
-            ltr = self.tile_at(row, c)
-            if ltr == u' ':
-                break
-            below += ltr
-            c += 1
-        return below
+        return self.adjacent(row, col, 1, 0, self.letter_at)
 
     def letters_left(self, row, col):
         """ Return the letters immediately to the left of the given square, if any """
-        above = u''
-        c = col
-        while c > 0:
-            c -= 1
-            ltr = self.letter_at(row, c)
-            if ltr == u' ':
-                break
-            above = ltr + above
-        return above
+        return self.adjacent(row, col, 0, -1, self.letter_at)
 
     def letters_right(self, row, col):
         """ Return the letters immediately to the right of the given square, if any """
-        below = u''
-        c = col + 1
-        while c < Board.SIZE:
-            ltr = self.letter_at(row, c)
-            if ltr == u' ':
-                break
-            below += ltr
-            c += 1
-        return below
+        return self.adjacent(row, col, 0, 1, self.letter_at)
+
+    def tiles_above(self, row, col):
+        """ Return the tiles immediately above the given square, if any """
+        return self.adjacent(row, col, -1, 0, self.tile_at)
+
+    def tiles_below(self, row, col):
+        """ Return the tiles immediately below the given square, if any """
+        return self.adjacent(row, col, 1, 0, self.tile_at)
+
+    def tiles_left(self, row, col):
+        """ Return the tiles immediately to the left of the given square, if any """
+        return self.adjacent(row, col, 0, -1, self.tile_at)
+
+    def tiles_right(self, row, col):
+        """ Return the tiles immediately to the right of the given square, if any """
+        return self.adjacent(row, col, 0, 1, self.tile_at)
 
     def __str__(self):
         """ Simple text dump of the contents of the board """
@@ -334,6 +290,14 @@ class Rack:
         """ Return the contents of the rack """
         return self._rack
 
+    def contains(self, tiles):
+        # Check whether the rack contains all tiles in the tiles string
+        # (Quick and dirty, not time-critical)
+        temp = self._rack
+        for c in tiles:
+            temp = temp.replace(c, u'', 1)
+        return len(self._rack) - len(temp) == len(tiles)
+
 
 class State:
 
@@ -360,7 +324,7 @@ class State:
         """ Is the move legal in this state? """
         if move is None:
             return Move.NULL_MOVE
-        return move.check_legality(self._board)
+        return move.check_legality(self._board, self.player_rack())
 
     def apply_move(self, move):
         """ Apply the given move to this state """
@@ -416,6 +380,7 @@ class Move:
     WORD_NOT_IN_DICTIONARY = 7
     CROSS_WORD_NOT_IN_DICTIONARY = 8
     TOO_MANY_TILES_PLAYED = 9
+    TILE_NOT_IN_RACK = 10
 
     # Bonus score for playing all 7 tiles in one move
     BINGO_BONUS = 50
@@ -431,19 +396,20 @@ class Move:
             u"HAS_GAP",
             u"WORD_NOT_IN_DICTIONARY",
             u"CROSS_WORD_NOT_IN_DICTIONARY",
-            u"TOO_MANY_TILES_PLAYED"][errcode]
+            u"TOO_MANY_TILES_PLAYED",
+            u"TILE_NOT_IN_RACK"][errcode]
 
-    def __init__(self):
+    def __init__(self, word, row, col):
         # A list of squares covered by the play, i.e. actual tiles
         # laid down on the board
         self._covers = []
         # Number of letters in word formed (this may be >= len(self._covers))
-        self._numletters = 0
+        self._numletters = 0 if word is None else len(word)
         # The word formed
-        self._word = None
+        self._word = word
         # Starting row and column of word formed
-        self._row = 0
-        self._col = 0
+        self._row = row
+        self._col = col
         # Is the word horizontal or vertical?
         self._horizontal = True
 
@@ -476,7 +442,14 @@ class Move:
         self._covers.append(Cover(row, col, tile, letter))
         return True
 
-    def check_legality(self, board):
+    def add_validated_cover(self, cover):
+        """ Add an already validated Cover object to this move """
+        self._covers.append(cover)
+        # Find out automatically whether this is a horizontal or vertical move
+        if len(self._covers) == 2:
+            self._horizontal = self._covers[0].row == cover.row
+
+    def check_legality(self, board, rack):
         """ Check whether this move is legal on the board """
         # Must cover at least one square
         if len(self._covers) < 1:
@@ -488,6 +461,12 @@ class Move:
         horiz = True
         vert = True
         first = True
+        # All tiles played must be in the rack
+        played = u''.join([c.tile for c in self._covers])
+        if not rack.contains(played):
+            # !!! TODO: Debugging aid; change this
+            # return Move.TILE_NOT_IN_RACK
+            pass
         # The tiles covered by the move must be purely horizontal or purely vertical
         for c in self._covers:
             if first:
