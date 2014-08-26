@@ -103,12 +103,17 @@ class Alphabet:
     @staticmethod
     def bit_pattern(word):
         """ Return a pattern of bits indicating which letters are present in the word """
-        return reduce(lambda x, y: x | y, [Alphabet.bit[Alphabet.order.index(c)] for c in word])
+        return reduce(lambda x, y: x | y, [Alphabet.bit_of(c) for c in word], 0)
 
     @staticmethod
-    def bit(c):
+    def bit_of(c):
         """ Returns the bit corresponding to a character in the alphabet """
         return Alphabet.bit[Alphabet.order.index(c)]
+
+    @staticmethod
+    def all_bits_set():
+        """ Return a bit pattern where the bits for all letters in the Alphabet are set """
+        return 2 ** len(Alphabet.order) - 1
 
     @staticmethod
     def lowercase(ch):

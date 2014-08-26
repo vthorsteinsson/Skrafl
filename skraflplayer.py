@@ -27,31 +27,32 @@ class Square:
 
     def __init__(self):
         # Cross checks
-        self._above = None
-        self._below = None
+        self._cc = 0
         # The tile located here, '?' if blank tile
         self._tile = None
         # The letter located here, including meaning of blank tile
         self._letter = None
-        # Set of letters that can be here
-        self._allowed = None
         # Is this an anchor square?
         self._anchor = False
-        # Can a new tile be placed here?
-        self._closed = False
 
-    def init(self, board, row, col):
+    def init(self, autoplayer, row, col, crosscheck):
         """ Initialize this square from the board """
+        board = autoplayer.board()
         self._tile = board.tile_at(row, col)
         self._letter = board.letter_at(row, col)
-        self._closed = board.is_closed(row, col)
+        # Cross checks and anchors
+        self._cc = crosscheck
+        if self.is_open() and board.has_adjacent(row, col):
+            # Empty square with adjacent covered squares and nonzero cross-checks:
+            # mark as anchor
+            self.mark_anchor()
 
     def is_empty(self):
         return self._letter == u' '
 
     def is_open(self):
         """ Can a new tile be placed here? """
-        return self.is_empty() and not self._closed
+        return self.is_empty() and self._cc != 0
 
     def letter(self):
         """ Return the letter at this square """
@@ -61,49 +62,15 @@ class Square:
         """ Mark this square as an anchor """
         self._anchor = True
 
-    def set_above(self, wordpart):
-        """ Cross-check word or partial word above this square """
-        self._above = wordpart
-        if wordpart:
-            self._anchor = True
-
-    def set_below(self, wordpart):
-        """ Cross-check word or partial word below this square """
-        self._below = wordpart
-        if wordpart:
-            self._anchor = True
-
-    def init_crosscheck(self, above, below):
-        """ Initialize cross-check information for this square """
-        if above:
-            self.set_above(above)
-        if below:
-            self.set_below(below)
-        if above or below:
-            # We have a cross-check here, i.e. a connection
-            # with words or word parts above and/or below:
-            # Check what that implies for this square
-            query = u'' if not above else above
-            query += u'?'
-            if below:
-                query += below
-            # Query the word database for words that fit this pattern
-            matches = Manager.word_db().find_matches(query)
-            # print(u"Crosscheck query {0} yielded {1} matches".format(query, len(matches))) # !!! DEBUG
-            if not matches:
-                # No tile fits this square; it must remain empty
-                self._closed = True
-                self._anchor = False
-            else:
-                ix = 0 if not above else len(above)
-                # Note the set of allowed letters here
-                self._allowed = set([wrd[ix] for wrd in matches])
+    def is_anchor(self):
+        """ Is this an anchor square? """
+        return self._anchor
 
     def filter_rack(self, rack):
         """ Return the rack letters that would be allowed here """
-        if self._closed:
+        if self._cc == 0:
             return u''
-        return u''.join([c for c in rack if self._allowed is None or c in self._allowed])
+        return u''.join([c for c in rack if c != u'?' and (Alphabet.bit_of(c) & self._cc)])
 
 
 class Axis:
@@ -113,44 +80,15 @@ class Axis:
         for an AutoPlayer.
     """
 
-    def __init__(self, index, horizontal):
+    def __init__(self, autoplayer, index, horizontal):
+
+        self._autoplayer = autoplayer
         self._sq = [None] * Board.SIZE
         for i in range(Board.SIZE):
             self._sq[i] = Square()
         self._index = index
         self._horizontal = horizontal
-
-    def _init(self, board, x, y, xd, yd):
-        """ Initialize axis data from the board """
-        for ix in range(Board.SIZE):
-            sq = self._sq[ix]
-            sq.init(board, x, y)
-            if sq.is_open():
-                # For open squares, initialize the cross-checks
-                if self._horizontal:
-                    above = board.letters_above(x, y)
-                    below = board.letters_below(x, y)
-                else:
-                    above = board.letters_left(x, y)
-                    below = board.letters_right(x, y)
-                sq.init_crosscheck(above, below)
-                if not sq.is_open():
-                    # We found crosschecks that close this square
-                    # (i.e. make it impossible to place a tile on it):
-                    # mark the board accordingly
-                    # !!! BUG: A closed square might re-open when another tile is placed
-                    board.mark_closed(x, y)
-            x += xd
-            y += yd
-        for ix in range(Board.SIZE):
-            # Make sure that open squares around occupied tiles
-            # are marked as anchors
-            if not self._sq[ix].is_empty():
-                if ix > 0 and self._sq[ix - 1].is_open():
-                    self._sq[ix - 1].mark_anchor()
-                if ix < Board.SIZE - 1 and self._sq[ix + 1].is_open():
-                    # print(u"Marking {0} as anchor".format(Board.short_coordinate(True, x + xd, y + yd)))
-                    self._sq[ix + 1].mark_anchor()
+        self._rack = autoplayer.rack()
 
     def is_horizontal(self):
         return self._horizontal
@@ -182,12 +120,56 @@ class Axis:
         """ Return the rack letters that would be allowed at the index """
         return self._sq[index].filter_rack(rack)
 
-    def _add_moves_from_anchor(self, index, maxleft, rack, candidates):
-        """ Find valid moves emanating (on the left and right) from this anchor """
-        if self._horizontal:
-            coord = Board.short_coordinate(True, self._index, index)
+    def init_crosschecks(self):
+        """ Calculate and return a list of cross-check bit patterns for the indicated axis """
+        board = self._autoplayer.board()
+        # Prepare to visit all squares on the axis
+        if self.is_horizontal():
+            x, y = self._index, 0
+            xd, yd = 0, 1
         else:
-            coord = Board.short_coordinate(False, index, self._index)
+            x, y = 0, self._index
+            xd, yd = 1, 0
+        # Go through the open squares and calculate their cross-checks
+        for ix in range(Board.SIZE):
+            # Default cross-check bits: all set
+            cc = Alphabet.all_bits_set()
+            if not board.is_covered(x, y):
+                if self.is_horizontal():
+                    above = board.letters_above(x, y)
+                    below = board.letters_below(x, y)
+                else:
+                    above = board.letters_left(x, y)
+                    below = board.letters_right(x, y)
+                query = u'' if not above else above
+                query += u'?'
+                if below:
+                    query += below
+                if len(query) > 1:
+                    # Nontrivial cross-check: Query the word database for words that fit this pattern
+                    matches = Manager.word_db().find_matches(query, False) # Don't need a sorted result
+                    # print(u"Crosscheck query {0} yielded {1} matches".format(query, len(matches))) # !!! DEBUG
+                    bits = 0
+                    if matches:
+                        cix = 0 if not above else len(above)
+                        # Note the set of allowed letters here
+                        bits = Alphabet.bit_pattern([wrd[cix] for wrd in matches])
+                        print(u"Cross check bits for {0} matches are {1}".format(len(matches), bits))
+                    # Reduce the cross-check set by intersecting it with the allowed set
+                    # Note that each square will be affected both by horizontal and vertical cross-checks
+                    cc &= bits
+                    print(u"CC bits at {0} are now {1}".format(Board.short_coordinate(self.is_horizontal(), x, y), cc))
+            # Initialize the square
+            self._sq[ix].init(self._autoplayer, x, y, cc)
+            x += xd
+            y += yd
+
+    def _gen_moves_from_anchor(self, index, maxleft):
+        """ Find valid moves emanating (on the left and right) from this anchor """
+
+        x, y = self.coordinate_of(index)
+        print(u"Generating moves from anchor {0}, maxleft {1}".format(Board.short_coordinate(self._horizontal, x, y), maxleft))
+
         if index > 0 and not self._sq[index - 1].is_empty():
             # We have a left part already on the board: try to complete it
             leftpart = u''
@@ -197,84 +179,101 @@ class Axis:
                 ix -= 1
             #print(u"Anchor {0}: Trying to complete left part '{1}' using rack '{2}'".format(
             #    coord, leftpart, rack))
-            nav = ExtendRightNavigator(self, index, leftpart, rack, candidates)
+            nav = ExtendRightNavigator(self, index, leftpart,
+                self._rack, self._autoplayer.candidates())
             Manager.word_db().navigate(nav)
             return
+
         # We have some space to the left of the anchor square
         #print(u"Anchor {0}: Permuting back into {1} empty squares from rack '{2}'".format(
         #    coord, maxleft, rack))
         # Begin by extending an empty prefix to the right, i.e. placing
         # tiles on the anchor square itself and to its right
-        nav = ExtendRightNavigator(self, index, u'', rack, candidates)
+        nav = ExtendRightNavigator(self, index, u'',
+            self._rack, self._autoplayer.candidates())
         Manager.word_db().navigate(nav)
+
         if maxleft > 0:
             # Follow this by an effort to permute left prefixes into the open space
-            nav = LeftPartNavigator(self, index, rack, maxleft, candidates)
+            nav = LeftPartNavigator(self, index, maxleft,
+                self._rack, self._autoplayer.candidates())
             Manager.word_db().navigate(nav)
 
-    def add_valid_moves(self, rack, candidates):
-        """ Find all valid moves on this axis, given a rack,
-            and add them to the candidates list """
-        last_open = -1
+    def generate_moves(self):
+        """ Find all valid moves on this axis by attempting to place tiles
+            at and around all anchor squares """
+        last_anchor = -1
+        lenrack = len(self._rack)
+        print(u"generate_moves(): looping to find anchors")
         for i in range(Board.SIZE):
-            if self._sq[i]._anchor:
-                self._add_moves_from_anchor(i, min(i - last_open - 1, len(rack) - 1), rack, candidates)
-                last_open = i
-            elif not self._sq[i].is_open():
-                last_open = i
+            if self._sq[i].is_anchor():
+                # Count the consecutive open, non-anchor squares on the left of the anchor
+                opensq = 0
+                left = i
+                while left > 0 and left > (last_anchor + 1) and self._sq[left - 1].is_open():
+                    opensq += 1
+                    left -= 1
+                # We have a maximum left part length of min(opensq, lenrack-1) as the anchor
+                # square itself must always be filled from the rack
+                self._gen_moves_from_anchor(i, min(opensq, lenrack - 1))
+                last_anchor = i
 
-    @staticmethod
-    def from_row(board, row):
-        """ Creates an Axis from a board row.
-            Loads letters and tiles and initializes the cross-checks. """
-        axis = Axis(row, True) # Horizontal
-        axis._init(board, row, 0, 0, 1)
-        return axis
-
-    @staticmethod
-    def from_column(board, col):
-        """ Creates an Axis from a board column.
-            Loads letters and tiles and initializes the cross-checks. """
-        axis = Axis(col, False) # Vertical
-        axis._init(board, 0, col, 1, 0)
-        return axis
-
-
+    
 class AutoPlayer:
 
     """ Implements an automatic, computer-controlled player
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, state):
+        self._candidates = []
+        self._board = state.board()
+        self._rack = state.player_rack().contents()
 
-    def find_move(self, state):
+    def board(self):
+        return self._board
+
+    def rack(self):
+        return self._rack
+
+    def candidates(self):
+        return self._candidates
+
+    def _axis_from_row(self, row):
+        """ Creates and initializes an Axis from a board row """
+        return Axis(self, row, True) # Horizontal
+
+    def _axis_from_column(self, col):
+        """ Creates and initializes an Axis from a board column """
+        return Axis(self, col, False) # Vertical
+
+    def generate_move(self):
         """ Finds and returns a Move object to be played """
-        candidates = []
-        board = state.board()
-        rack = state.player_rack().contents()
-        # Analyze rows for legal moves
+        # Generate moves in one-dimensional space by looking at each axis
+        # (row or column) on the board separately
         for r in range(Board.SIZE):
-            Axis.from_row(board, r).add_valid_moves(rack, candidates)
-        # Analyze columns for legal moves
+            axis = self._axis_from_row(r)
+            axis.init_crosschecks()
+            axis.generate_moves()
         for c in range(Board.SIZE):
-            Axis.from_column(board, c).add_valid_moves(rack, candidates)
-        # Look at the candidates and pick the best one
-        return self._find_best_move(board, rack, candidates)
+            axis = self._axis_from_column(c)
+            axis.init_crosschecks()
+            axis.generate_moves()
+        # We now have a list of valid candidate moves; pick the best one
+        return self._find_best_move()
 
-    def _find_best_move(self, board, rack, candidates):
+    def _find_best_move(self):
         """ Analyze the list of candidate moves and pick the best one """
-        if not candidates:
+        if not self._candidates:
             return None
         def keyfunc(x):
-            return -x.score(board)
+            return -x.score(self._board)
         # Sort the candidate moves in decreasing order by score
-        candidates.sort(key=keyfunc)
-        print(u"Rack '{0}' generated {1} candidate moves:".format(rack, len(candidates)))
-        for m in candidates:
-            print(u"Move {0} score {1}".format(m, m.score(board)))
+        self._candidates.sort(key=keyfunc)
+        print(u"Rack '{0}' generated {1} candidate moves:".format(self._rack, len(self._candidates)))
+        for m in self._candidates:
+            print(u"Move {0} score {1}".format(m, m.score(self._board)))
         # Return the highest-scoring candidate
-        return candidates[0]
+        return self._candidates[0]
 
 
 class LeftPartNavigator:
@@ -295,7 +294,7 @@ class LeftPartNavigator:
 
     """
 
-    def __init__(self, axis, anchor, rack, limit, candidates):
+    def __init__(self, axis, anchor, limit, rack, candidates):
         self._rack = rack
         self._stack = []
         self._index = 0
@@ -336,6 +335,7 @@ class LeftPartNavigator:
 
     def accept(self, matched, final):
         """ Called to inform the navigator of a match and whether it is a final word """
+        # !!! BUG: We haven't done any cross-checks on the left part!
         nav = ExtendRightNavigator(self._axis, self._anchor, matched, self._rack, self._candidates)
         Manager.word_db().navigate(nav)
 

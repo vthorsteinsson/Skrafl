@@ -99,14 +99,14 @@ class WordDatabase:
         assert self._dawg is not None
         return self._dawg.find_permutations(rack)
 
-    def find_matches(self, pattern):
+    def find_matches(self, pattern, sort=True):
         """ Find all words that match a pattern """
         if not pattern:
             return None
         if self._dawg is None:
             self._load()
         assert self._dawg is not None
-        return self._dawg.find_matches(pattern)
+        return self._dawg.find_matches(pattern, sort)
 
     def navigate(self, nav):
         """ Use a generic navigator to traverse the graph """
@@ -212,7 +212,7 @@ class Tabulator:
             return True
         if self._pattern:
             # Use pattern matching
-            p = self._word_db.find_matches(self._rack)
+            p = self._word_db.find_matches(self._rack, True) # We'd like a sorted result
         else:
             # Find permutations
             p = self._word_db.find_permutations(self._rack)

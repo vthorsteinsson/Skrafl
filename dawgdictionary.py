@@ -141,12 +141,12 @@ class DawgDictionary:
         """ Enable simple lookup syntax: "word" in dawgdict """
         return self.find(word)
 
-    def find_matches(self, pattern):
+    def find_matches(self, pattern, sort=True):
         """ Returns a list of words matching a pattern.
             The pattern contains characters and '?'-signs denoting wildcards.
             Characters are matched exactly, while the wildcards match any character.
         """
-        nav = MatchNavigator(pattern)
+        nav = MatchNavigator(pattern, sort)
         self.navigate(nav)
         return nav.result()
 
@@ -359,7 +359,7 @@ class MatchNavigator:
         to find all words matching a pattern
     """
 
-    def __init__(self, pattern):
+    def __init__(self, pattern, sort):
         self._pattern = pattern
         self._lenp = len(pattern)
         self._index = 0
@@ -367,6 +367,7 @@ class MatchNavigator:
         self._wildcard = (self._chmatch == u'?')
         self._stack = []
         self._result = []
+        self._sort = sort
 
     def push_edge(self, firstchar):
         """ Returns True if the edge should be entered or False if not """
@@ -408,7 +409,8 @@ class MatchNavigator:
 
     def done(self):
         """ Called when the whole navigation is done """
-        self._result.sort(key = Alphabet.sortkey)
+        if self._sort:
+            self._result.sort(key = Alphabet.sortkey)
 
     def result(self):
         return self._result

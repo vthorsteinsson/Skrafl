@@ -87,12 +87,8 @@ class Board:
 
     @staticmethod
     def short_coordinate(horiz, row, col):
-        if horiz:
-            # Row letter first, then column number (1-based)
-            return Board.ROWIDS[row] + str(col + 1)
-        else:
-            # Column number first (1-based), then row letter
-            return str(col + 1) + Board.ROWIDS[row]
+        # RC if horizontal move, or CR if vertical. R is A,B,C... C is 1,2,3...
+        return Board.ROWIDS[row] + str(col + 1) if horiz else str(col + 1) + Board.ROWIDS[row]
 
     def __init__(self):
         # Store letters on the board in list of strings
@@ -275,28 +271,28 @@ class Rack:
     MAX_TILES = 7
 
     def __init__(self):
-        self._rack = u''
+        self._tiles = u''
 
     def remove_tile(self, tile):
         """ Remove a tile from the rack """
-        self._rack = self._rack.replace(tile, u'', 1)
+        self._tiles = self._tiles.replace(tile, u'', 1)
 
     def replenish(self, bag):
         """ Draw tiles from the bag until we have 7 tiles or the bag is empty """
-        while len(self._rack) < Rack.MAX_TILES and not bag.is_empty():
-            self._rack += bag.draw_tile()
+        while len(self._tiles) < Rack.MAX_TILES and not bag.is_empty():
+            self._tiles += bag.draw_tile()
 
     def contents(self):
         """ Return the contents of the rack """
-        return self._rack
+        return self._tiles
 
     def contains(self, tiles):
         # Check whether the rack contains all tiles in the tiles string
         # (Quick and dirty, not time-critical)
-        temp = self._rack
+        temp = self._tiles
         for c in tiles:
             temp = temp.replace(c, u'', 1)
-        return len(self._rack) - len(temp) == len(tiles)
+        return len(self._tiles) - len(temp) == len(tiles)
 
 
 class State:
@@ -327,7 +323,7 @@ class State:
         return move.check_legality(self._board, self.player_rack())
 
     def apply_move(self, move):
-        """ Apply the given move to this state """
+        """ Apply the given move, assumed to be legal, to this state """
         # Update the player's score
         self._scores[self._player_to_move] += self.score(move)
         # Update the board and the rack

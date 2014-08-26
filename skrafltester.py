@@ -105,12 +105,16 @@ def test():
 
     print(unicode(state))
 
+    # Generate a sequence of moves, switching player sides automatically
+
     for _ in range(4):
-        apl = AutoPlayer()
-        move = apl.find_move(state)
+
+        apl = AutoPlayer(state)
+        move = apl.generate_move()
 
         legal = state.check_legality(move)
         if legal != Move.LEGAL:
+            # Oops: the autoplayer generated an illegal move
             print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
             return
         print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
