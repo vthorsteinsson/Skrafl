@@ -154,11 +154,9 @@ class Axis:
                         cix = 0 if not above else len(above)
                         # Note the set of allowed letters here
                         bits = Alphabet.bit_pattern([wrd[cix] for wrd in matches])
-                        print(u"Cross check bits for {0} matches are {1}".format(len(matches), bits))
                     # Reduce the cross-check set by intersecting it with the allowed set
                     # Note that each square will be affected both by horizontal and vertical cross-checks
                     cc &= bits
-                    print(u"CC bits at {0} are now {1}".format(Board.short_coordinate(self.is_horizontal(), x, y), cc))
             # Initialize the square
             self._sq[ix].init(self._autoplayer, x, y, cc)
             x += xd
@@ -168,7 +166,7 @@ class Axis:
         """ Find valid moves emanating (on the left and right) from this anchor """
 
         x, y = self.coordinate_of(index)
-        print(u"Generating moves from anchor {0}, maxleft {1}".format(Board.short_coordinate(self._horizontal, x, y), maxleft))
+        # print(u"Generating moves from anchor {0}, maxleft {1}".format(Board.short_coordinate(self._horizontal, x, y), maxleft))
 
         if index > 0 and not self._sq[index - 1].is_empty():
             # We have a left part already on the board: try to complete it
@@ -204,7 +202,6 @@ class Axis:
             at and around all anchor squares """
         last_anchor = -1
         lenrack = len(self._rack)
-        print(u"generate_moves(): looping to find anchors")
         for i in range(Board.SIZE):
             if self._sq[i].is_anchor():
                 # Count the consecutive open, non-anchor squares on the left of the anchor
@@ -270,7 +267,8 @@ class AutoPlayer:
         # Sort the candidate moves in decreasing order by score
         self._candidates.sort(key=keyfunc)
         print(u"Rack '{0}' generated {1} candidate moves:".format(self._rack, len(self._candidates)))
-        for m in self._candidates:
+        # Show top 20 candidates
+        for m in self._candidates[0:20]:
             print(u"Move {0} score {1}".format(m, m.score(self._board)))
         # Return the highest-scoring candidate
         return self._candidates[0]
@@ -317,7 +315,7 @@ class LeftPartNavigator:
     def accepting(self):
         """ Returns False if the navigator does not want more characters """
         # Continue as long as there is something left on the rack
-        return bool(self._rack) and self._index <= self._limit
+        return bool(self._rack) and self._index < self._limit
 
     def accepts(self, newchar):
         """ Returns True if the navigator will accept the new character """
@@ -335,7 +333,6 @@ class LeftPartNavigator:
 
     def accept(self, matched, final):
         """ Called to inform the navigator of a match and whether it is a final word """
-        # !!! BUG: We haven't done any cross-checks on the left part!
         nav = ExtendRightNavigator(self._axis, self._anchor, matched, self._rack, self._candidates)
         Manager.word_db().navigate(nav)
 
@@ -407,7 +404,7 @@ class ExtendRightNavigator:
         if self._check(firstchar) == Match.NO:
             return False
         # Match: save our rack and our index and move into the edge
-        self._stack.append((self._rack, self._index))
+        self._stack.append((self._rack, self._index, self._pix))
         return True
 
     def accepting(self):
@@ -428,6 +425,7 @@ class ExtendRightNavigator:
         if self._pix < self._lenp:
             # Still going through the prefix
             if self._prefix[self._pix] != newchar:
+                print(u"Prefix is '{0}' but newchar is '{1}'".format(self._prefix[self._pix], newchar))
                 assert False
                 return False # Should not happen - all prefixes should exist in the graph
             # So far, so good: move on
@@ -462,11 +460,13 @@ class ExtendRightNavigator:
             ix = self._anchor - self._lenp # The word's starting index within the axis
             row, col = self._axis.coordinate_of(ix)
             xd, yd = self._axis.coordinate_step()
-            move = Move(matched, row, col)
+            move = Move(matched, row, col, self._axis.is_horizontal())
             for c in matched:
                 if self._axis.is_empty(ix):
                     # Empty square that is being covered by this move
                     # !!! Add logic for wildcard tile '?' if used
+                    assert row in range(Board.SIZE)
+                    assert col in range(Board.SIZE)
                     move.add_validated_cover(Cover(row, col, c, c))
                 ix += 1
                 row += xd
@@ -478,7 +478,7 @@ class ExtendRightNavigator:
         if not self._stack:
             # We are still navigating through the prefix: short-circuit
             return False
-        self._rack, self._index = self._stack.pop()
+        self._rack, self._index, self._pix = self._stack.pop()
         # Once past the prefix, we need to visit all outgoing edges, so return True
         return True
 

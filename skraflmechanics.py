@@ -74,11 +74,11 @@ class Board:
         "111111212111111",
         "211111121111112",
         "111111111111111",
-        "131111111111131",
-        "112111111111211",
+        "131113111311131",
+        "112111212111211",
         "111211111112111",
-        "112111111111211",
-        "131111111111131",
+        "112111212111211",
+        "131113111311131",
         "111111111111111",
         "211111121111112",
         "111111212111111",
@@ -259,6 +259,10 @@ class Bag:
         """ Return the contents of the bag """
         return self._tiles
 
+    def num_tiles(self):
+        """ Return the number of tiles in the bag """
+        return len(self._tiles)
+
     def is_empty(self):
         """ Returns True if the bag is empty, i.e. all tiles have been drawn """
         return not self._tiles
@@ -286,13 +290,38 @@ class Rack:
         """ Return the contents of the rack """
         return self._tiles
 
+    def num_tiles(self):
+        """ Return the number of tiles in the rack """
+        return len(self._tiles)
+
+    def set_tiles(self, tiles):
+        """ Force the contents of the rack. Used for testing purposes. """
+        self._tiles = tiles
+
     def contains(self, tiles):
-        # Check whether the rack contains all tiles in the tiles string
+        """ Check whether the rack contains all tiles in the tiles string """
         # (Quick and dirty, not time-critical)
         temp = self._tiles
         for c in tiles:
             temp = temp.replace(c, u'', 1)
         return len(self._tiles) - len(temp) == len(tiles)
+
+    def exchange(self, bag, tiles):
+        """ Exchange the given tiles with the bag """
+        if bag.num_tiles() < Rack.MAX_TILES:
+            # Need seven tiles in the bag to be allowed to exchange
+            return False
+        # First remove the tiles from the rack and replenish it
+        removed = u''
+        for c in tiles:
+            if c in self._tiles:
+                # Be careful and only remove tiles that actually were there
+                self.remove_tile(c)
+                removed += c
+        self.replenish(bag)
+        # Then return the old tiles to the bag
+        bag.return_tiles(removed)
+        return True
 
 
 class State:
@@ -334,6 +363,12 @@ class State:
         # It's the other player's move
         self._player_to_move = 1 - self._player_to_move
 
+    def exchange(self, tiles):
+        """ Exchange tiles """
+        self.player_rack().exchange(self._bag, tiles)
+        # It's the other player's move
+        self._player_to_move = 1 - self._player_to_move
+
     def score(self, move):
         """ Calculate the score of the move """
         return move.score(self._board)
@@ -347,7 +382,8 @@ class State:
         return self._board
 
     def __str__(self):
-        return self._board.__str__() + u"\n{0} vs {1}".format(self._scores[0], self._scores[1])
+        return self._board.__str__() + u"\n{0} vs {1}".format(self._scores[0], self._scores[1]) + \
+            u"\n'{0}' vs '{1}'".format(self._racks[0].contents(), self._racks[1].contents())
 
 
 class Cover:
@@ -395,7 +431,7 @@ class Move:
             u"TOO_MANY_TILES_PLAYED",
             u"TILE_NOT_IN_RACK"][errcode]
 
-    def __init__(self, word, row, col):
+    def __init__(self, word, row, col, horiz=True):
         # A list of squares covered by the play, i.e. actual tiles
         # laid down on the board
         self._covers = []
@@ -407,7 +443,7 @@ class Move:
         self._row = row
         self._col = col
         # Is the word horizontal or vertical?
-        self._horizontal = True
+        self._horizontal = horiz
 
     def short_coordinate(self):
         """ Return the coordinate of the move in 'Scrabble notation',
@@ -559,6 +595,7 @@ class Move:
                     self._word += board.letter_at(self._row + ix, self._col)
         # Check whether the word is in the dictionary
         if self._word not in Manager.word_db():
+            print(u"Word '{0}' not found in dictionary".format(self._word))
             return Move.WORD_NOT_IN_DICTIONARY
         # Check that the play is adjacent to some previously placed tile
         # (unless this is the first move, i.e. the board is empty)

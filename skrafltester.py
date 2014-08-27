@@ -12,6 +12,39 @@
 from skraflmechanics import Manager, State, Move
 from skraflplayer import AutoPlayer
 
+def test_move(state, movestring):
+    # Test placing a simple move
+    coord, word = movestring.split(u' ')
+    rowid = u"ABCDEFGHIJKLMNO"
+    row, col = 0, 0
+    xd, yd = 0, 0
+    if coord[0] in rowid:
+        row = rowid.index(coord[0])
+        col = int(coord[1:]) - 1
+        yd = 1
+    else:
+        row = rowid.index(coord[-1])
+        col = int(coord[0:-1]) - 1
+        xd = 1
+    move = Move(word, row, col)
+    for c in word:
+        if not state.board().is_covered(row, col):
+            move.add_cover(row, col, c, c)
+        row += xd
+        col += yd
+    legal = state.check_legality(move)
+    if legal != Move.LEGAL:
+        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
+        return False
+    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
+    state.apply_move(move)
+    print(unicode(state))
+    return True
+
+def test_exchange(state, numtiles):
+    print(u"Exchanging {0} tiles".format(numtiles))
+    state.exchange(state.player_rack().contents()[0:numtiles])
+
 def test():
 
     manager = Manager()
@@ -19,95 +52,16 @@ def test():
     state = State()
     print unicode(state)
 
-    # Test placing a simple move
-    move = Move(u"þú", 0, 0)
-    move.add_cover(7, 7, u"þ", u"þ")
-    move.add_cover(8, 7, u"ú", u"ú")
-    legal = state.check_legality(move)
-    if legal != Move.LEGAL:
-        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
-        return
-    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
-
-    state.apply_move(move)
-
-    print(unicode(state))
-
-    move = Move(u"þessi", 0, 0)
-    move.add_cover(7, 8, u"e", u"e")
-    move.add_cover(7, 9, u"s", u"s")
-    move.add_cover(7, 10, u"s", u"s")
-    move.add_cover(7, 11, u"i", u"i")
-    legal = state.check_legality(move)
-    if legal != Move.LEGAL:
-        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
-        return
-    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
-
-    state.apply_move(move)
-
-    print(unicode(state))
-
-    move = Move(u"kexi", 0, 0)
-    move.add_cover(4, 11, u"k", u"k")
-    move.add_cover(5, 11, u"e", u"e")
-    move.add_cover(6, 11, u"x", u"x")
-    legal = state.check_legality(move)
-    if legal != Move.LEGAL:
-        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
-        return
-    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
-
-    state.apply_move(move)
-
-    print(unicode(state))
-
-    move = Move(u"taska", 0, 0)
-    move.add_cover(5, 10, u"t", u"t")
-    move.add_cover(6, 10, u"a", u"a")
-    move.add_cover(8, 10, u"k", u"k")
-    move.add_cover(9, 10, u"a", u"a")
-    legal = state.check_legality(move)
-    if legal != Move.LEGAL:
-        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
-        return
-    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
-
-    state.apply_move(move)
-
-    print(unicode(state))
-
-    move = Move(u"ofar", 0, 0)
-    move.add_cover(5, 12, u"f", u"f")
-    move.add_cover(6, 12, u"?", u"a")
-    move.add_cover(7, 12, u"r", u"r")
-    legal = state.check_legality(move)
-    if legal != Move.LEGAL:
-        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
-        return
-    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
-
-    state.apply_move(move)
-
-    print(unicode(state))
-
-    move = Move(u"kona", 0, 0)
-    move.add_cover(4, 12, u"o", u"o")
-    move.add_cover(4, 13, u"n", u"n")
-    move.add_cover(4, 14, u"a", u"a")
-    legal = state.check_legality(move)
-    if legal != Move.LEGAL:
-        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
-        return
-    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
-
-    state.apply_move(move)
-
-    print(unicode(state))
+    test_move(state, u"H4 stuði")
+    test_move(state, u"5E detts")
+    test_exchange(state, 3)
+    test_move(state, u"I3 dýs")
+    test_move(state, u"6E óx")
+    state.player_rack().set_tiles(u"ðhknnmn")
 
     # Generate a sequence of moves, switching player sides automatically
 
-    for _ in range(4):
+    for _ in range(8):
 
         apl = AutoPlayer(state)
         move = apl.generate_move()
