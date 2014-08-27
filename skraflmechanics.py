@@ -513,6 +513,10 @@ class Move:
         if (not horiz) and (not vert):
             # Spread all over: not legal
             return Move.DISJOINT
+        # If only one cover, use the orientation hint from the constructor
+        if len(self._covers) == 1:
+            horiz = self._horizontal
+            vert = not horiz
         # The move is purely horizontal or vertical
         if horiz:
             self._covers.sort(key = lambda x: x.col) # Sort in ascending column order
