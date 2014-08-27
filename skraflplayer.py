@@ -177,8 +177,7 @@ class Axis:
                 ix -= 1
             #print(u"Anchor {0}: Trying to complete left part '{1}' using rack '{2}'".format(
             #    coord, leftpart, rack))
-            nav = ExtendRightNavigator(self, index, leftpart,
-                self._rack, self._autoplayer.candidates())
+            nav = ExtendRightNavigator(self, index, leftpart, self._rack, self._autoplayer)
             Manager.word_db().navigate(nav)
             return
 
@@ -187,14 +186,12 @@ class Axis:
         #    coord, maxleft, rack))
         # Begin by extending an empty prefix to the right, i.e. placing
         # tiles on the anchor square itself and to its right
-        nav = ExtendRightNavigator(self, index, u'',
-            self._rack, self._autoplayer.candidates())
+        nav = ExtendRightNavigator(self, index, u'', self._rack, self._autoplayer)
         Manager.word_db().navigate(nav)
 
         if maxleft > 0:
             # Follow this by an effort to permute left prefixes into the open space
-            nav = LeftPartNavigator(self, index, maxleft,
-                self._rack, self._autoplayer.candidates())
+            nav = LeftPartNavigator(self, index, maxleft, self._rack, self._autoplayer)
             Manager.word_db().navigate(nav)
 
     def generate_moves(self):
@@ -234,6 +231,10 @@ class AutoPlayer:
 
     def candidates(self):
         return self._candidates
+
+    def add_candidate(self, move):
+        """ Add a candidate move to the AutoPlayer's list """
+        self._candidates.append(move)
 
     def _axis_from_row(self, row):
         """ Creates and initializes an Axis from a board row """
@@ -292,15 +293,16 @@ class LeftPartNavigator:
 
     """
 
-    def __init__(self, axis, anchor, limit, rack, candidates):
+    def __init__(self, axis, anchor, limit, rack, autoplayer):
         self._rack = rack
         self._stack = []
         self._index = 0
         self._limit = limit
-        # We only store the axis and anchor to pass them on to ExtendRightNavigator
+        # We only store the axis, anchor and autoplayer to pass them on to ExtendRightNavigator
         self._axis = axis
         self._anchor = anchor
-        self._candidates = candidates
+        # The autoplayer that invoked the navigator
+        self._autoplayer = autoplayer
 
     def push_edge(self, firstchar):
         """ Returns True if the edge should be entered or False if not """
@@ -333,7 +335,7 @@ class LeftPartNavigator:
 
     def accept(self, matched, final):
         """ Called to inform the navigator of a match and whether it is a final word """
-        nav = ExtendRightNavigator(self._axis, self._anchor, matched, self._rack, self._candidates)
+        nav = ExtendRightNavigator(self._axis, self._anchor, matched, self._rack, self._autoplayer)
         Manager.word_db().navigate(nav)
 
     def pop_edge(self):
@@ -365,7 +367,7 @@ class ExtendRightNavigator:
         the board.
     """
 
-    def __init__(self, axis, anchor, prefix, rack, candidates):
+    def __init__(self, axis, anchor, prefix, rack, autoplayer):
         self._axis = axis
         self._rack = rack
         # The prefix to the left of the anchor
@@ -377,8 +379,8 @@ class ExtendRightNavigator:
         # The tile we are placing next
         self._index = anchor
         self._stack = []
-        # The list of candidate moves
-        self._candidates = candidates
+        # The autoplayer that invokes the navigator
+        self._autoplayer = autoplayer
 
     def _check(self, ch):
         """ Check whether the letter ch could be placed at the
@@ -451,27 +453,38 @@ class ExtendRightNavigator:
 
     def accept(self, matched, final):
         """ Called to inform the navigator of a match and whether it is a final word """
-        if final and (self._pix > self._lenp) and (self._index >= Board.SIZE or
+        if final and (self._pix > self._lenp) and len(matched) > 1 and (self._index >= Board.SIZE or
             self._axis.is_empty(self._index)):
 
             # print(u"Found solution {0} with {1} tiles to the left of the anchor".format(matched, self._lenp))
 
-            # Make a Move object for this solution and add it to the candidates list
+            # Solution found - make a Move object for it and add it to the AutoPlayer's list
             ix = self._anchor - self._lenp # The word's starting index within the axis
             row, col = self._axis.coordinate_of(ix)
             xd, yd = self._axis.coordinate_step()
             move = Move(matched, row, col, self._axis.is_horizontal())
+            # The rack as it was at the beginning of move generation
+            rack = self._autoplayer.rack()
             for c in matched:
                 if self._axis.is_empty(ix):
                     # Empty square that is being covered by this move
-                    # !!! Add logic for wildcard tile '?' if used
+                    # Find out whether it is a blank or normal letter tile
+                    if c in rack:
+                        rack = rack.replace(c, u'', 1)
+                        tile = c
+                    else:
+                        # Must be a wildcard match
+                        rack = rack.replace(u'?', u'', 1)
+                        tile = u'?'
                     assert row in range(Board.SIZE)
                     assert col in range(Board.SIZE)
-                    move.add_validated_cover(Cover(row, col, c, c))
+                    move.add_validated_cover(Cover(row, col, tile, c))
                 ix += 1
                 row += xd
                 col += yd
-            self._candidates.append(move)
+            # Check that we've picked off the correct number of tiles
+            assert len(rack) == len(self._rack)
+            self._autoplayer.add_candidate(move)
 
     def pop_edge(self):
         """ Called when leaving an edge that has been navigated """

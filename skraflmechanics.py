@@ -219,9 +219,10 @@ class Board:
 
     def __str__(self):
         """ Simple text dump of the contents of the board """
-        l = []
-        for row in self._letters:
-            l.append(u' '.join([u'.' if c == u' ' else c for c in row]))
+        l = [u"   1 2 3 4 5 6 7 8 9 0 1 2 3 4 5"]
+        for y, row in enumerate(self._letters):
+            l.append(Board.ROWIDS[y] + u': ' + \
+                u' '.join([u'.' if c == u' ' else c for c in row]))
         return u'\n'.join(l)
 
     @staticmethod

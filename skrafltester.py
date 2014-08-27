@@ -18,6 +18,7 @@ def test_move(state, movestring):
     rowid = u"ABCDEFGHIJKLMNO"
     row, col = 0, 0
     xd, yd = 0, 0
+    horiz = True
     if coord[0] in rowid:
         row = rowid.index(coord[0])
         col = int(coord[1:]) - 1
@@ -26,10 +27,16 @@ def test_move(state, movestring):
         row = rowid.index(coord[-1])
         col = int(coord[0:-1]) - 1
         xd = 1
-    move = Move(word, row, col)
+        horiz = False
+    move = Move(word, row, col, horiz)
+    next_is_blank = False
     for c in word:
+        if c == u'?':
+            next_is_blank = True
+            continue
         if not state.board().is_covered(row, col):
-            move.add_cover(row, col, c, c)
+            move.add_cover(row, col, u'?' if next_is_blank else c, c)
+            next_is_blank = False
         row += xd
         col += yd
     legal = state.check_legality(move)
@@ -56,7 +63,7 @@ def test():
     test_move(state, u"5E detts")
     test_exchange(state, 3)
     test_move(state, u"I3 dýs")
-    test_move(state, u"6E óx")
+    test_move(state, u"6E ?óx") # The question mark indicates a blank tile for the subsequent cover
     state.player_rack().set_tiles(u"ðhknnmn")
 
     # Generate a sequence of moves, switching player sides automatically
