@@ -110,6 +110,9 @@ class WordDatabase:
 
     def navigate(self, nav):
         """ Use a generic navigator to traverse the graph """
+        if self._dawg is None:
+            self._load()
+        assert self._dawg is not None
         self._dawg.navigate(nav)
 
 

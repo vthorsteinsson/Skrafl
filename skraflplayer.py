@@ -14,7 +14,7 @@
 """
 
 from dawgdictionary import DawgDictionary
-from skraflmechanics import Manager, Board, Cover, Move
+from skraflmechanics import Manager, Board, Cover, Move, ExchangeMove, PassMove
 from languages import Alphabet
 
 
@@ -115,6 +115,10 @@ class Axis:
     def is_empty(self, index):
         """ Is the square at the index empty? """
         return self._sq[index].is_empty()
+
+    def mark_anchor(self, index):
+        """ Force the indicated square to be an anchor. Used in first move for center square. """
+        self._sq[index].mark_anchor()
 
     def filter_rack(self, index, rack):
         """ Return the rack letters that would be allowed at the index """
@@ -220,6 +224,7 @@ class AutoPlayer:
 
     def __init__(self, state):
         self._candidates = []
+        self._state = state
         self._board = state.board()
         self._rack = state.player_rack().contents()
 
@@ -248,16 +253,35 @@ class AutoPlayer:
         """ Finds and returns a Move object to be played """
         # Generate moves in one-dimensional space by looking at each axis
         # (row or column) on the board separately
-        for r in range(Board.SIZE):
-            axis = self._axis_from_row(r)
+        if self._board.is_empty():
+            # Special case for first move: only consider the vertical
+            # central axis (any move played there can identically be
+            # played horizontally), and with only one anchor in the
+            # middle square
+            axis = self._axis_from_column(Board.SIZE / 2)
             axis.init_crosschecks()
+            # Mark the center anchor
+            axis.mark_anchor(Board.SIZE / 2)
             axis.generate_moves()
-        for c in range(Board.SIZE):
-            axis = self._axis_from_column(c)
-            axis.init_crosschecks()
-            axis.generate_moves()
+        else:
+            # Normal move: go through all 15+15 axes and generate legal moves
+            for r in range(Board.SIZE):
+                axis = self._axis_from_row(r)
+                axis.init_crosschecks()
+                axis.generate_moves()
+            for c in range(Board.SIZE):
+                axis = self._axis_from_column(c)
+                axis.init_crosschecks()
+                axis.generate_moves()
         # We now have a list of valid candidate moves; pick the best one
-        return self._find_best_move()
+        move = self._find_best_move()
+        if move is not None:
+            return move
+        # Can't do anything: try exchanging all tiles
+        if self._state.bag().allows_exchange():
+            return ExchangeMove(self.rack())
+        # If we can't exchange tiles, we have to pass
+        return PassMove()
 
     def _find_best_move(self):
         """ Analyze the list of candidate moves and pick the best one """

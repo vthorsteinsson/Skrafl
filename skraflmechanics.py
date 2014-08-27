@@ -307,9 +307,12 @@ class Rack:
             temp = temp.replace(c, u'', 1)
         return len(self._tiles) - len(temp) == len(tiles)
 
+    def allows_exchange(self):
+        return bag.num_tiles() >= Rack.MAX_TILES
+
     def exchange(self, bag, tiles):
         """ Exchange the given tiles with the bag """
-        if bag.num_tiles() < Rack.MAX_TILES:
+        if not self.allows_exchange():
             # Need seven tiles in the bag to be allowed to exchange
             return False
         # First remove the tiles from the rack and replenish it
@@ -349,24 +352,17 @@ class State:
     def check_legality(self, move):
         """ Is the move legal in this state? """
         if move is None:
-            return Move.NULL_MOVE
-        return move.check_legality(self._board, self.player_rack())
+            return Error.NULL_MOVE
+        return move.check_legality(self)
 
     def apply_move(self, move):
         """ Apply the given move, assumed to be legal, to this state """
         # Update the player's score
         self._scores[self._player_to_move] += self.score(move)
-        # Update the board and the rack
-        rack = self.player_rack()
-        move.apply(self._board, rack)
-        # Draw new tiles
-        rack.replenish(self._bag)
-        # It's the other player's move
-        self._player_to_move = 1 - self._player_to_move
-
-    def exchange(self, tiles):
-        """ Exchange tiles """
-        self.player_rack().exchange(self._bag, tiles)
+        # Apply the move to the board state
+        move.apply(self)
+        # Draw new tiles if required
+        self.player_rack().replenish(self._bag)
         # It's the other player's move
         self._player_to_move = 1 - self._player_to_move
 
@@ -381,6 +377,10 @@ class State:
     def board(self):
         """ Return the Board object of this state """
         return self._board
+
+    def bag(self):
+        """ Return the current Bag """
+        return self._bag
 
     def __str__(self):
         return self._board.__str__() + u"\n{0} vs {1}".format(self._scores[0], self._scores[1]) + \
@@ -397,10 +397,7 @@ class Cover:
         self.tile = tile
         self.letter = letter
 
-
-class Move:
-
-    """ Represents a move by a player """
+class Error:
 
     # Error return codes from Move.check_legality()
     LEGAL = 0
@@ -414,9 +411,8 @@ class Move:
     CROSS_WORD_NOT_IN_DICTIONARY = 8
     TOO_MANY_TILES_PLAYED = 9
     TILE_NOT_IN_RACK = 10
-
-    # Bonus score for playing all 7 tiles in one move
-    BINGO_BONUS = 50
+    EXCHANGE_NOT_ALLOWED = 11
+    TOO_MANY_TILES_EXCHANGED = 12
 
     @staticmethod
     def errortext(errcode):
@@ -430,7 +426,17 @@ class Move:
             u"WORD_NOT_IN_DICTIONARY",
             u"CROSS_WORD_NOT_IN_DICTIONARY",
             u"TOO_MANY_TILES_PLAYED",
-            u"TILE_NOT_IN_RACK"][errcode]
+            u"TILE_NOT_IN_RACK",
+            u"EXCHANGE_NOT_ALLOWED",
+            u"TOO_MANY_TILES_EXCHANGED"][errcode]
+
+
+class Move:
+
+    """ Represents a move by a player """
+
+    # Bonus score for playing all 7 tiles in one move
+    BINGO_BONUS = 50
 
     def __init__(self, word, row, col, horiz=True):
         # A list of squares covered by the play, i.e. actual tiles
@@ -482,13 +488,15 @@ class Move:
         if len(self._covers) == 2:
             self._horizontal = self._covers[0].row == cover.row
 
-    def check_legality(self, board, rack):
+    def check_legality(self, state):
         """ Check whether this move is legal on the board """
         # Must cover at least one square
         if len(self._covers) < 1:
-            return Move.NULL_MOVE
+            return Error.NULL_MOVE
         if len(self._covers) > Rack.MAX_TILES:
-            return Move.TOO_MANY_TILES_PLAYED
+            return Error.TOO_MANY_TILES_PLAYED
+        rack = state.player_rack()
+        board = state.board()
         row = 0
         col = 0
         horiz = True
@@ -497,9 +505,7 @@ class Move:
         # All tiles played must be in the rack
         played = u''.join([c.tile for c in self._covers])
         if not rack.contains(played):
-            # !!! TODO: Debugging aid; change this
-            # return Move.TILE_NOT_IN_RACK
-            pass
+            return Error.TILE_NOT_IN_RACK
         # The tiles covered by the move must be purely horizontal or purely vertical
         for c in self._covers:
             if first:
@@ -513,7 +519,7 @@ class Move:
                     vert = False
         if (not horiz) and (not vert):
             # Spread all over: not legal
-            return Move.DISJOINT
+            return Error.DISJOINT
         # If only one cover, use the orientation hint from the constructor
         if len(self._covers) == 1:
             horiz = self._horizontal
@@ -532,7 +538,7 @@ class Move:
         for c in self._covers:
             if board.is_covered(c.row, c.col):
                 # We already have a tile in the square: illegal play
-                return Move.SQUARE_ALREADY_OCCUPIED
+                return Error.SQUARE_ALREADY_OCCUPIED
             # If there is a gap between this cover and the last one,
             # make sure all intermediate squares are covered
             if first:
@@ -545,14 +551,14 @@ class Move:
                     for ix in range(col + 1, c.col):
                         if not board.is_covered(c.row, ix):
                             # Found gap: illegal play
-                            return Move.HAS_GAP
+                            return Error.HAS_GAP
                 else:
                     assert vert
                     # Vertical: check squares within column
                     for ix in range(row + 1, c.row):
                         if not board.is_covered(ix, c.col):
                             # Found gap: illegal play
-                            return Move.HAS_GAP
+                            return Error.HAS_GAP
             row = c.row
             col = c.col
         # Find the start and end of the word that is being formed, including
@@ -601,7 +607,7 @@ class Move:
         # Check whether the word is in the dictionary
         if self._word not in Manager.word_db():
             print(u"Word '{0}' not found in dictionary".format(self._word))
-            return Move.WORD_NOT_IN_DICTIONARY
+            return Error.WORD_NOT_IN_DICTIONARY
         # Check that the play is adjacent to some previously placed tile
         # (unless this is the first move, i.e. the board is empty)
         if board.is_empty():
@@ -612,25 +618,25 @@ class Move:
                     center = True
                     break
             if not center:
-                return Move.FIRST_MOVE_NOT_IN_CENTER
+                return Error.FIRST_MOVE_NOT_IN_CENTER
         else:
             # Must be adjacent to something already on the board
             if not any([board.has_adjacent(c.row, c.col) for c in self._covers]):
-                return Move.NOT_ADJACENT
+                return Error.NOT_ADJACENT
             # Check all cross words formed by the new tiles
             for c in self._covers:
                 if board.is_closed(c.row, c.col):
                     # We don't need to check further: no tile can be placed in this square
-                    return Move.CROSS_WORD_NOT_IN_DICTIONARY
+                    return Error.CROSS_WORD_NOT_IN_DICTIONARY
                 if self._horizontal:
                     cross = board.letters_above(c.row, c.col) + c.letter + board.letters_below(c.row, c.col)
                 else:
                     cross = board.letters_left(c.row, c.col) + c.letter + board.letters_right(c.row, c.col)
                 if len(cross) > 1 and cross not in Manager.word_db():
                     # print(u"Cross check fails for {0}".format(cross)) # !!! DEBUG
-                    return Move.CROSS_WORD_NOT_IN_DICTIONARY
+                    return Error.CROSS_WORD_NOT_IN_DICTIONARY
         # All checks pass: the play is legal
-        return Move.LEGAL
+        return Error.LEGAL
 
     def score(self, board):
         """ Calculate the score of this move, which is assumed to be legal """
@@ -682,9 +688,69 @@ class Move:
             total += Move.BINGO_BONUS
         return total
 
-    def apply(self, board, rack):
+    def apply(self, state):
         """ Apply this move, assumed to be legal, to the board """
+        board = state.board()
+        rack = state.player_rack()
         for c in self._covers:
             board.set_letter(c.row, c.col, c.letter)
             board.set_tile(c.row, c.col, c.tile)
             rack.remove_tile(c.tile)
+
+
+class ExchangeMove:
+
+    """ Represents an exchange move, where tiles are returned to the bag
+        and new tiles drawn instead """
+
+    def __init__(self, tiles):
+        self._tiles = tiles
+
+    def __str__(self):
+        """ Return the standard move notation of a coordinate followed by the word formed """
+        return u"Exchanged {0}".format(len(self._tiles))
+
+    def check_legality(self, state):
+        """ Check whether this move is legal on the board """
+        if state.bag().num_tiles() < Rack.MAX_TILES:
+            return Error.EXCHANGE_NOT_ALLOWED
+        if len(self._tiles) > Rack.MAX_TILES:
+            return Error.TOO_MANY_TILES_EXCHANGED
+        # All checks pass: the play is legal
+        return Error.LEGAL
+
+    def score(self, board):
+        """ Calculate the score of this move, which is assumed to be legal """
+        # An exchange move does not affect the score
+        return 0
+
+    def apply(self, state):
+        """ Apply this move, assumed to be legal, to the current game state """
+        state.player_rack().exchange(state.bag(), self._tiles)
+
+
+class PassMove:
+
+    """ Represents a pass move, where the player does nothing """
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        """ Return the standard move notation of a coordinate followed by the word formed """
+        return u"Pass"
+
+    def check_legality(self, state):
+        """ Check whether this move is legal on the board """
+        # Always legal
+        return Error.LEGAL
+
+    def score(self, board):
+        """ Calculate the score of this move, which is assumed to be legal """
+        # A pass move does not affect the score
+        return 0
+
+    def apply(self, state):
+        """ Apply this move, assumed to be legal, to the current game state """
+        pass # The Python do-what-i-mean statement ;-)
+

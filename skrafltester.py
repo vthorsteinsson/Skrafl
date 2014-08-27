@@ -9,7 +9,7 @@
 
 """
 
-from skraflmechanics import Manager, State, Move
+from skraflmechanics import Manager, State, Move, ExchangeMove, Error
 from skraflplayer import AutoPlayer
 
 def test_move(state, movestring):
@@ -40,8 +40,8 @@ def test_move(state, movestring):
         row += xd
         col += yd
     legal = state.check_legality(move)
-    if legal != Move.LEGAL:
-        print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
+    if legal != Error.LEGAL:
+        print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
         return False
     print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
     state.apply_move(move)
@@ -49,8 +49,16 @@ def test_move(state, movestring):
     return True
 
 def test_exchange(state, numtiles):
-    print(u"Exchanging {0} tiles".format(numtiles))
-    state.exchange(state.player_rack().contents()[0:numtiles])
+    exch = state.player_rack().contents()[0:numtiles]
+    move = ExchangeMove(exch)
+    legal = state.check_legality(move)
+    if legal != Error.LEGAL:
+        print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
+        return False
+    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
+    state.apply_move(move)
+    print(unicode(state))
+    return True
 
 def test():
 
@@ -59,24 +67,24 @@ def test():
     state = State()
     print unicode(state)
 
-    test_move(state, u"H4 stuði")
-    test_move(state, u"5E detts")
-    test_exchange(state, 3)
-    test_move(state, u"I3 dýs")
-    test_move(state, u"6E ?óx") # The question mark indicates a blank tile for the subsequent cover
-    state.player_rack().set_tiles(u"ðhknnmn")
+    # test_move(state, u"H4 stuði")
+    # test_move(state, u"5E detts")
+    # test_exchange(state, 3)
+    # test_move(state, u"I3 dýs")
+    # test_move(state, u"6E ?óx") # The question mark indicates a blank tile for the subsequent cover
+    # state.player_rack().set_tiles(u"ðhknnmn")
 
     # Generate a sequence of moves, switching player sides automatically
 
-    for _ in range(8):
+    for _ in range(10):
 
         apl = AutoPlayer(state)
         move = apl.generate_move()
 
         legal = state.check_legality(move)
-        if legal != Move.LEGAL:
+        if legal != Error.LEGAL:
             # Oops: the autoplayer generated an illegal move
-            print(u"Play is not legal, code {0}".format(Move.errortext(legal)))
+            print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
             return
         print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
 
