@@ -54,6 +54,10 @@ class Square:
         """ Can a new tile be placed here? """
         return self.is_empty() and self._cc != 0
 
+    def is_open_for(self, c):
+        """ Can this letter be placed here? """
+        return bool(self._cc & Alphabet.bit_of(c))
+
     def letter(self):
         """ Return the letter at this square """
         return self._letter
@@ -111,6 +115,10 @@ class Axis:
     def is_open(self, index):
         """ Is the square at the index open (i.e. can a tile be placed there?) """
         return self._sq[index].is_open()
+
+    def is_open_for(self, index, letter):
+        """ Is the square at the index open for this letter? """
+        return self._sq[index].is_open_for(letter)
 
     def is_empty(self, index):
         """ Is the square at the index empty? """
@@ -413,13 +421,15 @@ class ExtendRightNavigator:
             # There is a tile already in the square: we must match it exactly
             return Match.BOARD_TILE if (ch == self._axis.letter_at(self._index)) else Match.NO
         # Open square: apply cross-check constraints to the rack
+        # Would this character pass the cross-checks?
+        if not self._axis.is_open_for(self._index, ch):
+            return Match.NO
         if u'?' in self._rack:
-            r = Alphabet.order # All letters possible
-        else:
-            r = self._rack
+            # We could always use the wildcard in the rack to cover this, so OK
+            return Match.RACK_TILE
         # Filter the rack by the applicable cross checks, and see whether
         # the candidate edge prefix matches that
-        return Match.RACK_TILE if (ch in self._axis.filter_rack(self._index, r)) else Match.NO
+        return Match.RACK_TILE if ch in self._rack else Match.NO
 
     def push_edge(self, firstchar):
         """ Returns True if the edge should be entered or False if not """
