@@ -431,6 +431,8 @@ class ExtendRightNavigator:
         self._stack = []
         # The autoplayer that invokes the navigator
         self._autoplayer = autoplayer
+        # Cache the initial check we do when pushing into an edge
+        self._last_check = None
 
     def _check(self, ch):
         """ Check whether the letter ch could be placed at the
@@ -455,7 +457,8 @@ class ExtendRightNavigator:
         if self._pix < self._lenp:
             return firstchar == self._prefix[self._pix]
         # We are in the right part: check whether we have a potential match
-        if self._check(firstchar) == Match.NO:
+        self._last_check = self._check(firstchar)
+        if self._last_check == Match.NO:
             return False
         # Match: save our rack and our index and move into the edge
         self._stack.append((self._rack, self._index, self._pix))
@@ -486,7 +489,9 @@ class ExtendRightNavigator:
             self._pix += 1
             return True
         # We are on the anchor square or to its right
-        match = self._check(newchar)
+        # Use the cached check from push_edge if we have one
+        match = self._check(newchar) if self._last_check is None else self._last_check
+        self._last_check = None
         if match == Match.NO:
             # Something doesn't fit anymore, so we're done with this edge
             return False
