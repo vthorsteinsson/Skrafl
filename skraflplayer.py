@@ -51,12 +51,12 @@ class Square:
         return self._letter == u' '
 
     def is_open(self):
-        """ Can a new tile be placed here? """
+        """ Can a new tile from the rack be placed here? """
         return self.is_empty() and self._cc != 0
 
     def is_open_for(self, c):
         """ Can this letter be placed here? """
-        return bool(self._cc & Alphabet.bit_of(c))
+        return bool(self._cc & (1 << Alphabet.order.index(c)))
 
     def letter(self):
         """ Return the letter at this square """
@@ -69,12 +69,6 @@ class Square:
     def is_anchor(self):
         """ Is this an anchor square? """
         return self._anchor
-
-    def filter_rack(self, rack):
-        """ Return the rack letters that would be allowed here """
-        if self._cc == 0:
-            return u''
-        return u''.join([c for c in rack if c != u'?' and (Alphabet.bit_of(c) & self._cc)])
 
 
 class Axis:
@@ -93,6 +87,7 @@ class Axis:
         self._index = index
         self._horizontal = horizontal
         self._rack = autoplayer.rack()
+        self._empty_bits = 0
 
     def is_horizontal(self):
         return self._horizontal
@@ -122,15 +117,11 @@ class Axis:
 
     def is_empty(self, index):
         """ Is the square at the index empty? """
-        return self._sq[index].is_empty()
+        return bool(self._empty_bits & (1 << index))
 
     def mark_anchor(self, index):
         """ Force the indicated square to be an anchor. Used in first move for center square. """
         self._sq[index].mark_anchor()
-
-    def filter_rack(self, index, rack):
-        """ Return the rack letters that would be allowed at the index """
-        return self._sq[index].filter_rack(rack)
 
     def init_crosschecks(self):
         """ Calculate and return a list of cross-check bit patterns for the indicated axis """
@@ -142,10 +133,11 @@ class Axis:
         else:
             x, y = 0, self._index
             xd, yd = 1, 0
+        # Fetch the default cross-check bits (they depend on the rack)
+        all_cc = self._autoplayer.rack_bit_pattern()
         # Go through the open squares and calculate their cross-checks
         for ix in range(Board.SIZE):
-            # Default cross-check bits: all set
-            cc = Alphabet.all_bits_set()
+            cc = all_cc # Start with the default
             if not board.is_covered(x, y):
                 if self.is_horizontal():
                     above = board.letters_above(x, y)
@@ -166,36 +158,37 @@ class Axis:
                         cix = 0 if not above else len(above)
                         # Note the set of allowed letters here
                         bits = Alphabet.bit_pattern([wrd[cix] for wrd in matches])
-                    # Reduce the cross-check set by intersecting it with the allowed set
-                    # Note that each square will be affected both by horizontal and vertical cross-checks
+                    # Reduce the cross-check set by intersecting it with the allowed set.
+                    # If the cross-check set and the rack have nothing in common, this
+                    # will lead to the square being marked as closed, which saves
+                    # calculation later on
                     cc &= bits
             # Initialize the square
             self._sq[ix].init(self._autoplayer, x, y, cc)
+            # Keep track of empty squares in a bit pattern for speed
+            if self._sq[ix].is_empty():
+                self._empty_bits |= (1 << ix)
             x += xd
             y += yd
 
     def _gen_moves_from_anchor(self, index, maxleft):
         """ Find valid moves emanating (on the left and right) from this anchor """
 
-        x, y = self.coordinate_of(index)
+        # x, y = self.coordinate_of(index)
         # print(u"Generating moves from anchor {0}, maxleft {1}".format(Board.short_coordinate(self._horizontal, x, y), maxleft))
 
-        if index > 0 and not self._sq[index - 1].is_empty():
+        if maxleft == 0 and index > 0 and not self._sq[index - 1].is_empty():
             # We have a left part already on the board: try to complete it
             leftpart = u''
             ix = index
             while ix > 0 and not self._sq[ix - 1].is_empty():
                 leftpart = self._sq[ix - 1]._letter + leftpart
                 ix -= 1
-            #print(u"Anchor {0}: Trying to complete left part '{1}' using rack '{2}'".format(
-            #    coord, leftpart, rack))
             nav = ExtendRightNavigator(self, index, leftpart, self._rack, self._autoplayer)
             Manager.word_db().navigate(nav)
             return
 
         # We have some space to the left of the anchor square
-        #print(u"Anchor {0}: Permuting back into {1} empty squares from rack '{2}'".format(
-        #    coord, maxleft, rack))
         # Begin by extending an empty prefix to the right, i.e. placing
         # tiles on the anchor square itself and to its right
         nav = ExtendRightNavigator(self, index, u'', self._rack, self._autoplayer)
@@ -231,16 +224,31 @@ class AutoPlayer:
     """
 
     def __init__(self, state):
+
         self._candidates = []
         self._state = state
         self._board = state.board()
         self._rack = state.player_rack().contents()
 
+        # Calculate a bit pattern representation of the rack
+        if u'?' in self._rack:
+            # Wildcard in rack: all letters allowed
+            self._rack_bit_pattern = Alphabet.all_bits_set()
+        else:
+            # No wildcard: limits the possibilities of covering squares
+            self._rack_bit_pattern = Alphabet.bit_pattern(self._rack)
+
     def board(self):
+        """ Return the board """
         return self._board
 
     def rack(self):
+        """ Return the rack, as a string of tiles """
         return self._rack
+
+    def rack_bit_pattern(self):
+        """ Return the bit pattern corresponding to the rack """
+        return self._rack_bit_pattern
 
     def candidates(self):
         return self._candidates
@@ -250,11 +258,11 @@ class AutoPlayer:
         self._candidates.append(move)
 
     def _axis_from_row(self, row):
-        """ Creates and initializes an Axis from a board row """
+        """ Create and initialize an Axis from a board row """
         return Axis(self, row, True) # Horizontal
 
     def _axis_from_column(self, col):
-        """ Creates and initializes an Axis from a board column """
+        """ Create and initialize an Axis from a board column """
         return Axis(self, col, False) # Vertical
 
     def generate_move(self):
@@ -286,7 +294,7 @@ class AutoPlayer:
         if move is not None:
             return move
         # Can't do anything: try exchanging all tiles
-        if self._state.bag().allows_exchange():
+        if self._state.allows_exchange():
             return ExchangeMove(self.rack())
         # If we can't exchange tiles, we have to pass
         return PassMove()
@@ -296,9 +304,19 @@ class AutoPlayer:
         if not self._candidates:
             return None
         def keyfunc(x):
-            return -x.score(self._board)
-        # Sort the candidate moves in decreasing order by score
-        self._candidates.sort(key=keyfunc)
+            # Sort first by descending score;
+            # in case of ties prefer longer words
+            return (-x.score(self._board), - x.num_covers())
+        def keyfunc_firstmove(x):
+            # Special case for first move:
+            # Sort first by descending score, and in case of ties,
+            # try to go to the upper left half of the board
+            return (-x.score(self._board), x._row + x._col)
+        # Sort the candidate moves using the appropriate key function
+        if self._board.is_empty():
+            self._candidates.sort(key=keyfunc_firstmove)
+        else:
+            self._candidates.sort(key=keyfunc)
         print(u"Rack '{0}' generated {1} candidate moves:".format(self._rack, len(self._candidates)))
         # Show top 20 candidates
         for m in self._candidates[0:20]:
@@ -497,7 +515,7 @@ class ExtendRightNavigator:
             row, col = self._axis.coordinate_of(ix)
             xd, yd = self._axis.coordinate_step()
             move = Move(matched, row, col, self._axis.is_horizontal())
-            # The rack as it was at the beginning of move generation
+            # Fetch the rack as it was at the beginning of move generation
             rack = self._autoplayer.rack()
             for c in matched:
                 if self._axis.is_empty(ix):
@@ -512,6 +530,7 @@ class ExtendRightNavigator:
                         tile = u'?'
                     assert row in range(Board.SIZE)
                     assert col in range(Board.SIZE)
+                    # Add this cover to the Move object
                     move.add_validated_cover(Cover(row, col, tile, c))
                 ix += 1
                 row += xd

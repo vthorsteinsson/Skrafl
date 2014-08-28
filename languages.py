@@ -108,7 +108,7 @@ class Alphabet:
     @staticmethod
     def bit_of(c):
         """ Returns the bit corresponding to a character in the alphabet """
-        return Alphabet.bit[Alphabet.order.index(c)]
+        return 1 << Alphabet.order.index(c)
 
     @staticmethod
     def all_bits_set():

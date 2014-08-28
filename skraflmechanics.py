@@ -452,6 +452,10 @@ class Move:
         # Is the word horizontal or vertical?
         self._horizontal = horiz
 
+    def num_covers(self):
+        """ Number of empty squares covered by this move """
+        return len(self._covers)
+
     def short_coordinate(self):
         """ Return the coordinate of the move in 'Scrabble notation',
             i.e. row letter + column number for horizontal moves or
