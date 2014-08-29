@@ -11,6 +11,7 @@
 
 from skraflmechanics import Manager, State, Move, ExchangeMove, Error
 from skraflplayer import AutoPlayer
+import time
 
 def test_move(state, movestring):
     # Test placing a simple move
@@ -62,6 +63,8 @@ def test_exchange(state, numtiles):
 
 def test():
 
+    print(u"Welcome to the skrafl game tester")
+
     manager = Manager()
 
     state = State()
@@ -76,7 +79,9 @@ def test():
 
     # Generate a sequence of moves, switching player sides automatically
 
-    for _ in range(10):
+    t0 = time.time()
+
+    while not state.is_game_over():
 
         apl = AutoPlayer(state)
         move = apl.generate_move()
@@ -86,9 +91,15 @@ def test():
             # Oops: the autoplayer generated an illegal move
             print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
             return
-        print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
+        print(u"Play {0} scores {1} points".format(unicode(move), state.score(move)))
 
         state.apply_move(move)
 
         print(unicode(state))
+
+    state.finalize_score()
+    p0, p1 = state.scores()
+    t1 = time.time()
+
+    print(u"Game over, final score {0} : {1} after {2} moves ({3:.2f} seconds)".format(p0, p1, state.num_moves(), t1 - t0))
 

@@ -295,6 +295,10 @@ class Rack:
         """ Return the number of tiles in the rack """
         return len(self._tiles)
 
+    def is_empty(self):
+        """ Is the rack empty? """
+        return self.num_tiles() == 0
+
     def set_tiles(self, tiles):
         """ Force the contents of the rack. Used for testing purposes. """
         self._tiles = tiles
@@ -338,6 +342,8 @@ class State:
         self._board = Board()
         self._player_to_move = 0
         self._scores = [0, 0]
+        self._num_passes = 0 # Number of consecutive Pass moves
+        self._num_moves = 0 # Number of moves made
         self._racks = [Rack(), Rack()]
         # Initialize a fresh, full bag of tiles
         self._bag = Bag()
@@ -357,6 +363,9 @@ class State:
 
     def apply_move(self, move):
         """ Apply the given move, assumed to be legal, to this state """
+        if self.is_game_over():
+            # Game is over, moves are not accepted any more
+            return False
         # Update the player's score
         self._scores[self._player_to_move] += self.score(move)
         # Apply the move to the board state
@@ -365,10 +374,21 @@ class State:
         self.player_rack().replenish(self._bag)
         # It's the other player's move
         self._player_to_move = 1 - self._player_to_move
+        # Increment the move count
+        self._num_moves += 1
+        return True
 
     def score(self, move):
         """ Calculate the score of the move """
         return move.score(self._board)
+
+    def scores(self):
+        """ Return the current score for both players """
+        return tuple(self._scores)
+
+    def num_moves(self):
+        """ Return the number of moves made so far """
+        return self._num_moves
 
     def player_rack(self):
         """ Return the Rack object for the player whose turn it is """
@@ -381,6 +401,28 @@ class State:
     def bag(self):
         """ Return the current Bag """
         return self._bag
+
+    def is_game_over(self):
+        """ The game is over if either rack is empty or if both players have passed 3 times in a row """
+        return self._racks[0].is_empty() or self._racks[1].is_empty() or self._num_passes >= 6
+
+    def finalize_score(self):
+        """ When game is completed, update scores with the tiles left """
+        for ix in range(2):
+            # Add the score of the opponent's tiles
+            self._scores[ix] += Alphabet.score(self._racks[1 - ix].contents())
+            # Subtract the score of the player's own tiles
+            self._scores[ix] -= Alphabet.score(self._racks[ix].contents())
+            if self._scores[ix] < 0:
+                self._scores[ix] = 0
+
+    def add_pass(self):
+        """ Add a pass to the count of consecutive pass moves """
+        self._num_passes += 1
+
+    def reset_passes(self):
+        """ Reset the count of consecutive passes """
+        self._num_passes = 0
 
     def __str__(self):
         return self._board.__str__() + u"\n{0} vs {1}".format(self._scores[0], self._scores[1]) + \
@@ -700,6 +742,7 @@ class Move:
             board.set_letter(c.row, c.col, c.letter)
             board.set_tile(c.row, c.col, c.tile)
             rack.remove_tile(c.tile)
+        state.reset_passes()
 
 
 class ExchangeMove:
@@ -731,6 +774,7 @@ class ExchangeMove:
     def apply(self, state):
         """ Apply this move, assumed to be legal, to the current game state """
         state.player_rack().exchange(state.bag(), self._tiles)
+        state.reset_passes()
 
 
 class PassMove:
@@ -756,5 +800,6 @@ class PassMove:
 
     def apply(self, state):
         """ Apply this move, assumed to be legal, to the current game state """
-        pass # The Python do-what-i-mean statement ;-)
+        # Increment the number of consecutive Pass moves
+        state.add_pass()
 

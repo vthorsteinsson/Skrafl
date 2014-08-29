@@ -101,6 +101,11 @@ class Alphabet:
     bit = [1 << n for n in range(len(order))]
 
     @staticmethod
+    def score(tiles):
+        """ Return the net (plain) score of the given tiles """
+        return sum([Alphabet.scores[tile] for tile in tiles if tile != u'?'])
+
+    @staticmethod
     def bit_pattern(word):
         """ Return a pattern of bits indicating which letters are present in the word """
         return reduce(lambda x, y: x | y, [Alphabet.bit_of(c) for c in word], 0)
