@@ -308,7 +308,7 @@ class AutoPlayer:
         if move is not None:
             return move
         # Can't do anything: try exchanging all tiles
-        if self._state.allows_exchange():
+        if self._state.is_exchange_allowed():
             return ExchangeMove(self.rack())
         # If we can't exchange tiles, we have to pass
         return PassMove()

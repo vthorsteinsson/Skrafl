@@ -268,6 +268,9 @@ class Bag:
         """ Returns True if the bag is empty, i.e. all tiles have been drawn """
         return not self._tiles
 
+    def allows_exchange(self):
+        return self.num_tiles() >= Rack.MAX_TILES
+
 
 class Rack:
 
@@ -311,12 +314,9 @@ class Rack:
             temp = temp.replace(c, u'', 1)
         return len(self._tiles) - len(temp) == len(tiles)
 
-    def allows_exchange(self):
-        return bag.num_tiles() >= Rack.MAX_TILES
-
     def exchange(self, bag, tiles):
         """ Exchange the given tiles with the bag """
-        if not self.allows_exchange():
+        if not bag.allows_exchange():
             # Need seven tiles in the bag to be allowed to exchange
             return False
         # First remove the tiles from the rack and replenish it
@@ -415,6 +415,10 @@ class State:
             self._scores[ix] -= Alphabet.score(self._racks[ix].contents())
             if self._scores[ix] < 0:
                 self._scores[ix] = 0
+
+    def is_exchange_allowed(self):
+        """ Is an ExchangeMove allowed? """
+        return self._bag.allows_exchange()
 
     def add_pass(self):
         """ Add a pass to the count of consecutive pass moves """
