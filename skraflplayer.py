@@ -20,13 +20,15 @@ from languages import Alphabet
 
 class Square:
 
-    """ Represents a single square within an axis. This includes
-        the cross-checks, i.e. word parts above/left and below/right
-        of the square.
+    """ Represents a single square within an axis.
+        A square knows about its cross-checks, i.e. which letters can be
+        legally placed in the square while matching correctly with word
+        parts above and/or below the square.
     """
 
     def __init__(self):
-        # Cross checks
+        # Cross checks, i.e. possible letters to be placed here,
+        # represented as a bit pattern
         self._cc = 0
         # The tile located here, '?' if blank tile
         self._tile = None
@@ -48,11 +50,12 @@ class Square:
             self.mark_anchor()
 
     def is_empty(self):
+        """ Is this square empty? """
         return self._letter == u' '
 
     def is_open(self):
         """ Can a new tile from the rack be placed here? """
-        return self.is_empty() and self._cc != 0
+        return self.is_empty() and bool(self._cc)
 
     def is_open_for(self, c):
         """ Can this letter be placed here? """
@@ -87,12 +90,15 @@ class Axis:
         self._index = index
         self._horizontal = horizontal
         self._rack = autoplayer.rack()
+        # Bit pattern representing empty squares on this axis
         self._empty_bits = 0
 
     def is_horizontal(self):
+        """ Is this a horizontal (row) axis? """
         return self._horizontal
 
     def is_vertical(self):
+        """ Is this a vertical (column) axis? """
         return not self._horizontal
 
     def coordinate_of(self, index):
@@ -120,24 +126,27 @@ class Axis:
         return bool(self._empty_bits & (1 << index))
 
     def mark_anchor(self, index):
-        """ Force the indicated square to be an anchor. Used in first move for center square. """
+        """ Force the indicated square to be an anchor. Used in first move
+            to mark the center square. """
         self._sq[index].mark_anchor()
 
     def init_crosschecks(self):
         """ Calculate and return a list of cross-check bit patterns for the indicated axis """
+
+        # The cross-check set is the set of letters that can appear in a square
+        # and make cross words (above/left and/or below/right of the square) valid
         board = self._autoplayer.board()
         # Prepare to visit all squares on the axis
-        if self.is_horizontal():
-            x, y = self._index, 0
-            xd, yd = 0, 1
-        else:
-            x, y = 0, self._index
-            xd, yd = 1, 0
-        # Fetch the default cross-check bits (they depend on the rack)
+        x, y = self.coordinate_of(0)
+        xd, yd = self.coordinate_step()
+        # Fetch the default cross-check bits, which depend on the rack.
+        # If the rack contains a wildcard (blank tile), the default cc set
+        # contains all letters in the Alphabet. Otherwise, it contains the
+        # letters in the rack.
         all_cc = self._autoplayer.rack_bit_pattern()
         # Go through the open squares and calculate their cross-checks
         for ix in range(Board.SIZE):
-            cc = all_cc # Start with the default
+            cc = all_cc # Start with the default cross-check set
             if not board.is_covered(x, y):
                 if self.is_horizontal():
                     above = board.letters_above(x, y)
@@ -165,7 +174,7 @@ class Axis:
                     cc &= bits
             # Initialize the square
             self._sq[ix].init(self._autoplayer, x, y, cc)
-            # Keep track of empty squares in a bit pattern for speed
+            # Keep track of empty squares within the axis in a bit pattern for speed
             if self._sq[ix].is_empty():
                 self._empty_bits |= (1 << ix)
             x += xd
@@ -174,21 +183,19 @@ class Axis:
     def _gen_moves_from_anchor(self, index, maxleft):
         """ Find valid moves emanating (on the left and right) from this anchor """
 
-        # x, y = self.coordinate_of(index)
-        # print(u"Generating moves from anchor {0}, maxleft {1}".format(Board.short_coordinate(self._horizontal, x, y), maxleft))
-
-        if maxleft == 0 and index > 0 and not self._sq[index - 1].is_empty():
+        if maxleft == 0 and index > 0 and not self.is_empty(index - 1):
             # We have a left part already on the board: try to complete it
             leftpart = u''
             ix = index
-            while ix > 0 and not self._sq[ix - 1].is_empty():
+            while ix > 0 and not self.is_empty(ix - 1):
                 leftpart = self._sq[ix - 1]._letter + leftpart
                 ix -= 1
+            # Use the ExtendRightNavigator to find valid words with this left part
             nav = ExtendRightNavigator(self, index, leftpart, self._rack, self._autoplayer)
             Manager.word_db().navigate(nav)
             return
 
-        # We have some space to the left of the anchor square
+        # We are not completing an existing left part
         # Begin by extending an empty prefix to the right, i.e. placing
         # tiles on the anchor square itself and to its right
         nav = ExtendRightNavigator(self, index, u'', self._rack, self._autoplayer)
@@ -196,6 +203,7 @@ class Axis:
 
         if maxleft > 0:
             # Follow this by an effort to permute left prefixes into the open space
+            # to the left of the anchor square
             nav = LeftPartNavigator(self, index, maxleft, self._rack, self._autoplayer)
             Manager.word_db().navigate(nav)
 
@@ -225,9 +233,11 @@ class AutoPlayer:
 
     def __init__(self, state):
 
+        # List of valid, candidate moves
         self._candidates = []
         self._state = state
         self._board = state.board()
+        # The rack that the autoplayer has to work with
         self._rack = state.player_rack().contents()
 
         # Calculate a bit pattern representation of the rack
@@ -251,6 +261,7 @@ class AutoPlayer:
         return self._rack_bit_pattern
 
     def candidates(self):
+        """ The list of valid, candidate moves """
         return self._candidates
 
     def add_candidate(self, move):
@@ -267,8 +278,10 @@ class AutoPlayer:
 
     def generate_move(self):
         """ Finds and returns a Move object to be played """
+
         # Generate moves in one-dimensional space by looking at each axis
         # (row or column) on the board separately
+
         if self._board.is_empty():
             # Special case for first move: only consider the vertical
             # central axis (any move played there can identically be
@@ -280,7 +293,8 @@ class AutoPlayer:
             axis.mark_anchor(Board.SIZE / 2)
             axis.generate_moves()
         else:
-            # Normal move: go through all 15+15 axes and generate legal moves
+            # Normal move: go through all 15 (row) + 15 (column) axes and generate
+            # valid moves within each of them
             for r in range(Board.SIZE):
                 axis = self._axis_from_row(r)
                 axis.init_crosschecks()
@@ -301,21 +315,27 @@ class AutoPlayer:
 
     def _find_best_move(self):
         """ Analyze the list of candidate moves and pick the best one """
+
         if not self._candidates:
             return None
+
         def keyfunc(x):
-            # Sort first by descending score;
+            # Sort moves first by descending score;
             # in case of ties prefer longer words
             return (-x.score(self._board), - x.num_covers())
+
         def keyfunc_firstmove(x):
             # Special case for first move:
-            # Sort first by descending score, and in case of ties,
-            # try to go to the upper left half of the board
-            return (-x.score(self._board), x._row + x._col)
+            # Sort moves first by descending score, and in case of ties,
+            # try to go to the upper half of the board for a more open game
+            return (-x.score(self._board), x._row)
+
         # Sort the candidate moves using the appropriate key function
         if self._board.is_empty():
+            # First move
             self._candidates.sort(key=keyfunc_firstmove)
         else:
+            # Subsequent moves
             self._candidates.sort(key=keyfunc)
         print(u"Rack '{0}' generated {1} candidate moves:".format(self._rack, len(self._candidates)))
         # Show top 20 candidates
@@ -338,7 +358,7 @@ class LeftPartNavigator:
         i.e. how many squares are available to be filled, and on
         the rack.
 
-        The left part navigations can thus easily be precomputed at
+        The left part navigations can thus potentially be precomputed at
         the start of move generation.
 
     """
