@@ -1,18 +1,23 @@
-## Skraflhjálp (Scrabble(tm) Helper)
+## Skraflhjálp (SCRABBLE(tm) Helper)
 
 ### English summary
 
-This set of pure Python 2.7 programs and modules implements a dictionary and word permutation
-engine that is the core of an [Icelandic Scrabble(tm) Helper website](http://skraflhjalp.appspot.com).
+This set of pure Python 2.7 / PyPy 2.3.1 programs and modules implements a dictionary and
+word permutation engine that is the core of an
+[Icelandic SCRABBLE(tm) Helper website](http://skraflhjalp.appspot.com).
 
-The web and its engine are helpful for Scrabble(tm) players, crossword
+The web and its engine are helpful for SCRABBLE(tm) players, crossword
 enthusiasts and others - including programmers - who are interested in fast and
 flexible dictionary implementation, for Icelandic and other languages.
 
-The software uses a *DAWG* (*Directed Acyclic Word Graph*, also called
-*Minimal Acyclic Finite State Automaton*, *MA-FSA*) to store the dictionary in a
-compact - yet Pythonistic - text-based form for very fast lookup and permutation,
-even of long letter sequences.
+The software uses a [*DAWG*](http://en.wikipedia.org/wiki/Deterministic_acyclic_finite_state_automaton)
+(*Directed Acyclic Word Graph*, also called *Deterministic Acyclic Finite State Automaton*, *DAFSA* or
+*Minimal Acyclic Finite State Automaton*, *MA-FSA*) to represent the dictionary.
+This enables very fast lookup, pattern matching and permutation, even with wildcards
+and long letter sequences.
+
+The DAWG is pre-built from plain text word lists, compacted on-the-fly
+and stored in a compact - yet Pythonistic - text-based form.
 
 The algorithm for building an optimal DAWG from lists of valid words is based on the theory
 of [Daciuk et al](http://www.aclweb.org/anthology/J00-1002.pdf), with reference
@@ -26,17 +31,19 @@ wildcards (blank tiles), by direct traversal of the graph.
 For details see the ```dawgbuilder.py``` and ```dawgdictionary.py``` files.
 
 The code builds a 103,000 node DAWG for the Icelandic language, 2.6 million words, in about
-160 seconds on a medium-powered Windows desktop PC. The resulting graph structure is stored
-in a 3,466 KB file and takes under 4 seconds to load into memory.
+38 seconds (PyPy 2.3.1) / 160 seconds (CPython 2.7.6) on a medium-powered Windows desktop PC.
+The resulting graph structure is stored in a 3,466 KB file and takes under 4 seconds to load
+into memory.
 
-For English, it converts the 178,691 words of the Scrabble(tm) Tournament World List v6 (TWL06)
-into a graph of 29,691 nodes in under 10 seconds. The resulting .dawg.text file is 772 KB.
+For English, it converts the 178,691 words of the SCRABBLE(tm) Tournament World List v6 (TWL06)
+into a graph of 29,691 nodes in under 3 seconds (PyPy) / 10 seconds (CPython). The resulting
+.dawg.text file is 772 KB.
 
-Generation of all permutations of a 7-letter Scrabble(tm) rack, as well as combinations of the
-rack with one additional letter, typically takes 30-70 milliseconds.
+Generation of all permutations of a 7-letter SCRABBLE(tm) rack, as well as combinations of the
+rack with one additional letter, typically takes 30-70 milliseconds (CPython).
 
-*Scrabble(tm) is a registered trademark. This software or its author are in no way affiliated
-with or endorsed by the owners or licensees of the Scrabble trademark.*
+*SCRABBLE is a registered trademark. This software or its author are in no way affiliated
+with or endorsed by the owners or licensees of the SCRABBLE trademark.*
 
 ### Íslenskt yfirlit
 
