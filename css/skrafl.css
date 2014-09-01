@@ -1,7 +1,7 @@
 /* Skrafl.css */
 
 body {
-   font-family: /* 'Roboto',*/ 'Helvetica Neue', 'Arial', sans-serif;
+   font-family: 'Open Sans', 'Helvetica Neue', 'Arial', sans-serif;
 }
 
 table.board {
@@ -11,6 +11,7 @@ table.board {
    margin: 0;
    padding: 0;
    border-collapse: collapse;
+   table-layout: fixed;
 }
 
 .board tbody {
@@ -46,9 +47,9 @@ td.over {
 }
 
 .colid td {
-	height: 16px;
-	min-height: 16px;
-	max-height: 16px;
+	height: 18px;
+	min-height: 18px;
+	max-height: 18px;
 	overflow: hidden;
 	background-color: white;
 	text-align: center;
@@ -275,15 +276,30 @@ div.board {
 div.rightcol {
 	width: 208px;
 	position: relative;
-	top: -546px;
+	top: -540px;
 	left: 560px;
 }
 
 div.rack {
-	width: 248px;
+	width: 251px;
 	position: relative;
 	text-align: center;
 	top: -140px;
 	left: 156px;
+}
+
+div.submitmove {
+   width: 105px;
+   height: 28px;
+   position: relative;
+   text-align: center;
+   top: -174px;
+   left: 442px;
+   background-color: #55cc66;
+   font-size: 18px;
+   font-weight: 700;
+   color: white;
+   margin: 0;
+   padding-top: 4px;
 }
 
