@@ -109,6 +109,11 @@
         /* Triple letter score */
         background-color: #3333f8;
     }
+    #H8 {
+      background-image: url(../static/CenterIcon.png);
+      background-size: 30px 30px;
+      background-repeat: no-repeat;
+    }
     div.tile {
         background-color: #e0d8b0;
         font-family: 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
@@ -147,31 +152,65 @@
       padding: 0;
       background-color: transparent;
     }
-    div.rightcol {
-        width: 100%;
-    }
     div.heading {
         margin-top: 22px;
         background-color: #bbbbcc;
-        padding: 3px;
+        padding-left: 8px;
+        padding-right: 8px;
     }
-    h3.players {
+    h3.playerleft {
+        display: inline-block;
+        float: left;
+        width: 50%;
         font-family: 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
         font-size: 16px;
         line-height: 16px;
         font-weight: 700;
-        text-align: center;
+        text-align: left;
         color: #222222;
         overflow: hidden;
+        margin-top: 8px;
+        margin-bottom: 4px;
     }
-    h3.scores {
+    h3.playerright {
+        display: inline-block;
+        width: 50%;
         font-family: 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
-        font-size: 18px;
-        line-height: 18px;
+        font-size: 16px;
+        line-height: 16px;
         font-weight: 700;
-        text-align: center;
+        text-align: right;
+        color: #222222;
+        overflow: hidden;
+        margin-top: 8px;
+        margin-bottom: 4px;
+    }
+    h3.scoreleft {
+        display: inline-block;
+        width: 50%;
+        float: left;
+        font-family: 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
+        font-size: 22px;
+        line-height: 22px;
+        font-weight: 700;
+        text-align: left;
         color: white;
         overflow: hidden;
+        margin-top: 4px;
+        margin-bottom: 4px;
+    }
+    h3.scoreright {
+        display: inline-block;
+        width: 50%;
+        font-family: 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
+        font-size: 22px;
+        line-height: 22px;
+        font-weight: 700;
+        text-align: right;
+        color: white;
+        overflow: hidden;
+        margin-top: 4px;
+        margin-bottom: 4px;
     }
     div.movelist {
         background-color: #3333f8;
@@ -245,7 +284,7 @@
       width: 248px;
       position: relative;
       text-align: center;
-      top: -160px;
+      top: -140px;
       left: 156px;
     }
 
@@ -271,7 +310,7 @@
       placeTile("E8", "r", "1");
       placeTile("F8", "ó", "6");
       placeTile("G8", "f", "3");
-      placeTile("H8", "a", "1"); placeTile("H9", "x", "10");
+      /* placeTile("H8", "a", "1"); */ placeTile("H9", "x", "10");
       placeTile("I8", "ð", "2");
 
       placeTile("E5", "þ", "4");
@@ -392,8 +431,10 @@
       <!-- Move history -->
       <div class="rightcol">
          <div class="heading">
-            <h3 class="players">Koðrán : Melkíor</h3>
-            <h3 class="scores">125 : 88</h3>
+            <h3 class="playerleft">Koðrán</h3>
+            <h3 class="playerright">Melkíor</h3>
+            <h3 class="scoreleft">125</h3>
+            <h3 class="scoreright">88</h3>
          </div>
          <div class="movelist">
             <div class="leftmove"><span class="score">14</span><span class="word">ORÐ</span></div>
