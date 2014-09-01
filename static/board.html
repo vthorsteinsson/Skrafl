@@ -300,7 +300,7 @@
          rackTile = document.getElementById(rackTileId);
          if (rackTile && rackTile.firstChild) {
             rackTile.firstChild.addEventListener('dragstart', function(e) {
-               /* !!! TODO: Somehow prevent dragging of multiple selected draggables */
+               e.dataTransfer.clearData();
                e.dataTransfer.setData('text', this.parentNode.innerHTML);
                e.dataTransfer.effectAllowed = 'move';
                elementDragged = this;
