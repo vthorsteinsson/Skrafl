@@ -61,11 +61,8 @@ def test_exchange(state, numtiles):
     print(unicode(state))
     return True
 
-def test():
-
-    print(u"Welcome to the skrafl game tester")
-
-    manager = Manager()
+def test_game():
+    """ Go through a whole game by pitting two AutoPlayers against each other """
 
     state = State()
     print unicode(state)
@@ -102,4 +99,15 @@ def test():
     t1 = time.time()
 
     print(u"Game over, final score {0} : {1} after {2} moves ({3:.2f} seconds)".format(p0, p1, state.num_moves(), t1 - t0))
+
+
+def test():
+
+    print(u"Welcome to the skrafl game tester")
+
+    manager = Manager()
+
+    # Loop forever
+    while True:
+        test_game()
 

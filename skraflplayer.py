@@ -105,14 +105,7 @@ class Square:
 
     def is_open_for(self, c):
         """ Can this letter be placed here? """
-        # !!! TODO: Remove temporary debugging code here
-        try:
-            retval = bool(self._cc & (1 << Alphabet.order.index(c)))
-        except ValueError as e:
-            print(u"ValueError in is_open_for() in skraflplayer.py: offending char is '{0}'".format(c))
-            raise e
-        else:
-            return retval
+        return bool(self._cc & (1 << Alphabet.order.index(c)))
 
     def letter(self):
         """ Return the letter at this square """

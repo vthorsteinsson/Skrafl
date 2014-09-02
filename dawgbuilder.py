@@ -713,7 +713,7 @@ def filter_skrafl(word):
     if lenw > SCRABBLE_MAXLEN:
         # Too long, not necessary for Scrabble
         return False
-    if any(c in word for c in u"cqwz"):
+    if any(c in word for c in u"cqwzü"):
         # Non-Icelandic character
         return False
     if word in disallowed:
