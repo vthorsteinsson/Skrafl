@@ -4,12 +4,58 @@
 
     Author: Vilhjalmur Thorsteinsson, 2014
 
-    This experimental module finds and ranks legal moves on
-    a Scrabble(tm)-like board.
+    This module finds and ranks legal moves on
+    a SCRABBLE(tm)-like board.
 
     The algorithm is based on the classic paper by Appel & Jacobson,
     "The World's Fastest Scrabble Program",
     http://www.cs.cmu.edu/afs/cs/academic/class/15451-s06/www/lectures/scrabble.pdf
+
+    The main class in the module is called AutoPlayer. Given a game State,
+    it finds all legal moves, ranks them and returns the 'best'
+    (currently the highest-scoring) move.
+
+    Moves are found by examining one-dimensional axes of the board one
+    at a time, i.e. 15 rows and 15 columns for a total of 30 axes.
+    For each Axis an array of Squares is constructed. The cross-check set
+    of each empty Square is calculated, i.e. the set of letters that form
+    valid words by connecting with word parts across the square's Axis.
+    To save processing time, the cross-check sets are also intersected with
+    the letters in the rack, unless the rack contains a blank tile.
+
+    Any empty square with a nonzero cross-check set or adjacent to
+    a covered square within the axis is a potential anchor square.
+    Each anchor square is examined in turn. The algorithm roughly
+    proceeds as follows:
+
+    1) Count the number of empty non-anchor squares to the left of
+        the anchor. Call the number 'maxleft'.
+    2) Generate all permutations of rack tiles found by navigating
+        from the root of the DAWG, of length 1..maxleft, i.e. all
+        possible word beginnings from the rack.
+    3) For each such permutation, attempt to complete the
+        word by placing the rest of the available tiles on the
+        anchor square and to its right.
+    4) In any case, even if maxleft=0, place a starting tile on the
+        anchor square and attempt to complete a word to its right.
+    5) When placing a tile on the anchor square or to its right,
+        do so under three constraints: (a) the cross-check
+        set of the square in question; (b) that there is
+        a path in the DAWG corresponding to the tiles that have
+        been laid down so far, incl. step 2 and 3; (c) a matching
+        tile is still available in the rack (with blank tiles always
+        matching).
+    6) If extending to the right and coming to a tile that is
+        already on the board, it must correspond to the DAWG path
+        being followed.
+    7) If we are running off the edge of the axis, or have come
+        to an empty square, and we are at a final node in the
+        DAWG indicating that a word is completed, we have a candidate
+        move. Calculate its score and add it to the list of potential
+        moves.
+
+    Steps 1)-3) above are mostly implemented in the class LeftPartNavigator,
+    while steps 4)-7) are found in ExtendRightNavigator.
 
 """
 
@@ -59,7 +105,14 @@ class Square:
 
     def is_open_for(self, c):
         """ Can this letter be placed here? """
-        return bool(self._cc & (1 << Alphabet.order.index(c)))
+        # !!! TODO: Remove temporary debugging code here
+        try:
+            retval = bool(self._cc & (1 << Alphabet.order.index(c)))
+        except ValueError as e:
+            print(u"ValueError in is_open_for() in skraflplayer.py: offending char is '{0}'".format(c))
+            raise e
+        else:
+            return retval
 
     def letter(self):
         """ Return the letter at this square """
@@ -321,8 +374,13 @@ class AutoPlayer:
 
         def keyfunc(x):
             # Sort moves first by descending score;
-            # in case of ties prefer longer words
-            return (-x.score(self._board), - x.num_covers())
+            # in case of ties prefer shorter words
+            # !!! TODO: Insert more sophisticated logic here,
+            # including whether triple-word-score opportunities
+            # are being opened for the opponent, minimal use
+            # of blank tiles, leaving a good vowel/consonant
+            # balance on the rack, etc.
+            return (-x.score(self._board), x.num_covers())
 
         def keyfunc_firstmove(x):
             # Special case for first move:

@@ -6,24 +6,11 @@ body {
 
 table.board {
    background-color: #bbbbcc;
-   border-spacing: 0;
-   border-width: 0;
    margin: 0;
    padding: 0;
-   border-collapse: collapse;
+   border-spacing: 0;
+   border-collapse: separate;
    table-layout: fixed;
-}
-
-.board tbody {
-   border-spacing: 0;
-   border-width: 0;
-   margin: 0;
-   padding: 0;
-}
-
-.board tr {
-   margin: 0;
-   padding: 0;
 }
 
 .board td {
@@ -36,8 +23,7 @@ table.board {
    overflow: hidden;
    border-style: solid;
    border-color: white;
-   border-width: 3px;
-   border-collapse: collapse;
+   border-width: 1px;
    margin: 0;
    padding: 0;
 }
@@ -47,44 +33,47 @@ td.over {
 }
 
 .colid td {
-	height: 18px;
-	min-height: 18px;
-	max-height: 18px;
-	overflow: hidden;
-	background-color: white;
-	text-align: center;
-	font-size: 14px;
-	line-height: 14px;
-	font-weight: 400;
+   height: 16px;
+   width: 32px;
+   min-height: 16px;
+   max-height: 16px;
+   overflow: hidden;
+   background-color: white;
+   text-align: center;
+   font-size: 14px;
+   line-height: 14px;
+   font-weight: 400;
+   border-width: 0;
+   margin: 0;
+   padding-top: 2px;
+   padding-bottom: 4px;
+   padding-left: 0;
+   padding-right: 0;
 }
 
 td.rowid {
-	width: 16px;
-	min-width: 16px;
-	max-width: 16px;
-	overflow: hidden;
-	background-color: white;
-	text-align: center;
-	font-size: 14px;
-	line-height: 14px;
-	font-weight: 400;
-	border-color: white;
-	border-style: solid;
-	border-width: 3px;
-	margin: 0;
-	padding: 0;
+   width: 16px;
+   height: 32px;
+   min-width: 16px;
+   max-width: 16px;
+   overflow: hidden;
+   background-color: white;
+   text-align: center;
+   font-size: 14px;
+   line-height: 14px;
+   font-weight: 400;
 }
 
 /* Board layout */
 #H8, #B2, #C3, #D4, #E5, #B14, #C13, #D12, #E11,
 #K5, #L4, #M3, #N2, #K11, #L12, #M13, #N14 {
-	/* Double word score */
-	background-color: #f0bbbb;
+   /* Double word score */
+   background-color: #f0bbbb;
 }
 
 #A1, #A8, #A15, #H1, #H15, #O1, #O8, #O15 {
-	/* Triple word score */
-	background-color: #f04455;
+   /* Triple word score */
+   background-color: #f04455;
 }
 
 #A4, #A12, #C7, #C9, #D1, #D8, #D15,
@@ -92,136 +81,132 @@ td.rowid {
 #H4, #H12,
 #I3, #I7, #I9, #I13,
 #O4, #O12, #M7, #M9, #L1, #L8, #L15 {
-	/* Double letter score */
-	background-color: #9c99f8;
+   /* Double letter score */
+   background-color: #9c99f8;
 }
 
 #B6, #B10, #F2, #F6, #F10, #F14,
 #N6, #N10, #J2, #J6, #J10, #J14 {
-	/* Triple letter score */
-	background-color: #3333f8;
+   /* Triple letter score */
+   background-color: #3333f8;
 }
 
 /*
 #H8 {
-	background-image: url(../static/CenterIcon.png);
-	background-size: 30px 30px;
-	background-repeat: no-repeat;
+   background-image: url(../static/CenterIcon.png);
+   background-size: 30px 30px;
+   background-repeat: no-repeat;
 }
 */
 
 div.tile {
-	background-color: #e0d8b0;
-	font-size: 25px;
-	line-height: 25px;
-	font-weight: 700;
-	text-align: center;
-	text-transform: uppercase;
-	height: 30px;
-	width: 30px;
-	max-width: 30px;
-	max-height: 30px;
-	min-width: 30px;
-	min-height: 30px;
-	overflow: hidden;
-	margin: 0px;
-	padding-top: 2px;
-	padding-bottom: 0px;
-	padding-left: 0px;
-	padding-right: 2px;
+   background-color: #e0d8b0;
+   font-size: 25px;
+   line-height: 25px;
+   font-weight: 700;
+   text-align: center;
+   text-transform: uppercase;
+   height: 30px;
+   width: 32px;
+   overflow: hidden;
+   margin: 0px;
+   padding-top: 2px;
+   padding-bottom: 0px;
+   padding-left: 0px;
+   padding-right: 2px;
 }
 
 div.racktile {
-	cursor: move;
+   cursor: move;
 }
 
 div.letterscore {
-	position: relative;
-	top: -9px;
-	left: 22px;
-	height: 9px;
-	width: 9px;
-	font-size: 9px;
-	line-height: 9px;
-	text-align: right;
-	font-weight: 400;
-	padding: 0;
-	background-color: transparent;
+   position: relative;
+   top: -9px;
+   left: 22px;
+   height: 9px;
+   width: 9px;
+   font-size: 9px;
+   line-height: 9px;
+   text-align: right;
+   font-weight: 400;
+   padding: 0;
+   background-color: transparent;
 }
 
 div.heading {
-	margin-top: 22px;
-	background-color: #bbbbcc;
-	padding-left: 8px;
-	padding-right: 8px;
+   margin-top: 22px;
+   background-color: #bbbbcc;
+   padding-left: 8px;
+   padding-right: 8px;
 }
 
 h3.playerleft {
-	display: inline-block;
-	float: left;
-	width: 50%;
-	font-size: 16px;
-	line-height: 16px;
-	font-weight: 700;
-	text-align: left;
-	color: #222222;
-	overflow: hidden;
-	margin-top: 8px;
-	margin-bottom: 4px;
+   display: inline-block;
+   float: left;
+   width: 50%;
+   font-size: 16px;
+   line-height: 16px;
+   font-weight: 700;
+   text-align: left;
+   color: #222222;
+   overflow: hidden;
+   margin-top: 8px;
+   margin-bottom: 4px;
 }
 
 h3.playerright {
-	display: inline-block;
-	width: 50%;
-	font-size: 16px;
-	line-height: 16px;
-	font-weight: 700;
-	text-align: right;
-	color: #222222;
-	overflow: hidden;
-	margin-top: 8px;
-	margin-bottom: 4px;
+   display: inline-block;
+   width: 50%;
+   font-size: 16px;
+   line-height: 16px;
+   font-weight: 700;
+   text-align: right;
+   color: #222222;
+   overflow: hidden;
+   margin-top: 8px;
+   margin-bottom: 4px;
 }
 
 h3.scoreleft {
-	display: inline-block;
-	width: 50%;
-	float: left;
-	font-size: 22px;
-	line-height: 22px;
-	font-weight: 700;
-	text-align: left;
-	color: white;
-	overflow: hidden;
-	margin-top: 4px;
-	margin-bottom: 4px;
+   display: inline-block;
+   width: 50%;
+   float: left;
+   font-size: 22px;
+   line-height: 22px;
+   font-weight: 700;
+   text-align: left;
+   color: white;
+   overflow: hidden;
+   margin-top: 4px;
+   margin-bottom: 4px;
 }
 
 h3.scoreright {
-	display: inline-block;
-	width: 50%;
-	font-size: 22px;
-	line-height: 22px;
-	font-weight: 700;
-	text-align: right;
-	color: white;
-	overflow: hidden;
-	margin-top: 4px;
-	margin-bottom: 4px;
+   display: inline-block;
+   width: 50%;
+   font-size: 22px;
+   line-height: 22px;
+   font-weight: 700;
+   text-align: right;
+   color: white;
+   overflow: hidden;
+   margin-top: 4px;
+   margin-bottom: 4px;
 }
 
 div.movelist {
-	background-color: #3333f8;
-	font-size: 15px;
-	line-height: 15px;
-	font-weight: 400;
-	color: black;
+   background-color: #3333f8;
+   font-size: 15px;
+   line-height: 15px;
+   font-weight: 400;
+   color: black;
 }
 
 div.leftmove {
-	background-color: #f0bbbb;
-	text-align: left;
-	padding: 2px;
+   background-color: #f0bbbb;
+   text-align: left;
+   padding: 2px;
 }
 
 div.rightmove {
@@ -240,66 +225,73 @@ span.word {
 }
 
 div.container {
-	width: 768px;
+   width: 768px;
 }
 
 div.pageheader {
-	font-size: 20px;
-	width: 100%;
-	height: 40px;
-	margin-top: 4px;
-	margin-bottom: 4px;
+   font-size: 20px;
+   width: 100%;
+   height: 40px;
+   margin-top: 4px;
+   margin-bottom: 4px;
 }
 
 .pageheader h2 {
-	width: 100%;
-	margin: 0;
-	display: inline;
+   width: 100%;
+   margin: 0;
+   display: inline;
 }
 
 .pageheader h3 {
-	font-size: 14px;
-	font-weight: 400;
-	width: 100%;
-	margin: 0;
-	padding-left: 4px;
-	display:inline;
+   font-size: 14px;
+   font-weight: 400;
+   width: 100%;
+   margin: 0;
+   padding-left: 4px;
+   display:inline;
 }
 
 div.board {
-	width: 550px;
-	position: relative;
-	top: 0px;
-	left: -4px;
+   position: relative;
+   top: 0px;
+   left: -4px;
 }
 
 div.rightcol {
-	width: 208px;
-	position: relative;
-	top: -540px;
-	left: 560px;
+   width: 208px;
+   position: relative;
+   top: -530px;
+   left: 560px;
 }
 
 div.rack {
-	width: 251px;
-	position: relative;
-	text-align: center;
-	top: -140px;
-	left: 156px;
+   position: relative;
+   text-align: center;
+   top: -140px;
+   left: 164px;
 }
 
 div.submitmove {
-   width: 105px;
+   width: 100px;
    height: 28px;
    position: relative;
    text-align: center;
-   top: -174px;
-   left: 442px;
+   top: -173px;
+   left: 436px;
    background-color: #55cc66;
    font-size: 18px;
    font-weight: 700;
    color: white;
    margin: 0;
    padding-top: 4px;
+   border-radius: 4px;
+   cursor: default;
 }
 
+div.over {
+   outline: yellow solid 3px;
+}
+
+div.disabled {
+   background-color: #dddddd;
+}

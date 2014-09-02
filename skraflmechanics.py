@@ -95,9 +95,6 @@ class Board:
         self._letters = [u' ' * Board.SIZE for _ in range(Board.SIZE)]
         # Store tiles on the board in list of strings
         self._tiles = [u' ' * Board.SIZE for _ in range(Board.SIZE)]
-        # Keep track of which squares are closed (i.e. no tile can be
-        # placed there because of cross-check limitations)
-        self._open = [u' ' * Board.SIZE for _ in range(Board.SIZE)]
         # The two counts below should always stay in sync
         self._numletters = 0
         self._numtiles = 0
@@ -110,14 +107,6 @@ class Board:
     def is_covered(self, row, col):
         """ Is the specified square already covered (taken)? """
         return self.letter_at(row, col) != u' '
-
-    def is_closed(self, row, col):
-        """ Is the specified square unable to receive a tile? """
-        return self._open[row][col] != u' '
-
-    def mark_closed(self, row, col):
-        """ Mark the specified square as unable to receive a tile """
-        self._open[row] = self._open[row][0:col] + u'*' + self._open[row][col + 1:]
 
     def has_adjacent(self, row, col):
         """ Check whether there are any tiles on the board adjacent to this square """
@@ -443,6 +432,7 @@ class Cover:
         self.tile = tile
         self.letter = letter
 
+
 class Error:
 
     # Error return codes from Move.check_legality()
@@ -675,9 +665,6 @@ class Move:
                 return Error.NOT_ADJACENT
             # Check all cross words formed by the new tiles
             for c in self._covers:
-                if board.is_closed(c.row, c.col):
-                    # We don't need to check further: no tile can be placed in this square
-                    return Error.CROSS_WORD_NOT_IN_DICTIONARY
                 if self._horizontal:
                     cross = board.letters_above(c.row, c.col) + c.letter + board.letters_below(c.row, c.col)
                 else:
