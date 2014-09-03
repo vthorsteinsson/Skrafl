@@ -10,7 +10,7 @@
 """
 
 from skraflmechanics import Manager, State, Move, ExchangeMove, Error
-from skraflplayer import AutoPlayer
+from skraflplayer import AutoPlayer, AutoPlayer_MinMax
 import time
 
 def test_move(state, movestring):
@@ -80,15 +80,17 @@ def test_game():
 
     while not state.is_game_over():
 
-        apl = AutoPlayer(state)
+        apl = AutoPlayer_MinMax(state)
+        g0 = time.time()
         move = apl.generate_move()
+        g1 = time.time()
 
-        legal = state.check_legality(move)
-        if legal != Error.LEGAL:
-            # Oops: the autoplayer generated an illegal move
-            print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
-            return
-        print(u"Play {0} scores {1} points".format(unicode(move), state.score(move)))
+        # legal = state.check_legality(move)
+        # if legal != Error.LEGAL:
+        #     # Oops: the autoplayer generated an illegal move
+        #     print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
+        #     return
+        print(u"Play {0} scores {1} points ({2:.2f} seconds)".format(unicode(move), state.score(move), g1 - g0))
 
         state.apply_move(move)
 
@@ -98,7 +100,8 @@ def test_game():
     p0, p1 = state.scores()
     t1 = time.time()
 
-    print(u"Game over, final score {0} : {1} after {2} moves ({3:.2f} seconds)".format(p0, p1, state.num_moves(), t1 - t0))
+    print(u"Game over, final score {0} : {1} after {2} moves ({3:.2f} seconds)".format(p0, p1,
+        state.num_moves(), t1 - t0))
 
 
 def test():

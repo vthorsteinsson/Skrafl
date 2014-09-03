@@ -272,194 +272,6 @@ class Axis:
                 last_anchor = i
 
     
-class AutoPlayer:
-
-    """ Implements an automatic, computer-controlled player
-    """
-
-    def __init__(self, state):
-
-        # List of valid, candidate moves
-        self._candidates = []
-        self._state = state
-        self._board = state.board()
-        # The rack that the autoplayer has to work with
-        self._rack = state.player_rack().contents()
-
-        # Calculate a bit pattern representation of the rack
-        if u'?' in self._rack:
-            # Wildcard in rack: all letters allowed
-            self._rack_bit_pattern = Alphabet.all_bits_set()
-        else:
-            # No wildcard: limits the possibilities of covering squares
-            self._rack_bit_pattern = Alphabet.bit_pattern(self._rack)
-
-    def board(self):
-        """ Return the board """
-        return self._board
-
-    def rack(self):
-        """ Return the rack, as a string of tiles """
-        return self._rack
-
-    def rack_bit_pattern(self):
-        """ Return the bit pattern corresponding to the rack """
-        return self._rack_bit_pattern
-
-    def candidates(self):
-        """ The list of valid, candidate moves """
-        return self._candidates
-
-    def add_candidate(self, move):
-        """ Add a candidate move to the AutoPlayer's list """
-        self._candidates.append(move)
-
-    def _axis_from_row(self, row):
-        """ Create and initialize an Axis from a board row """
-        return Axis(self, row, True) # Horizontal
-
-    def _axis_from_column(self, col):
-        """ Create and initialize an Axis from a board column """
-        return Axis(self, col, False) # Vertical
-
-    def generate_move(self):
-        """ Finds and returns a Move object to be played """
-        return self._generate_move(0) # Recursion level 0
-
-    def _generate_move(self, recursion_level):
-        """ Finds and returrns a Move object to be played, weighted by countermoves """
-
-        # Generate moves in one-dimensional space by looking at each axis
-        # (row or column) on the board separately
-
-        if self._board.is_empty():
-            # Special case for first move: only consider the vertical
-            # central axis (any move played there can identically be
-            # played horizontally), and with only one anchor in the
-            # middle square
-            axis = self._axis_from_column(Board.SIZE / 2)
-            axis.init_crosschecks()
-            # Mark the center anchor
-            axis.mark_anchor(Board.SIZE / 2)
-            axis.generate_moves()
-        else:
-            # Normal move: go through all 15 (row) + 15 (column) axes and generate
-            # valid moves within each of them
-            for r in range(Board.SIZE):
-                axis = self._axis_from_row(r)
-                axis.init_crosschecks()
-                axis.generate_moves()
-            for c in range(Board.SIZE):
-                axis = self._axis_from_column(c)
-                axis.init_crosschecks()
-                axis.generate_moves()
-        # We now have a list of valid candidate moves; pick the best one
-        move = self._find_best_move(recursion_level)
-        if move is not None:
-            return move
-        # Can't do anything: try exchanging all tiles
-        if self._state.is_exchange_allowed():
-            return ExchangeMove(self.rack())
-        # If we can't exchange tiles, we have to pass
-        return PassMove()
-
-    def _find_best_move(self, recursion_level):
-        """ Analyze the list of candidate moves and pick the best one """
-
-        if not self._candidates:
-            # No moves: must exchange or pass instead
-            return None
-
-        if len(self._candidates) == 1:
-            # Only one legal move: play it
-            return self._candidates[0]
-
-        # !!! TODO: Consider looking at exchange moves if there are
-        # few and weak candidates
-
-        # Calculate the score of each candidate
-        scored_candidates = [(m, m.score(self._board)) for m in self._candidates]
-
-        def keyfunc(x):
-            # Sort moves first by descending score;
-            # in case of ties prefer shorter words
-            # !!! TODO: Insert more sophisticated logic here,
-            # including whether triple-word-score opportunities
-            # are being opened for the opponent, minimal use
-            # of blank tiles, leaving a good vowel/consonant
-            # balance on the rack, etc.
-            return (- x[1], x[0].num_covers())
-
-        def keyfunc_firstmove(x):
-            # Special case for first move:
-            # Sort moves first by descending score, and in case of ties,
-            # try to go to the upper half of the board for a more open game
-            return (- x[1], x[0]._row)
-
-        # Sort the candidate moves using the appropriate key function
-        if self._board.is_empty():
-            # First move
-            scored_candidates.sort(key=keyfunc_firstmove)
-        else:
-            # Subsequent moves
-            scored_candidates.sort(key=keyfunc)
-
-        # If we're already two levels deep in recursion,
-        # cut the crap and simply return the top scoring move
-        if recursion_level >= 1:
-            return scored_candidates[0][0]
-
-        # Weigh top candidates by alpha-beta testing of potential
-        # moves and counter-moves
-
-        # !!! TODO: In endgame, if we have moves that complete the game (use all rack tiles)
-        # we need not consider opponent countermoves
-
-        NUM_TEST_RACKS = 20 # How many random test racks to try for statistical average
-
-        weighted_candidates = []
-        min_score = None
-
-        # Look at max 20 top scoring candidates
-        for m, score in scored_candidates[0:20]:
-
-            # Create a game state where the candidate move has been played
-            teststate = State(self._state) # Copy constructor
-            teststate.apply_move(m)
-
-            # Loop over NUM_TEST_RACKS random racks to find the average countermove score
-            sum_score = 0
-            for _ in range(NUM_TEST_RACKS):
-                # Make sure we test this for a random opponent rack
-                teststate.randomize_rack()
-                apl = AutoPlayer(teststate)
-                # Go one level deeper into move generation
-                move = apl._generate_move(recursion_level + 1)
-                # Calculate the score of this random rack based move
-                sc = teststate.score(move)
-                sum_score += sc
-
-            # Calculate the average score of the countermoves to this candidate
-            # !!! TODO: Maybe a median score is better than average?
-            avg_score = float(sum_score) / NUM_TEST_RACKS
-            # Keep track of the lowest countermove score across all candidates as a baseline
-            min_score = avg_score if (min_score is None) or (avg_score < min_score) else min_score
-            # Keep track of the weighted candidate moves
-            weighted_candidates.append((m, score, avg_score))
-
-        # Sort the candidates by the plain score after subtracting the effect of
-        # potential countermoves, measured as the countermove score in excess of
-        # the lowest countermove score found
-        weighted_candidates.sort(key = lambda x: float(x[1]) - (x[2] - min_score), reverse = True)
-
-        print(u"Rack '{0}' generated {1} candidate moves:".format(self._rack, len(scored_candidates)))
-        # Show top 20 candidates
-        for m, sc, wsc in weighted_candidates[0:20]:
-            print(u"Move {0} score {1} weighted {2:.2f}".format(m, sc, float(sc) - (wsc - min_score)))
-        # Return the highest-scoring candidate
-        return weighted_candidates[0][0]
-
-
 class LeftPartNavigator:
 
     """ A navigation class to be used with DawgDictionary.navigate()
@@ -693,4 +505,246 @@ class ExtendRightNavigator:
         pass
 
 
+class AutoPlayer:
+
+    """ Implements an automatic, computer-controlled player
+    """
+
+    def __init__(self, state):
+
+        # List of valid, candidate moves
+        self._candidates = []
+        self._state = state
+        self._board = state.board()
+        # The rack that the autoplayer has to work with
+        self._rack = state.player_rack().contents()
+
+        # Calculate a bit pattern representation of the rack
+        if u'?' in self._rack:
+            # Wildcard in rack: all letters allowed
+            self._rack_bit_pattern = Alphabet.all_bits_set()
+        else:
+            # No wildcard: limits the possibilities of covering squares
+            self._rack_bit_pattern = Alphabet.bit_pattern(self._rack)
+
+    def board(self):
+        """ Return the board """
+        return self._board
+
+    def rack(self):
+        """ Return the rack, as a string of tiles """
+        return self._rack
+
+    def rack_bit_pattern(self):
+        """ Return the bit pattern corresponding to the rack """
+        return self._rack_bit_pattern
+
+    def candidates(self):
+        """ The list of valid, candidate moves """
+        return self._candidates
+
+    def add_candidate(self, move):
+        """ Add a candidate move to the AutoPlayer's list """
+        self._candidates.append(move)
+
+    def _axis_from_row(self, row):
+        """ Create and initialize an Axis from a board row """
+        return Axis(self, row, True) # Horizontal
+
+    def _axis_from_column(self, col):
+        """ Create and initialize an Axis from a board column """
+        return Axis(self, col, False) # Vertical
+
+    def generate_move(self):
+        """ Finds and returns a Move object to be played """
+        return self._generate_move(depth = 1)
+
+    def _generate_move(self, depth):
+        """ Finds and returrns a Move object to be played, weighted by countermoves """
+
+        # Generate moves in one-dimensional space by looking at each axis
+        # (row or column) on the board separately
+
+        if self._board.is_empty():
+            # Special case for first move: only consider the vertical
+            # central axis (any move played there can identically be
+            # played horizontally), and with only one anchor in the
+            # middle square
+            axis = self._axis_from_column(Board.SIZE / 2)
+            axis.init_crosschecks()
+            # Mark the center anchor
+            axis.mark_anchor(Board.SIZE / 2)
+            axis.generate_moves()
+        else:
+            # Normal move: go through all 15 (row) + 15 (column) axes and generate
+            # valid moves within each of them
+            for r in range(Board.SIZE):
+                axis = self._axis_from_row(r)
+                axis.init_crosschecks()
+                axis.generate_moves()
+            for c in range(Board.SIZE):
+                axis = self._axis_from_column(c)
+                axis.init_crosschecks()
+                axis.generate_moves()
+        # We now have a list of valid candidate moves; pick the best one
+        move = self._find_best_move(depth)
+        if move is not None:
+            return move
+        # Can't do anything: try exchanging all tiles
+        if self._state.is_exchange_allowed():
+            return ExchangeMove(self.rack())
+        # If we can't exchange tiles, we have to pass
+        return PassMove()
+
+
+    def _find_best_move(self, depth):
+        """ Analyze the list of candidate moves and pick the highest-scoring one """
+
+        assert depth >= 0
+
+        if not self._candidates:
+            # No moves: must exchange or pass instead
+            return None
+
+        if len(self._candidates) == 1:
+            # Only one legal move: play it
+            return self._candidates[0]
+
+        # Calculate the score of each candidate
+        scored_candidates = [(m, m.score(self._board)) for m in self._candidates]
+
+        def keyfunc(x):
+            # Sort moves first by descending score;
+            # in case of ties prefer shorter words
+            # !!! TODO: Insert more sophisticated logic here,
+            # including whether triple-word-score opportunities
+            # are being opened for the opponent, minimal use
+            # of blank tiles, leaving a good vowel/consonant
+            # balance on the rack, etc.
+            return (- x[1], x[0].num_covers())
+
+        def keyfunc_firstmove(x):
+            # Special case for first move:
+            # Sort moves first by descending score, and in case of ties,
+            # try to go to the upper half of the board for a more open game
+            return (- x[1], x[0]._row)
+
+        # Sort the candidate moves using the appropriate key function
+        if self._board.is_empty():
+            # First move
+            scored_candidates.sort(key=keyfunc_firstmove)
+        else:
+            # Subsequent moves
+            scored_candidates.sort(key=keyfunc)
+
+        # Simply return the top scoring move
+        print(u"Autoplayer: Rack '{0}' generated {1} candidate moves:".format(self._rack, len(scored_candidates)))
+        # Show top 20 candidates
+        for m, sc in scored_candidates[0:20]:
+            print(u"Move {0} score {1}".format(m, sc))
+        return scored_candidates[0][0]
+
+
+class AutoPlayer_MinMax(AutoPlayer):
+
+    def __init__(self, state):
+        AutoPlayer.__init__(self, state)
+
+    def _find_best_move(self, depth):
+        """ Analyze the list of candidate moves and pick the best one """
+
+        assert depth >= 0
+
+        if not self._candidates:
+            # No moves: must exchange or pass instead
+            return None
+
+        if len(self._candidates) == 1:
+            # Only one legal move: play it
+            return self._candidates[0]
+
+        # !!! TODO: Consider looking at exchange moves if there are
+        # few and weak candidates
+
+        # Calculate the score of each candidate
+        scored_candidates = [(m, m.score(self._board)) for m in self._candidates]
+
+        def keyfunc(x):
+            # Sort moves first by descending score;
+            # in case of ties prefer shorter words
+            # !!! TODO: Insert more sophisticated logic here,
+            # including whether triple-word-score opportunities
+            # are being opened for the opponent, minimal use
+            # of blank tiles, leaving a good vowel/consonant
+            # balance on the rack, etc.
+            return (- x[1], x[0].num_covers())
+
+        def keyfunc_firstmove(x):
+            # Special case for first move:
+            # Sort moves first by descending score, and in case of ties,
+            # try to go to the upper half of the board for a more open game
+            return (- x[1], x[0]._row)
+
+        # Sort the candidate moves using the appropriate key function
+        if self._board.is_empty():
+            # First move
+            scored_candidates.sort(key=keyfunc_firstmove)
+        else:
+            # Subsequent moves
+            scored_candidates.sort(key=keyfunc)
+
+        # If we're not going deeper into the minimax analysis,
+        # cut the crap and simply return the top scoring move
+        if depth == 0:
+            return scored_candidates[0][0]
+
+        # Weigh top candidates by alpha-beta testing of potential
+        # moves and counter-moves
+
+        # !!! TODO: In endgame, if we have moves that complete the game (use all rack tiles)
+        # we need not consider opponent countermoves
+
+        NUM_TEST_RACKS = 20 # How many random test racks to try for statistical average
+
+        weighted_candidates = []
+        min_score = None
+
+        # Look at max 20 top scoring candidates
+        for m, score in scored_candidates[0:20]:
+
+            # Create a game state where the candidate move has been played
+            teststate = State(self._state) # Copy constructor
+            teststate.apply_move(m)
+
+            # Loop over NUM_TEST_RACKS random racks to find the average countermove score
+            sum_score = 0
+            for _ in range(NUM_TEST_RACKS):
+                # Make sure we test this for a random opponent rack
+                teststate.randomize_rack()
+                apl = AutoPlayer_MinMax(teststate)
+                # Go one level deeper into move generation
+                move = apl._generate_move(depth = depth - 1)
+                # Calculate the score of this random rack based move
+                sc = teststate.score(move)
+                sum_score += sc
+
+            # Calculate the average score of the countermoves to this candidate
+            # !!! TODO: Maybe a median score is better than average?
+            avg_score = float(sum_score) / NUM_TEST_RACKS
+            # Keep track of the lowest countermove score across all candidates as a baseline
+            min_score = avg_score if (min_score is None) or (avg_score < min_score) else min_score
+            # Keep track of the weighted candidate moves
+            weighted_candidates.append((m, score, avg_score))
+
+        # Sort the candidates by the plain score after subtracting the effect of
+        # potential countermoves, measured as the countermove score in excess of
+        # the lowest countermove score found
+        weighted_candidates.sort(key = lambda x: float(x[1]) - (x[2] - min_score), reverse = True)
+
+        print(u"AutoPlayer_MinMax: Rack '{0}' generated {1} candidate moves:".format(self._rack, len(scored_candidates)))
+        # Show top 20 candidates
+        for m, sc, wsc in weighted_candidates[0:20]:
+            print(u"Move {0} score {1} weighted {2:.2f}".format(m, sc, float(sc) - (wsc - min_score)))
+        # Return the highest-scoring candidate
+        return weighted_candidates[0][0]
 
