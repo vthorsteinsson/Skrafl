@@ -90,14 +90,21 @@ class Board:
         # RC if horizontal move, or CR if vertical. R is A,B,C... C is 1,2,3...
         return Board.ROWIDS[row] + str(col + 1) if horiz else str(col + 1) + Board.ROWIDS[row]
 
-    def __init__(self):
-        # Store letters on the board in list of strings
-        self._letters = [u' ' * Board.SIZE for _ in range(Board.SIZE)]
-        # Store tiles on the board in list of strings
-        self._tiles = [u' ' * Board.SIZE for _ in range(Board.SIZE)]
-        # The two counts below should always stay in sync
-        self._numletters = 0
-        self._numtiles = 0
+    def __init__(self, copy = None):
+        if copy is None:
+            # Store letters on the board in list of strings
+            self._letters = [u' ' * Board.SIZE for _ in range(Board.SIZE)]
+            # Store tiles on the board in list of strings
+            self._tiles = [u' ' * Board.SIZE for _ in range(Board.SIZE)]
+            # The two counts below should always stay in sync
+            self._numletters = 0
+            self._numtiles = 0
+        else:
+            # Copy constructor: initialize from another Board
+            self._letters = [s for s in copy._letters]
+            self._tiles = [s for s in copy._tiles]
+            self._numletters = copy._numletters
+            self._numtiles = copy._numtiles
 
     def is_empty(self):
         """ Is the board empty, i.e. contains no tiles? """
@@ -229,9 +236,12 @@ class Bag:
 
     """ Represents a bag of tiles """
 
-    def __init__(self):
-        # Get a full bag from the Alphabet; this varies between languages
-        self._tiles = Alphabet.full_bag()
+    def __init__(self, copy = None):
+        if copy is None:
+            # Get a full bag from the Alphabet; this varies between languages
+            self._tiles = Alphabet.full_bag()
+        else:
+            self._tiles = copy._tiles
 
     def draw_tile(self):
         """ Draw a single tile from the bag """
@@ -267,8 +277,11 @@ class Rack:
 
     MAX_TILES = 7
 
-    def __init__(self):
-        self._tiles = u''
+    def __init__(self, copy = None):
+        if copy is None:
+            self._tiles = u''
+        else:
+            self._tiles = copy._tiles
 
     def remove_tile(self, tile):
         """ Remove a tile from the rack """
@@ -320,6 +333,17 @@ class Rack:
         bag.return_tiles(removed)
         return True
 
+    def randomize(self, bag):
+        """ Return all rack tiles back to the bag and draw a fresh set """
+        if bag.is_empty():
+            # Can't randomize - would just draw same tiles back
+            return
+        n = self.num_tiles()
+        bag.return_tiles(self._tiles)
+        self._tiles = u''
+        while len(self._tiles) < n and not bag.is_empty():
+            self._tiles += bag.draw_tile()
+
 
 class State:
 
@@ -327,18 +351,29 @@ class State:
         Contains the current board, the racks, scores, etc.
     """
 
-    def __init__(self):
-        self._board = Board()
-        self._player_to_move = 0
-        self._scores = [0, 0]
-        self._num_passes = 0 # Number of consecutive Pass moves
-        self._num_moves = 0 # Number of moves made
-        self._racks = [Rack(), Rack()]
-        # Initialize a fresh, full bag of tiles
-        self._bag = Bag()
-        # Draw the racks from the bag
-        for rack in self._racks:
-            rack.replenish(self._bag)
+    def __init__(self, copy = None):
+
+        if copy is None:
+            self._board = Board()
+            self._player_to_move = 0
+            self._scores = [0, 0]
+            self._num_passes = 0 # Number of consecutive Pass moves
+            self._num_moves = 0 # Number of moves made
+            self._racks = [Rack(), Rack()]
+            # Initialize a fresh, full bag of tiles
+            self._bag = Bag()
+            # Draw the racks from the bag
+            for rack in self._racks:
+                rack.replenish(self._bag)
+        else:
+            # Copy constructor: initialize a State from another State
+            self._board = Board(copy._board)
+            self._player_to_move = copy._player_to_move
+            self._scores = [sc for sc in copy._scores]
+            self._num_passes = copy._num_passes
+            self._num_moves = copy._num_moves
+            self._racks = [Rack(copy._racks[0]), Rack(copy._racks[1])]
+            self._bag = Bag(copy._bag)
 
     def load_board(self, board):
         """ Load a Board into this state """
@@ -382,6 +417,10 @@ class State:
     def player_rack(self):
         """ Return the Rack object for the player whose turn it is """
         return self._racks[self._player_to_move]
+
+    def randomize_rack(self):
+        """ Randomize the tiles on the current player's rack """
+        self.player_rack().randomize(self._bag)
 
     def board(self):
         """ Return the Board object of this state """

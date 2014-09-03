@@ -108,6 +108,6 @@ def test():
     manager = Manager()
 
     # Loop forever
-    while True:
-        test_game()
+    # while True:
+    test_game()
 
