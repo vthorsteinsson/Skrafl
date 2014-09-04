@@ -16,6 +16,8 @@ resources/testwords.txt
 # Scratch work files
 templates/main-scratch.html
 profile.bin
+*.sublime-project
+*.sublime-workspace
 
 # Distribution / packaging
 .Python
