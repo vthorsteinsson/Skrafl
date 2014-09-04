@@ -507,7 +507,13 @@ class ExtendRightNavigator:
 
 class AutoPlayer:
 
-    """ Implements an automatic, computer-controlled player
+    """ Implements an automatic, computer-controlled player.
+        All legal moves on the board are generated and the
+        best move is then selected within the _find_best_move()
+        function. This base class has a simple implementation
+        of _find_best_move() that always chooses the best-scoring
+        move. Other derived classes, such as AutoPlayer_MinMax,
+        use more sophisticated heuristics to choose a move.
     """
 
     def __init__(self, state):
@@ -596,7 +602,6 @@ class AutoPlayer:
         # If we can't exchange tiles, we have to pass
         return PassMove()
 
-
     def _find_best_move(self, depth):
         """ Analyze the list of candidate moves and pick the highest-scoring one """
 
@@ -645,7 +650,11 @@ class AutoPlayer:
         return scored_candidates[0][0]
 
 
-class AutoPlayer_MinMax(AutoPlayer):
+class AutoPlayer_MiniMax(AutoPlayer):
+
+    """ This subclass of AutoPlayer uses a MiniMax algorithm to
+        select a move to play from the list of valid moves.
+    """
 
     def __init__(self, state):
         AutoPlayer.__init__(self, state)
@@ -705,32 +714,47 @@ class AutoPlayer_MinMax(AutoPlayer):
         # we need not consider opponent countermoves
 
         NUM_TEST_RACKS = 20 # How many random test racks to try for statistical average
+        NUM_CANDIDATES = 12 # How many top candidates do we look at with MiniMax?
 
         weighted_candidates = []
         min_score = None
 
-        # Look at max 20 top scoring candidates
-        for m, score in scored_candidates[0:20]:
+        # Look at the top scoring candidates
+        for m, score in scored_candidates[0:NUM_CANDIDATES]:
 
             # Create a game state where the candidate move has been played
             teststate = State(self._state) # Copy constructor
             teststate.apply_move(m)
 
-            # Loop over NUM_TEST_RACKS random racks to find the average countermove score
-            sum_score = 0
-            for _ in range(NUM_TEST_RACKS):
-                # Make sure we test this for a random opponent rack
-                teststate.randomize_rack()
-                apl = AutoPlayer_MinMax(teststate)
-                # Go one level deeper into move generation
-                move = apl._generate_move(depth = depth - 1)
-                # Calculate the score of this random rack based move
-                sc = teststate.score(move)
-                sum_score += sc
+            if teststate.is_game_over():
+                # This move finishes the game. The opponent then scores nothing
+                # !!! TODO: (and in fact we get her tile score, but leave that aside here)
+                avg_score = 0.0
+            else:
+                # Loop over NUM_TEST_RACKS random racks to find the average countermove score
+                sum_score = 0
+                rackscores = dict()
+                for _ in range(NUM_TEST_RACKS):
+                    # Make sure we test this for a random opponent rack
+                    teststate.randomize_and_sort_rack()
+                    rack = teststate.player_rack().contents()
+                    if rack in rackscores:
+                        # We have seen this rack before: fetch its score
+                        sc = rackscores[rack]
+                    else:
+                        # New rack: see how well it would score
+                        apl = AutoPlayer_MiniMax(teststate)
+                        # Go one level deeper into move generation
+                        move = apl._generate_move(depth = depth - 1)
+                        # Calculate the score of this random rack based move
+                        sc = teststate.score(move)
+                        # Cache the score
+                        rackscores[rack] = sc
+                    sum_score += sc
+                # Calculate the average score of the countermoves to this candidate
+                # !!! TODO: Maybe a median score is better than average?
+                avg_score = float(sum_score) / NUM_TEST_RACKS
 
-            # Calculate the average score of the countermoves to this candidate
-            # !!! TODO: Maybe a median score is better than average?
-            avg_score = float(sum_score) / NUM_TEST_RACKS
             # Keep track of the lowest countermove score across all candidates as a baseline
             min_score = avg_score if (min_score is None) or (avg_score < min_score) else min_score
             # Keep track of the weighted candidate moves
@@ -743,7 +767,7 @@ class AutoPlayer_MinMax(AutoPlayer):
 
         print(u"AutoPlayer_MinMax: Rack '{0}' generated {1} candidate moves:".format(self._rack, len(scored_candidates)))
         # Show top 20 candidates
-        for m, sc, wsc in weighted_candidates[0:20]:
+        for m, sc, wsc in weighted_candidates:
             print(u"Move {0} score {1} weighted {2:.2f}".format(m, sc, float(sc) - (wsc - min_score)))
         # Return the highest-scoring candidate
         return weighted_candidates[0][0]
