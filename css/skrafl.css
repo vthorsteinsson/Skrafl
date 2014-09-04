@@ -135,7 +135,6 @@ div.letterscore {
 }
 
 div.heading {
-   margin-top: 22px;
    background-color: #bbbbcc;
    padding-left: 8px;
    padding-right: 8px;
@@ -225,10 +224,18 @@ span.word {
 }
 
 div.container {
+   position: relative;
+   top: 0;
+   left: 0;
    width: 768px;
+   height: 768px;
+   background-color: orange;
 }
 
 div.pageheader {
+   position: relative;
+   top: 0;
+   left: 0;
    font-size: 20px;
    width: 100%;
    height: 40px;
@@ -252,32 +259,49 @@ div.pageheader {
 }
 
 div.board {
-   position: relative;
+   position: absolute;
+   /*
    top: 0px;
    left: -4px;
+   */
+   top: 48px;
+   left: 0px;
 }
 
 div.rightcol {
-   width: 208px;
-   position: relative;
+   position: absolute;
+   right: 0px;
+   /* width: 208px; */
+   /*
    top: -530px;
    left: 560px;
+   */
+   top: 48px;
+   margin-top: 24px;
 }
 
 div.rack {
-   position: relative;
+   position: absolute;
    text-align: center;
+   /*
    top: -140px;
    left: 164px;
+   */
+   bottom: 100px;
+   left: 168px;
 }
 
 div.submitmove {
+   position: absolute;
    width: 100px;
    height: 28px;
-   position: relative;
    text-align: center;
+   /*
    top: -173px;
    left: 436px;
+   */
+   bottom: 100px;
+   left: 442px;
    background-color: #55cc66;
    font-size: 18px;
    font-weight: 700;

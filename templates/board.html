@@ -67,7 +67,7 @@
 
    function handleDragstart(e) {
       e.dataTransfer.clearData();
-      e.dataTransfer.setData('text/html', e.target.parentNode.innerHTML);
+      e.dataTransfer.setData('text/html', ""); /* We don't use this */
       e.dataTransfer.effectAllowed = 'move';
       /* e.dataTransfer.setDragImage(this); */
       elementDragged = e.target;
@@ -98,17 +98,22 @@
    function handleDragover(e) {
       if (e.preventDefault)
          e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
+      if (e.target.firstChild)
+        /* There is already a tile in the square: drop will have no effect */
+        e.dataTransfer.dropEffect = 'none';
+      else
+        e.dataTransfer.dropEffect = 'move';
       return false;
    }
 
    function handleDragenter(e) {
-      /* Add yellow outline highlight to square*/
-      this.classList.add("over");
+      if (e.target.firstChild == null)
+        /* Can drop here: add yellow outline highlight to square*/
+        this.classList.add("over");
    }
 
    function handleDragleave(e) {
-      /* Remove outline highlight from square */
+      /* Can drop here: remove outline highlight from square */
       this.classList.remove("over");
    }
 
@@ -118,15 +123,10 @@
       if (e.stopPropagation)
          e.stopPropagation();
       e.target.classList.remove("over");
-      if (elementDragged != null && elementDragged != e.target.firstChild) {
-         elementDragged.parentNode.innerHTML = "";
-         e.target.innerHTML = e.dataTransfer.getData('text/html');
-         /* No longer a drop target */
-         removeDropTarget(e.target);
-         /* However the source becomes a drop target instead */
-         initDropTarget(elementDragged.parentNode);
-         /* However, the tile in this square is now draggable */
-         initDraggable(e.target.firstChild);
+      if (e.target.firstChild == null && elementDragged != null &&
+         elementDragged != e.target.firstChild) {
+         elementDragged.parentNode.removeChild(elementDragged);
+         e.target.appendChild(elementDragged);
          elementDragged = null;
       }
       /* On a successful drop, remove the dragover/enter/leave/drop handlers from
@@ -158,9 +158,16 @@
          for (y = 1; y <= 15; y++) {
             coord = "ABCDEFGHIJKLMNO".charAt(y - 1) + x.toString();
             sq = document.getElementById(coord);
-            if (sq && sq.innerHTML == "")
+            if (sq)
                initDropTarget(sq);
          }
+      /* Make the rack a drop targets as well */
+      for (x = 1; x <= 7; x++) {
+        coord = "R" + x.toString();
+        sq = document.getElementById(coord);
+        if (sq)
+           initDropTarget(sq);
+      }
    }
 
    function submitMove() {

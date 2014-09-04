@@ -121,14 +121,17 @@ def test():
 
     manager = Manager()
 
+    players = [u"AutoPlayer", u"MiniMax"]
     gameswon = [0, 0]
     totalpoints = [0, 0]
     sumofmargin = [0, 0]
     num_games = 0
 
     # Run games
-    for _ in range(100):
-        p0, p1 = test_game()
+    NUM_GAMES = 100
+    for ix in range(NUM_GAMES):
+        print(u"\nGame {0}/{1} starting".format(ix + 1, NUM_GAMES))
+        p0, p1 = test_game(players)
         if p0 > p1:
             gameswon[0] += 1
             sumofmargin[0] += (p0 - p1)
@@ -140,16 +143,14 @@ def test():
         num_games += 1
 
     print(u"Test completed, {0} games played".format(num_games))
-    if gameswon[0] == 0:
-        print(u"AutoPlayer won {0} games and scored an average of {1:.1f} points per game".format(gameswon[0],
-            float(totalpoints[0]) / num_games))
-    else:
-        print(u"AutoPlayer won {0} games with an average margin of {2:.1f} and scored an average of {1:.1f} points per game".format(gameswon[0],
-            float(totalpoints[0]) / num_games, float(sumofmargin[0]) / gameswon[0]))
-    if gameswon[1] == 0:
-        print(u"MiniMax won {0} games and scored an average of {1:.1f} points per game".format(gameswon[1],
-            float(totalpoints[1]) / num_games))
-    else:
-        print(u"MiniMax won {0} games with an average margin of {2:.1f} and scored an average of {1:.1f} points per game".format(gameswon[1],
-            float(totalpoints[1]) / num_games, float(sumofmargin[1]) / gameswon[1]))
+    
+    def reportscore(player):
+        if gameswon[player] == 0:
+            print(u"{2} won {0} games and scored an average of {1:.1f} points per game".format(gameswon[player],
+                float(totalpoints[player]) / num_games, players[player]))
+        else:
+            print(u"{3} won {0} games with an average margin of {2:.1f} and scored an average of {1:.1f} points per game".format(gameswon[player],
+                float(totalpoints[player]) / num_games, float(sumofmargin[player]) / gameswon[player], players[player]))
 
+    reportscore(0)
+    reportscore(1)

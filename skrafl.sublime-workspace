@@ -1,0 +1,653 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"is",
+				"is_empty"
+			],
+			[
+				"Auto",
+				"AutoPlayer_MinMax"
+			],
+			[
+				"_num",
+				"_num_passes"
+			],
+			[
+				"ExtendRight",
+				"ExtendRightNavigator"
+			],
+			[
+				"try",
+				"try	Try/Except"
+			],
+			[
+				"a",
+				"default"
+			],
+			[
+				"border-",
+				"border-radius"
+			],
+			[
+				"init",
+				"initDraggables"
+			],
+			[
+				"initDr",
+				"initDropTargets"
+			],
+			[
+				"padding",
+				"padding-bottom"
+			],
+			[
+				"border",
+				"border-collapse"
+			],
+			[
+				"margin",
+				"margin-top"
+			],
+			[
+				"font-",
+				"font-weight"
+			],
+			[
+				"text",
+				"text-align"
+			],
+			[
+				"_rack",
+				"_rack_bit_pattern"
+			],
+			[
+				"cood",
+				"coordinate_step"
+			],
+			[
+				"Extend",
+				"ExtendRightNavigator"
+			],
+			[
+				"LeftP",
+				"LeftPartNavigator"
+			],
+			[
+				"part",
+				"partial_word"
+			],
+			[
+				"skraf",
+				"skraflmechanics"
+			],
+			[
+				"dawg",
+				"dawgbuilder"
+			],
+			[
+				"Mat",
+				"MatchNavigator"
+			],
+			[
+				"Skraf",
+				"Skraflplay"
+			],
+			[
+				"apply",
+				"apply_play"
+			],
+			[
+				"Skrafl",
+				"Skraflboard"
+			],
+			[
+				"text-",
+				"text-transform"
+			],
+			[
+				"Dawg",
+				"DawgDictionary"
+			],
+			[
+				"dawgdic",
+				"dawgdictionary"
+			],
+			[
+				"find",
+				"find_permutations"
+			],
+			[
+				"CODING",
+				"CODING_LCASE"
+			],
+			[
+				"num_",
+				"num_edge_chars"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "skraflplayer.py",
+			"settings":
+			{
+				"buffer_size": 32409,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "css/skrafl.css",
+			"settings":
+			{
+				"buffer_size": 4867,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "templates/board.html",
+			"settings":
+			{
+				"buffer_size": 11897,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "skrafltester.py",
+			"settings":
+			{
+				"buffer_size": 4986,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "dawgtester.py",
+			"settings":
+			{
+				"buffer_size": 6444,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "skraflmechanics.py",
+			"settings":
+			{
+				"buffer_size": 31364,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "languages.py",
+			"settings":
+			{
+				"buffer_size": 4241,
+				"line_ending": "Windows"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 448.0,
+		"selected_items":
+		[
+			[
+				"",
+				"Convert Case: Lower Case"
+			]
+		],
+		"width": 448.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/C/Users/USER/Documents/GitHub/Skrafl",
+		"/C/Users/USER/Documents/GitHub/Skrafl/css",
+		"/C/Users/USER/Documents/GitHub/Skrafl/resources",
+		"/C/Users/USER/Documents/GitHub/Skrafl/templates"
+	],
+	"file_history":
+	[
+		"/C/Users/USER/Documents/GitHub/Skrafl/dawgbuilder.py",
+		"/C/Users/USER/Documents/GitHub/Skrafl/dawgdictionary.py",
+		"/C/Users/USER/Documents/GitHub/Skrafl/languages.py",
+		"/C/Users/USER/Documents/GitHub/Skrafl/static/board.html",
+		"/C/Users/USER/Documents/GitHub/Skrafl/README.md",
+		"/C/Users/USER/Dropbox/Skrafl/resources/TWL06.txt",
+		"/C/Users/USER/Documents/GitHub/Skrafl/skraflpermuter.py",
+		"/C/Users/USER/Documents/GitHub/Skrafl/dawgtester.py",
+		"/C/Users/USER/Documents/GitHub/Skrafl/skrafltester.py",
+		"/C/Users/USER/Documents/GitHub/Skrafl/skrafl.py",
+		"/C/Users/USER/Documents/GitHub/Skrafl/.gitignore",
+		"/C/Users/USER/Documents/GitHub/Skrafl/templates/main-scratch.html",
+		"/C/Users/USER/Documents/GitHub/Skrafl/templates/errorword.html",
+		"/C/Users/USER/Documents/GitHub/Skrafl/templates/help.html",
+		"/C/Users/USER/Documents/GitHub/Skrafl/app.yaml",
+		"/C/Users/USER/Documents/GitHub/Skrafl/resources/ordalisti.text.dawg",
+		"/C/Users/USER/Documents/GitHub/Skrafl/templates/main.html",
+		"/C/Users/USER/Documents/GitHub/Skrafl/resources/smaordalisti.txt",
+		"/C/Users/USER/Documents/GitHub/Skrafl/resources/tveggjastafa.sorted.txt",
+		"/C/Users/USER/Documents/GitHub/Skrafl/resources/smaord.sorted.txt",
+		"/C/Users/USER/Documents/GitHub/Skrafl/skrafldictionary.py",
+		"/C/Users/USER/Documents/GitHub/Skrafl/resources/ordalisti1.txt",
+		"/C/Users/USER/Documents/GitHub/Skrafl/resources/testwords.dawg",
+		"/C/Users/USER/Documents/GitHub/Skrafl/resources/testwords.txt",
+		"/C/Program Files/Google/Cloud SDK/GoogleAppEngineLauncher.bat"
+	],
+	"find":
+	{
+		"height": 41.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"!!!",
+			"ü",
+			"Source Sans Pro",
+			"is_empty",
+			"is_open_for",
+			"_check",
+			"filter_rack",
+			"def score",
+			".score",
+			"range(0",
+			"print",
+			"check_lega",
+			"board.",
+			"BOARDSIZE",
+			"play",
+			"Skraflplay",
+			"Skraflstate",
+			"Skraflaxis",
+			"Skraflsquare",
+			"Skraflboard",
+			"    ",
+			" = .",
+			"^ ",
+			"\",",
+			"u\"",
+			"^            ",
+			":3617",
+			":195",
+			"195",
+			" \"",
+			"\"$",
+			"$",
+			"^",
+			" ",
+			"hraðskákmót",
+			"MAXLEN",
+			" ",
+			"hvor",
+			":64086",
+			":5998",
+			"5998",
+			"28054",
+			"8031",
+			"28584",
+			"next",
+			".items",
+			"cm",
+			"common",
+			"utf-8",
+			"cp861"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"Roboto",
+			"self.",
+			"Board.SIZE",
+			"move",
+			"Move",
+			"State",
+			"Axis",
+			"Square",
+			"Board",
+			"\"",
+			"\", ",
+			"",
+			"\\n",
+			"",
+			" u\"",
+			"\",",
+			"\"",
+			"\", \"",
+			"edges",
+			"i",
+			"cm"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 5,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "skraflplayer.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 32409,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								28070,
+								28070
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 4173.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "css/skrafl.css",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4867,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4603,
+								4603
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/CSS/CSS.tmLanguage",
+							"tab_size": 3,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 4353.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "templates/board.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 11897,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4776,
+								4776
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 496.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "skrafltester.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4986,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4977,
+								4977
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "dawgtester.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6444,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								137,
+								137
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "skraflmechanics.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 31364,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								11859,
+								11859
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": -0.0,
+						"translation.y": 1116.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "languages.py",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 4241,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": -0.0,
+						"translation.y": 1766.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"project": "skrafl.sublime-project",
+	"replace":
+	{
+		"height": 48.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 194.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
