@@ -61,12 +61,19 @@ def test_exchange(state, numtiles):
     print(unicode(state))
     return True
 
-def test_game():
+def test_game(players):
     """ Go through a whole game by pitting two AutoPlayers against each other """
+    # The players parameter is a list of tuples: (playername, constructorfunc)
+    # where constructorfunc accepts a State parameter and returns a freshly
+    # created AutoPlayer (or subclass thereof) that will generate moves
+    # on behalf of the player.
 
+    # Initial, empty game state
     state = State()
-    state.set_player_name(0, u"AutoPlayer")
-    state.set_player_name(1, u"MiniMax")
+
+    # Set player names
+    for ix in range(2):
+        state.set_player_name(ix, players[ix][0])
 
     print unicode(state)
 
@@ -83,13 +90,9 @@ def test_game():
 
     while not state.is_game_over():
 
-        apl = None
-        if state.player_to_move() == 0:
-            # Simplistic player
-            apl = AutoPlayer(state)
-        else:
-            # MiniMax player
-            apl = AutoPlayer_MiniMax(state)
+        # Call the appropriate player creation function
+        apl = players[state.player_to_move()][1](state)
+
         g0 = time.time()
         move = apl.generate_move()
         g1 = time.time()
@@ -101,10 +104,12 @@ def test_game():
         #     return
         print(u"Play {0} scores {1} points ({2:.2f} seconds)".format(unicode(move), state.score(move), g1 - g0))
 
+        # Apply the move to the state and switch players
         state.apply_move(move)
 
         print(unicode(state))
 
+    # Tally the tiles left and calculate the final score
     state.finalize_score()
     p0, p1 = state.scores()
     t1 = time.time()
@@ -117,21 +122,36 @@ def test_game():
 
 def test():
 
-    print(u"Welcome to the skrafl game tester")
+    print(u"Welcome to the Skrafl game tester")
+    print(u"Author: Vilhjalmur Thorsteinsson, 2014")
 
     manager = Manager()
 
-    players = [u"AutoPlayer", u"MiniMax"]
+    def autoplayer_creator(state):
+        return AutoPlayer(state)
+
+    def minimax_creator(state):
+        return AutoPlayer_MiniMax(state)
+
+    players = [(u"AutoPlayer", autoplayer_creator), (u"MiniMax", minimax_creator)]
     gameswon = [0, 0]
     totalpoints = [0, 0]
     sumofmargin = [0, 0]
     num_games = 0
 
     # Run games
-    NUM_GAMES = 100
+    NUM_GAMES = 4
     for ix in range(NUM_GAMES):
         print(u"\nGame {0}/{1} starting".format(ix + 1, NUM_GAMES))
-        p0, p1 = test_game(players)
+        if ix % 2 == 1:
+            # Odd game: swap players
+            players[0], players[1] = players[1], players[0]
+            p1, p0 = test_game(players)
+            # Swap back
+            players[0], players[1] = players[1], players[0]
+        else:
+            # Even game
+            p0, p1 = test_game(players)
         if p0 > p1:
             gameswon[0] += 1
             sumofmargin[0] += (p0 - p1)
@@ -147,10 +167,10 @@ def test():
     def reportscore(player):
         if gameswon[player] == 0:
             print(u"{2} won {0} games and scored an average of {1:.1f} points per game".format(gameswon[player],
-                float(totalpoints[player]) / num_games, players[player]))
+                float(totalpoints[player]) / num_games, players[player][0]))
         else:
             print(u"{3} won {0} games with an average margin of {2:.1f} and scored an average of {1:.1f} points per game".format(gameswon[player],
-                float(totalpoints[player]) / num_games, float(sumofmargin[player]) / gameswon[player], players[player]))
+                float(totalpoints[player]) / num_games, float(sumofmargin[player]) / gameswon[player], players[player][0]))
 
     reportscore(0)
     reportscore(1)

@@ -22,6 +22,9 @@
 
 <link href='../css/skrafl.css' rel='stylesheet' type='text/css'>
 
+<!-- jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+
 <script>
 
    function placeTile(sq, t, score) {
@@ -29,12 +32,10 @@
          attr = "class='tile racktile' draggable='true'";
       else
          attr = "class='tile'";
-      document.getElementById(sq).innerHTML = "<div " + attr + ">" + t +
-         "<div class='letterscore'>" + score + "</div></div>";
-   }
-
-   function eraseTile(sq) {
-      document.getElementById(sq).innerHTML = "";
+      $("#"+sq).html("<div " + attr + ">" + t +
+         "<div class='letterscore'>" + score + "</div></div>");
+      if (sq.charAt(0) == "R")
+         $("#"+sq).children().eq(0).data("tile", t);
    }
 
    function placeTiles() {
@@ -128,6 +129,7 @@
          elementDragged.parentNode.removeChild(elementDragged);
          e.target.appendChild(elementDragged);
          elementDragged = null;
+         updateSubmitMove();
       }
       /* On a successful drop, remove the dragover/enter/leave/drop handlers from
          the containing TD, and add new dragstart handlers to
@@ -170,14 +172,84 @@
       }
    }
 
-   function submitMove() {
-
+   function updateSubmitMove() {
+      $("div.submitmove").toggleClass("disabled", (findCovers().length == 0));
    }
+
+   function submitover() {
+      $("div.submitmove").toggleClass("over", true);
+   }
+
+   function submitout() {
+      $("div.submitmove").toggleClass("over", false);
+   }
+
+   function findCovers() {
+      var moves = [];
+      $("div.tile").each(function() {
+         var sq = $(this).parent().attr("id");
+         var t = $(this).data("tile");
+         if (t != null && t != undefined && sq.charAt(0) != "R")
+            moves.push(sq + "=" + t);
+      });
+      return moves;      
+   }
+
+   function submitMove() {
+      var moves = findCovers();
+      if (moves.length == 0)
+         return;
+      /* Talk to the game server using jQuery/Ajax */
+      $.ajax({
+         // the URL for the request
+         url: "/submitmove",
+
+         // the data to send (will be converted to a query string)
+         data: {
+            moves: moves
+         },
+
+         // whether this is a POST or GET request
+         type: "POST",
+
+         // the type of data we expect back
+         dataType : "json",
+
+         cache: false,
+
+         // code to run if the request succeeds;
+         // the response is passed to the function
+         success: function( json ) {
+            $( "<h1/>" ).text( json.title ).appendTo( "body" );
+            $( "<div class=\"content\"/>").html( json.html ).appendTo( "body" );
+         },
+
+         // code to run if the request fails; the raw request and
+         // status codes are passed to the function
+         error: function( xhr, status, errorThrown ) {
+            alert( "Sorry, there was a problem!" );
+            console.log( "Error: " + errorThrown );
+            console.log( "Status: " + status );
+            console.dir( xhr );
+         },
+
+         // code to run regardless of success or failure
+         complete: function( xhr, status ) {
+           alert( "The request is complete!" );
+         }
+      });
+   }
+
+   function initSkrafl(jQuery) {
+      placeTiles();
+   }
+
+   $(document).ready(initSkrafl);
 
 </script>
 
 </head>
-<body onload="placeTiles()">
+<body>
 
    <div class="container">
    
@@ -238,13 +310,10 @@
          </table>
       </div>
 
-      <div class="submitmove" onmouseover="this.className='submitmove over'"
-         onmouseout="this.className='submitmove'" onclick="submitMove()">Leika</div>
+      <div class="submitmove disabled" onmouseover="submitover()"
+         onmouseout="submitout()" onclick="submitMove()">Leika</div>
 
    </div>
-
-   <!-- jQuery -->
-   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 
 </body>
 </html>

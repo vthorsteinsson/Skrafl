@@ -5,7 +5,6 @@ body {
 }
 
 table.board {
-   background-color: #bbbbcc;
    margin: 0;
    padding: 0;
    border-spacing: 0;
@@ -21,6 +20,7 @@ table.board {
    min-width: 32px;
    min-height: 32px;
    overflow: hidden;
+   background-color: #bbbbcc;
    border-style: solid;
    border-color: white;
    border-width: 1px;
@@ -38,7 +38,7 @@ td.over {
    min-height: 16px;
    max-height: 16px;
    overflow: hidden;
-   background-color: white;
+   background-color: transparent;
    text-align: center;
    font-size: 14px;
    line-height: 14px;
@@ -57,11 +57,12 @@ td.rowid {
    min-width: 16px;
    max-width: 16px;
    overflow: hidden;
-   background-color: white;
+   background-color: transparent;
    text-align: center;
    font-size: 14px;
    line-height: 14px;
    font-weight: 400;
+   border-width: 0;
 }
 
 /* Board layout */
@@ -100,7 +101,8 @@ td.rowid {
 */
 
 div.tile {
-   background-color: #e0d8b0;
+   /* background-color: #e0d8b0; */
+   background-color: #E0C199;
    font-size: 25px;
    line-height: 25px;
    font-weight: 700;
@@ -223,13 +225,18 @@ span.score {
 span.word {
 }
 
+body {
+   padding: 0;
+   margin: 0;
+}
+
 div.container {
    position: relative;
    top: 0;
    left: 0;
    width: 768px;
    height: 768px;
-   background-color: orange;
+   background-color: #FFF1DC;
 }
 
 div.pageheader {
@@ -239,8 +246,7 @@ div.pageheader {
    font-size: 20px;
    width: 100%;
    height: 40px;
-   margin-top: 4px;
-   margin-bottom: 4px;
+   margin: 4px;
 }
 
 .pageheader h2 {
@@ -260,22 +266,13 @@ div.pageheader {
 
 div.board {
    position: absolute;
-   /*
-   top: 0px;
-   left: -4px;
-   */
    top: 48px;
    left: 0px;
 }
 
 div.rightcol {
    position: absolute;
-   right: 0px;
-   /* width: 208px; */
-   /*
-   top: -530px;
-   left: 560px;
-   */
+   right: 4px;
    top: 48px;
    margin-top: 24px;
 }
@@ -283,10 +280,6 @@ div.rightcol {
 div.rack {
    position: absolute;
    text-align: center;
-   /*
-   top: -140px;
-   left: 164px;
-   */
    bottom: 100px;
    left: 168px;
 }
@@ -296,10 +289,6 @@ div.submitmove {
    width: 100px;
    height: 28px;
    text-align: center;
-   /*
-   top: -173px;
-   left: 436px;
-   */
    bottom: 100px;
    left: 442px;
    background-color: #55cc66;
