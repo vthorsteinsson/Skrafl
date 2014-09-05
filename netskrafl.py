@@ -12,7 +12,7 @@
 """
 
 from flask import Flask
-from flask import render_template, redirect
+from flask import render_template, redirect, jsonify
 from flask import request, session, url_for
 
 import logging
@@ -46,6 +46,8 @@ class Game:
         self.state = None
         # Is the human player 0 or 1, where player 0 begins the game?
         self.player_index = 0
+        # The last move made by the autoplayer
+        self.last_move = None
         # History of moves in this game so far
         self.moves = []
 
@@ -66,62 +68,99 @@ class Game:
         move = apl.generate_move()
         self.state.apply_move(move)
         self.moves.append(move)
+        self.last_move = move
 
     def human_move(self, move):
         self.state.apply_move(move)
         self.moves.append(move)
+        self.last_move = None # No autoplayer move yet
 
     def enum_tiles(self):
         """ Enumerate all tiles on the board in a convenient form """
-        for x, y, t in self.state.board().enum_tiles():
-            yield (u"ABCDEFGHIJKLMNO"[x] + str(y + 1), t, 0 if t == u' ' else Alphabet.scores[t])
+        for x, y, tile, letter in self.state.board().enum_tiles():
+            yield (u"ABCDEFGHIJKLMNO"[x] + str(y + 1), tile, letter, 0 if tile == u'?' else Alphabet.scores[tile])
+
+    def client_state(self):
+        """ Create a package of information for the client about the current state """
+        reply = dict()
+        if self.state.is_game_over():
+            # The game is now over - one of the players finished it
+            reply["result"] = Error.GAME_OVER # Not really an error
+            if self.last_move is not None:
+                reply["lastmove"] = self.last_move.details()
+        else:
+            reply["result"] = 0 # Indicate no error
+            reply["rack"] = self.state.player_rack().details()
+            reply["lastmove"] = self.last_move.details()
+        reply["scores"] = self.state.scores()
+        return reply
 
 
-def _process_move(movestring):
+def _process_move(movelist):
     """ Process a move from the client (the human player)
         Returns True if OK or False if the move was illegal
     """
 
     username = session['username']
     if not username or username not in games:
-        return render_template("error.html")
+        return jsonify(result=Error.NULL_MOVE)
+
+    # Fetch the game state
     game = games[username]
 
     # Parse the move from the movestring we got back
+    m = Move(u'', 0, 0)
+    try:
+        for mstr in movelist:
+            sq, tile = mstr.split(u'=')
+            row = u"ABCDEFGHIJKLMNO".index(sq[0])
+            col = int(sq[1:]) - 1
+            if tile[0] == u'?':
+                letter = tile[1]
+            else:
+                letter = tile
+            print(u"Cover: row {0} col {1} tile '{2}' letter '{3}'".format(row, col, tile, letter))
+            m.add_cover(row, col, tile, letter)
+    except:
+        m = None
 
     # Process the move string here
-    if not game.state.check_legality(move):
-        # Something was wrong with the rack
-        # Show the user an error response page
-        return render_template("error.html")
+    if m is None or m.num_covers() == 0:
+        err = Error.NULL_MOVE
+    else:
+        err = game.state.check_legality(m)
 
-    game.human_move(move)
+    if err != Error.LEGAL:
+        # Something was wrong with the move
+        # Show the user an error message
+        return jsonify(result=err)
+
+    game.human_move(m)
 
     # Respond immediately with an autoplayer move
     # (can be a bit time consuming if rack has one or two blank tiles)
-    game.autoplayer_move()
+    if not game.state.is_game_over():
+        game.autoplayer_move()
+
+    if game.state.is_game_over():
+        # If the game is now over, tally the final score
+        game.state.finalize_score()
 
     # Return a state update to the client (board, rack, score, movelist, etc.)
-    return render_template("update.html", game = game)
+    return jsonify(game.client_state())
 
 
 @app.route("/submitmove", methods=['GET', 'POST'])
 def submitmove():
-    movestring = u''
+    movelist = []
     if request.method == 'POST':
         # A form POST, probably from the page itself
         try:
-            movestring = unicode(request.form['moves'])
+            movelist = request.form.getlist('moves[]')
         except:
-            movestring = u''
-    else:
-        # Presumably a GET: look at the URL parameters
-        try:
-            movestring = unicode(request.args.get('moves',''))
-        except:
-            movestring = u''
+            pass
     # Process the movestring
-    return _process_move(movestring)
+    return _process_move(movelist)
 
 
 @app.route("/login", methods=['GET', 'POST'])
@@ -159,10 +198,15 @@ def main():
         # User hasn't logged in yet
         return redirect(url_for("login"))
 
+    game = None
     username = session['username']
     if username in games:
         game = games[username]
-    else:
+        if game.state.is_game_over():
+            # Trigger creation of a new game if the previous one was finished
+            game = None
+
+    if game is None:
         # Create a fresh game for this user
         game = Game()
         game.start_new(username)

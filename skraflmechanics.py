@@ -168,7 +168,7 @@ class Board:
             for y in range(Board.SIZE):
                 t = self.tile_at(x, y)
                 if t != u' ':
-                    yield (x, y, t)
+                    yield (x, y, t, self.letter_at(x,y))
 
     def adjacent(self, row, col, xd, yd, getter):
         """ Return the letters or tiles adjacent to the given square, in the direction (xd, yd) """
@@ -308,6 +308,10 @@ class Rack:
     def contents(self):
         """ Return the contents of the rack """
         return self._tiles
+
+    def details(self):
+        """ Return the detailed contents of the rack, i.e. tiles and their scores """
+        return [(t, 0 if t == u'?' else Alphabet.scores[t]) for t in self._tiles]
 
     def num_tiles(self):
         """ Return the number of tiles in the rack """
@@ -522,6 +526,7 @@ class Error:
     TILE_NOT_IN_RACK = 10
     EXCHANGE_NOT_ALLOWED = 11
     TOO_MANY_TILES_EXCHANGED = 12
+    GAME_OVER = 13
 
     @staticmethod
     def errortext(errcode):
@@ -537,7 +542,8 @@ class Error:
             u"TOO_MANY_TILES_PLAYED",
             u"TILE_NOT_IN_RACK",
             u"EXCHANGE_NOT_ALLOWED",
-            u"TOO_MANY_TILES_EXCHANGED"][errcode]
+            u"TOO_MANY_TILES_EXCHANGED",
+            u"GAME_OVER"][errcode]
 
 
 class Move:
@@ -564,6 +570,12 @@ class Move:
     def num_covers(self):
         """ Number of empty squares covered by this move """
         return len(self._covers)
+
+    def details(self):
+        """ Return a list of tuples describing this move """
+        return [(u"ABCDEFGHIJKLMNO"[c.row] + str(c.col + 1), c.tile, c.letter, \
+            0 if c.tile == u'?' else Alphabet.scores[c.tile]) \
+            for c in self._covers]
 
     def short_coordinate(self):
         """ Return the coordinate of the move in 'Scrabble notation',
@@ -603,11 +615,15 @@ class Move:
 
     def check_legality(self, state):
         """ Check whether this move is legal on the board """
+
         # Must cover at least one square
         if len(self._covers) < 1:
             return Error.NULL_MOVE
         if len(self._covers) > Rack.MAX_TILES:
             return Error.TOO_MANY_TILES_PLAYED
+        if state.is_game_over():
+            return Error.GAME_OVER
+
         rack = state.player_rack()
         board = state.board()
         row = 0
@@ -633,8 +649,11 @@ class Move:
         if (not horiz) and (not vert):
             # Spread all over: not legal
             return Error.DISJOINT
-        # If only one cover, use the orientation hint from the constructor
+        # If only one cover, use the orientation of the longest word formed
         if len(self._covers) == 1:
+            # In the case of a tied length, we use horizontal
+            self._horizontal = len(board.letters_left(row, col)) + len(board.letters_right(row, col)) >= \
+                len(board.letters_above(row, col)) + len(board.letters_below(row, col))
             horiz = self._horizontal
             vert = not horiz
         # The move is purely horizontal or vertical

@@ -4,15 +4,28 @@
    Author: Vilhjalmur Thorsteinsson, 2014
 */
 
-   function placeTile(sq, t, score) {
-      if (sq.charAt(0) == "R")
+   function placeTile(sq, tile, letter, score) {
+      if (tile.length == 0) {
+         /* Erasing tile */
+         $("#"+sq).html("");
+         return;
+      }
+      if (sq.charAt(0) == "R") {
          attr = "class='tile racktile' draggable='true'";
+         letter = (tile == "?") ? "&nbsp;" : tile;
+      }
       else
          attr = "class='tile'";
-      $("#"+sq).html("<div " + attr + ">" + t +
+      $("#"+sq).html("<div " + attr + ">" + letter +
          "<div class='letterscore'>" + score + "</div></div>");
-      if (sq.charAt(0) == "R")
-         $("#"+sq).children().eq(0).data("tile", t);
+      if (sq.charAt(0) == "R") {
+         $("#"+sq).children().eq(0).data("tile", tile);
+         $("#"+sq).children().eq(0).data("score", score);
+      }
+      else
+      if (tile == '?') {
+         $("#"+sq).children().eq(0).addClass("blanktile");
+      }
    }
 
    var elementDragged = null;
@@ -21,8 +34,9 @@
       e.dataTransfer.clearData();
       e.dataTransfer.setData('text/html', ""); /* We don't use this */
       e.dataTransfer.effectAllowed = 'move';
-      /* e.dataTransfer.setDragImage(this); */
+      /* e.dataTransfer.setDragImage(e.target.innerHTML); */
       elementDragged = e.target;
+      elementDragged.style.opacity = "0.6"
    }
 
    function handleDragend(e) {
@@ -30,6 +44,8 @@
       p.removeChild(e.target); */
       /* initDropTarget(elementDragged); */
       /* Make the empty rack tile a drop target */
+      if (elementDragged != null)
+         elementDragged.style.opacity = "1.0";
       elementDragged = null;
    }
 
@@ -77,6 +93,7 @@
       e.target.classList.remove("over");
       if (e.target.firstChild == null && elementDragged != null &&
          elementDragged != e.target.firstChild) {
+         elementDragged.style.opacity = "1.0";
          elementDragged.parentNode.removeChild(elementDragged);
          e.target.appendChild(elementDragged);
          elementDragged = null;
@@ -114,7 +131,7 @@
             if (sq)
                initDropTarget(sq);
          }
-      /* Make the rack a drop targets as well */
+      /* Make the rack a drop target as well */
       for (x = 1; x <= 7; x++) {
         coord = "R" + x.toString();
         sq = document.getElementById(coord);
@@ -128,7 +145,8 @@
    }
 
    function submitover() {
-      $("div.submitmove").toggleClass("over", true);
+      if (!$("div.submitmove").hasClass("disabled"))
+         $("div.submitmove").toggleClass("over", true);
    }
 
    function submitout() {
@@ -146,23 +164,66 @@
       return moves;      
    }
 
+   var GAME_OVER = 13;
+
    function updateState(json) {
       /* Work through the returned JSON object to update the
          board, the rack, the scores and the move history */
-      $( "<h1/>" ).text( json.title ).appendTo( "body" );
-      $( "<div class=\"content\"/>").html( json.html ).appendTo( "body" );
+      if (json.result == 0 || json.result == GAME_OVER) {
+         /* Successful move */
+         /* Reinitialize the rack */
+         var i = 0;
+         if (json.result == 0)
+            for (i = 0; i < json.rack.length; i++)
+               placeTile("R" + (i + 1).toString(), json.rack[i][0], json.rack[i][0], json.rack[i][1]);
+         for (; i < 7; i++)
+            placeTile("R" + (i + 1).toString(), "", "", 0);
+         if (json.result == 0)
+            initRackDraggable();
+         /* Glue the laid-down tiles to the board */
+         $("div.tile").each(function() {
+            var sq = $(this).parent().attr("id");
+            var t = $(this).data("tile");
+            var score = $(this).data("score");
+            if (t != null && t !== undefined && sq.charAt(0) != "R")
+               placeTile(sq, t, t, score);
+         });
+         /* Add the new tiles laid down in response */
+         if (json.lastmove !== undefined)
+            for (i = 0; i < json.lastmove.length; i++) {
+               /* !!! Maybe do something fancy here to identify the tiles */
+               sq = json.lastmove[i][0];
+               placeTile(sq, json.lastmove[i][1], json.lastmove[i][2], json.lastmove[i][3]);
+               $("#"+sq).children().eq(0).addClass("freshtile");
+            }
+         /* Update the scores */
+         $(".scoreleft").text(json.scores[0]);
+         $(".scoreright").text(json.scores[1]);
+         updateSubmitMove();
+      }
+      else {
+         /* Genuine error: display in error bar */
+         $("div.error").css("visibility", "visible").find("p").css("display", "none");
+         $("div.error").find("#err_" + json.result.toString()).css("display", "inline");
+      }
    }
 
    function submitMove() {
       var moves = findCovers();
       if (moves.length == 0)
          return;
+      /* Erase previous error message, if any */
+      $("div.error").css("visibility", "hidden");
+      /* Freshly laid tiles are no longer fresh */
+      $("div.freshtile").removeClass("freshtile");
+      /* Remove highlight from button */
+      submitout();
       /* Talk to the game server using jQuery/Ajax */
       $.ajax({
          // the URL for the request
          url: "/submitmove",
 
-         // the data to send (will be converted to a query string)
+         // the data to send
          data: {
             moves: moves
          },
@@ -190,7 +251,7 @@
 
          // code to run regardless of success or failure
          complete: function( xhr, status ) {
-           alert( "The request is complete!" );
+            /* Don't need this */
          }
       });
    }

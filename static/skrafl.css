@@ -22,7 +22,7 @@ table.board {
    overflow: hidden;
    background-color: #bbbbcc;
    border-style: solid;
-   border-color: white;
+   border-color: #f2f2f2;
    border-width: 1px;
    margin: 0;
    padding: 0;
@@ -120,11 +120,20 @@ div.tile {
 
 div.racktile {
    cursor: move;
+   background-color: #EFD873;
+}
+
+div.blanktile {
+   color: #666666;
+}
+
+div.freshtile {
+   background-color: #80CEB4;
 }
 
 div.letterscore {
    position: relative;
-   top: -9px;
+   top: -8px;
    left: 22px;
    height: 9px;
    width: 9px;
@@ -272,9 +281,10 @@ div.board {
 
 div.rightcol {
    position: absolute;
+   width: 204px;
    right: 4px;
    top: 48px;
-   margin-top: 24px;
+   margin-top: 22px;
 }
 
 div.rack {
@@ -284,13 +294,41 @@ div.rack {
    left: 168px;
 }
 
+div.error {
+   position: absolute;
+   text-align: center;
+   display: block;
+   bottom: 40px;
+   left: 34px;
+   width: 520px;
+   height: 28px;
+   background-color: #f04455;
+   font-size: 16px;
+   font-weight: 700;
+   color: white;
+   margin: 0;
+   padding-top: 4px;
+   visibility: hidden;
+}
+
+div.error p {
+   display: inline;
+   position: relative;
+   top: 0;
+   left: 0;
+   width: auto;
+   height: auto;
+   margin: 0;
+   padding: 0;
+}
+
 div.submitmove {
    position: absolute;
    width: 100px;
    height: 28px;
    text-align: center;
    bottom: 100px;
-   left: 442px;
+   left: 450px;
    background-color: #55cc66;
    font-size: 18px;
    font-weight: 700;
