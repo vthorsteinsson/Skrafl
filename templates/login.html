@@ -1,0 +1,20 @@
+
+{% extends "container.html" %}
+
+{% block scripts %}
+
+{% endblock %}
+
+{% block content %}
+
+<div class="loginform">
+<p>Gjörðu svo vel að skrá þig til leiks í Netskrafli:</p>
+   <form name="frm1" id="frm1" action="{{ url_for('login') }}" method="post">
+      <input type="text" name="username" id="username" maxlength=15
+         autofocus required></input>
+      <button type="submit" id="submit">Skrá mig inn</button>
+   </form>
+</div>
+
+{% endblock %}
+

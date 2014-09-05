@@ -1,319 +1,84 @@
-<!DOCTYPE html>
-<html lang="is">
-<head>
-<meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+{% extends "container.html" %}
 
-<!-- Apple iPhone and iPad touch icons -->
-<link rel="apple-touch-icon" sizes="76x76" href="/touch-icon-ipad.png">
-<link rel="apple-touch-icon" sizes="120x120" href="/touch-icon-iphone-retina.png">
-<link rel="apple-touch-icon" sizes="152x152" href="/touch-icon-ipad-retina.png">
-
-<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
- <!--[if lt IE 9]>
-   <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-   <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
- <![endif]-->
-
-<title>Netskrafl</title>
-
-<link href='../css/skrafl.css' rel='stylesheet' type='text/css'>
-
-<!-- jQuery -->
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+{% block scripts %}
 
 <script>
-
-   function placeTile(sq, t, score) {
-      if (sq.charAt(0) == "R")
-         attr = "class='tile racktile' draggable='true'";
-      else
-         attr = "class='tile'";
-      $("#"+sq).html("<div " + attr + ">" + t +
-         "<div class='letterscore'>" + score + "</div></div>");
-      if (sq.charAt(0) == "R")
-         $("#"+sq).children().eq(0).data("tile", t);
-   }
-
    function placeTiles() {
-      placeTile("D8", "p", "8");
-      placeTile("E8", "r", "1");
-      placeTile("F8", "ó", "6");
-      placeTile("G8", "f", "3");
-      /* placeTile("H8", "a", "1"); */ placeTile("H9", "x", "10");
-      placeTile("I8", "ð", "2");
 
-      placeTile("E5", "þ", "4");
-      placeTile("E6", "æ", "5");
-      placeTile("E7", "g", "2");
-      placeTile("E9", "ö", "7");
-      placeTile("E10", "s", "1");
-      placeTile("E11", "t", "1");
+{% for coord, tile, score in game.enum_tiles() %}
+      placeTile("{{ coord }}", "{{ tile }}", "{{ score }}");
+{% endfor %}
 
-      placeTile("R1", "r", "1");
-      placeTile("R2", "e", "1");
-      placeTile("R3", "k", "3");
-      placeTile("R4", "k", "3");
-      placeTile("R5", "ð", "2");
-      placeTile("R6", "y", "7");
+{% for tile in game.state.player_rack().contents() %}
+      placeTile("R{{ loop.index }}", "{{ tile }}", "1");
+{% endfor %}
 
-      initRackDraggable();
-      initDropTargets();
    }
-
-   var elementDragged = null;
-
-   function handleDragstart(e) {
-      e.dataTransfer.clearData();
-      e.dataTransfer.setData('text/html', ""); /* We don't use this */
-      e.dataTransfer.effectAllowed = 'move';
-      /* e.dataTransfer.setDragImage(this); */
-      elementDragged = e.target;
-   }
-
-   function handleDragend(e) {
-      /* p = e.target.parentNode;
-      p.removeChild(e.target); */
-      /* initDropTarget(elementDragged); */
-      /* Make the empty rack tile a drop target */
-      elementDragged = null;
-   }
-
-   function initDraggable(elem) {
-      elem.addEventListener('dragstart', handleDragstart);
-      elem.addEventListener('dragend', handleDragend);
-   }
-
-   function initRackDraggable() {
-      for (i = 1; i <= 7; i++) {
-         rackTileId = "R" + i.toString();
-         rackTile = document.getElementById(rackTileId);
-         if (rackTile && rackTile.firstChild)
-            initDraggable(rackTile.firstChild);
-      }
-   }
-
-   function handleDragover(e) {
-      if (e.preventDefault)
-         e.preventDefault();
-      if (e.target.firstChild)
-        /* There is already a tile in the square: drop will have no effect */
-        e.dataTransfer.dropEffect = 'none';
-      else
-        e.dataTransfer.dropEffect = 'move';
-      return false;
-   }
-
-   function handleDragenter(e) {
-      if (e.target.firstChild == null)
-        /* Can drop here: add yellow outline highlight to square*/
-        this.classList.add("over");
-   }
-
-   function handleDragleave(e) {
-      /* Can drop here: remove outline highlight from square */
-      this.classList.remove("over");
-   }
-
-   function handleDrop(e) {
-      if (e.preventDefault)
-         e.preventDefault();
-      if (e.stopPropagation)
-         e.stopPropagation();
-      e.target.classList.remove("over");
-      if (e.target.firstChild == null && elementDragged != null &&
-         elementDragged != e.target.firstChild) {
-         elementDragged.parentNode.removeChild(elementDragged);
-         e.target.appendChild(elementDragged);
-         elementDragged = null;
-         updateSubmitMove();
-      }
-      /* On a successful drop, remove the dragover/enter/leave/drop handlers from
-         the containing TD, and add new dragstart handlers to
-         the new contained DIV. Also add dragover to the empty tile in the rack. */
-      return false;
-   }
-
-   function initDropTarget(elem) {
-      if (elem) {
-         elem.addEventListener('dragover', handleDragover);
-         elem.addEventListener('dragenter', handleDragenter);
-         elem.addEventListener('dragleave', handleDragleave);
-         elem.addEventListener('drop', handleDrop);
-      }
-   }
-
-   function removeDropTarget(elem) {
-      if (elem) {
-         elem.removeEventListener('dragover', handleDragover);
-         elem.removeEventListener('dragenter', handleDragenter);
-         elem.removeEventListener('dragleave', handleDragleave);
-         elem.removeEventListener('drop', handleDrop);
-      }
-   }
-
-   function initDropTargets() {
-      for (x = 1; x <= 15; x++)
-         for (y = 1; y <= 15; y++) {
-            coord = "ABCDEFGHIJKLMNO".charAt(y - 1) + x.toString();
-            sq = document.getElementById(coord);
-            if (sq)
-               initDropTarget(sq);
-         }
-      /* Make the rack a drop targets as well */
-      for (x = 1; x <= 7; x++) {
-        coord = "R" + x.toString();
-        sq = document.getElementById(coord);
-        if (sq)
-           initDropTarget(sq);
-      }
-   }
-
-   function updateSubmitMove() {
-      $("div.submitmove").toggleClass("disabled", (findCovers().length == 0));
-   }
-
-   function submitover() {
-      $("div.submitmove").toggleClass("over", true);
-   }
-
-   function submitout() {
-      $("div.submitmove").toggleClass("over", false);
-   }
-
-   function findCovers() {
-      var moves = [];
-      $("div.tile").each(function() {
-         var sq = $(this).parent().attr("id");
-         var t = $(this).data("tile");
-         if (t != null && t != undefined && sq.charAt(0) != "R")
-            moves.push(sq + "=" + t);
-      });
-      return moves;      
-   }
-
-   function submitMove() {
-      var moves = findCovers();
-      if (moves.length == 0)
-         return;
-      /* Talk to the game server using jQuery/Ajax */
-      $.ajax({
-         // the URL for the request
-         url: "/submitmove",
-
-         // the data to send (will be converted to a query string)
-         data: {
-            moves: moves
-         },
-
-         // whether this is a POST or GET request
-         type: "POST",
-
-         // the type of data we expect back
-         dataType : "json",
-
-         cache: false,
-
-         // code to run if the request succeeds;
-         // the response is passed to the function
-         success: function( json ) {
-            $( "<h1/>" ).text( json.title ).appendTo( "body" );
-            $( "<div class=\"content\"/>").html( json.html ).appendTo( "body" );
-         },
-
-         // code to run if the request fails; the raw request and
-         // status codes are passed to the function
-         error: function( xhr, status, errorThrown ) {
-            alert( "Sorry, there was a problem!" );
-            console.log( "Error: " + errorThrown );
-            console.log( "Status: " + status );
-            console.dir( xhr );
-         },
-
-         // code to run regardless of success or failure
-         complete: function( xhr, status ) {
-           alert( "The request is complete!" );
-         }
-      });
-   }
-
-   function initSkrafl(jQuery) {
-      placeTiles();
-   }
-
-   $(document).ready(initSkrafl);
-
 </script>
 
-</head>
-<body>
+<script>
+   $(document).ready(initSkrafl);
+</script>
 
-   <div class="container">
-   
-      <div class="pageheader">
-         <h2>Netskrafl</h2>
-         <h3>eftir Vilhjálm Þorsteinsson</h3>
-      </div>
+{% endblock %}
 
-      <div class="board">
-         <!-- The board -->
-         <table class="board">
-            <tr class="colid"><td></td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td><td>15</td></tr>
-            <tr><td class="rowid">A</td><td id="A1"></td><td id="A2"></td><td id="A3"></td><td id="A4"></td><td id="A5"></td><td id="A6"></td><td id="A7"></td><td id="A8"></td><td id="A9"></td><td id="A10"></td><td id="A11"></td><td id="A12"></td><td id="A13"></td><td id="A14"></td><td id="A15"></td></tr>
-            <tr><td class="rowid">B</td><td id="B1"></td><td id="B2"></td><td id="B3"></td><td id="B4"></td><td id="B5"></td><td id="B6"></td><td id="B7"></td><td id="B8"></td><td id="B9"></td><td id="B10"></td><td id="B11"></td><td id="B12"></td><td id="B13"></td><td id="B14"></td><td id="B15"></td></tr>
-            <tr><td class="rowid">C</td><td id="C1"></td><td id="C2"></td><td id="C3"></td><td id="C4"></td><td id="C5"></td><td id="C6"></td><td id="C7"></td><td id="C8"></td><td id="C9"></td><td id="C10"></td><td id="C11"></td><td id="C12"></td><td id="C13"></td><td id="C14"></td><td id="C15"></td></tr>
-            <tr><td class="rowid">D</td><td id="D1"></td><td id="D2"></td><td id="D3"></td><td id="D4"></td><td id="D5"></td><td id="D6"></td><td id="D7"></td><td id="D8"></td><td id="D9"></td><td id="D10"></td><td id="D11"></td><td id="D12"></td><td id="D13"></td><td id="D14"></td><td id="D15"></td></tr>
-            <tr><td class="rowid">E</td><td id="E1"></td><td id="E2"></td><td id="E3"></td><td id="E4"></td><td id="E5"></td><td id="E6"></td><td id="E7"></td><td id="E8"></td><td id="E9"></td><td id="E10"></td><td id="E11"></td><td id="E12"></td><td id="E13"></td><td id="E14"></td><td id="E15"></td></tr>
-            <tr><td class="rowid">F</td><td id="F1"></td><td id="F2"></td><td id="F3"></td><td id="F4"></td><td id="F5"></td><td id="F6"></td><td id="F7"></td><td id="F8"></td><td id="F9"></td><td id="F10"></td><td id="F11"></td><td id="F12"></td><td id="F13"></td><td id="F14"></td><td id="F15"></td></tr>
-            <tr><td class="rowid">G</td><td id="G1"></td><td id="G2"></td><td id="G3"></td><td id="G4"></td><td id="G5"></td><td id="G6"></td><td id="G7"></td><td id="G8"></td><td id="G9"></td><td id="G10"></td><td id="G11"></td><td id="G12"></td><td id="G13"></td><td id="G14"></td><td id="G15"></td></tr>
-            <tr><td class="rowid">H</td><td id="H1"></td><td id="H2"></td><td id="H3"></td><td id="H4"></td><td id="H5"></td><td id="H6"></td><td id="H7"></td><td id="H8"></td><td id="H9"></td><td id="H10"></td><td id="H11"></td><td id="H12"></td><td id="H13"></td><td id="H14"></td><td id="H15"></td></tr>
-            <tr><td class="rowid">I</td><td id="I1"></td><td id="I2"></td><td id="I3"></td><td id="I4"></td><td id="I5"></td><td id="I6"></td><td id="I7"></td><td id="I8"></td><td id="I9"></td><td id="I10"></td><td id="I11"></td><td id="I12"></td><td id="I13"></td><td id="I14"></td><td id="I15"></td></tr>
-            <tr><td class="rowid">J</td><td id="J1"></td><td id="J2"></td><td id="J3"></td><td id="J4"></td><td id="J5"></td><td id="J6"></td><td id="J7"></td><td id="J8"></td><td id="J9"></td><td id="J10"></td><td id="J11"></td><td id="J12"></td><td id="J13"></td><td id="J14"></td><td id="J15"></td></tr>
-            <tr><td class="rowid">K</td><td id="K1"></td><td id="K2"></td><td id="K3"></td><td id="K4"></td><td id="K5"></td><td id="K6"></td><td id="K7"></td><td id="K8"></td><td id="K9"></td><td id="K10"></td><td id="K11"></td><td id="K12"></td><td id="K13"></td><td id="K14"></td><td id="K15"></td></tr>
-            <tr><td class="rowid">L</td><td id="L1"></td><td id="L2"></td><td id="L3"></td><td id="L4"></td><td id="L5"></td><td id="L6"></td><td id="L7"></td><td id="L8"></td><td id="L9"></td><td id="L10"></td><td id="L11"></td><td id="L12"></td><td id="L13"></td><td id="L14"></td><td id="L15"></td></tr>
-            <tr><td class="rowid">M</td><td id="M1"></td><td id="M2"></td><td id="M3"></td><td id="M4"></td><td id="M5"></td><td id="M6"></td><td id="M7"></td><td id="M8"></td><td id="M9"></td><td id="M10"></td><td id="M11"></td><td id="M12"></td><td id="M13"></td><td id="M14"></td><td id="M15"></td></tr>
-            <tr><td class="rowid">N</td><td id="N1"></td><td id="N2"></td><td id="N3"></td><td id="N4"></td><td id="N5"></td><td id="N6"></td><td id="N7"></td><td id="N8"></td><td id="N9"></td><td id="N10"></td><td id="N11"></td><td id="N12"></td><td id="N13"></td><td id="N14"></td><td id="N15"></td></tr>
-            <tr><td class="rowid">O</td><td id="O1"></td><td id="O2"></td><td id="O3"></td><td id="O4"></td><td id="O5"></td><td id="O6"></td><td id="O7"></td><td id="O8"></td><td id="O9"></td><td id="O10"></td><td id="O11"></td><td id="O12"></td><td id="O13"></td><td id="O14"></td><td id="O15"></td></tr>
-         </table>
-      </div>
+{% block content %}
 
-      <!-- Move history -->
-      <div class="rightcol">
-         <div class="heading">
-            <h3 class="playerleft">Koðrán</h3>
-            <h3 class="playerright">Melkíor</h3>
-            <h3 class="scoreleft">125</h3>
-            <h3 class="scoreright">88</h3>
-         </div>
-         <div class="movelist">
-            <div class="leftmove"><span class="score">14</span><span class="word">ORÐ</span></div>
-            <div class="rightmove"><span class="word">ANNAÐ</span><span class="score">18</span></div>
-            <div class="leftmove"><span class="score">32</span><span class="word">LANGTORÐ</span></div>
-            <div class="rightmove"><span class="word">ENNLENGRAORÐHÉR</span><span class="score">77</span></div>
-         </div>
-      </div>
+<div class="board">
+   <!-- The board -->
+   <table class="board">
+      <tr class="colid"><td></td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td><td>15</td></tr>
+      <tr><td class="rowid">A</td><td id="A1"></td><td id="A2"></td><td id="A3"></td><td id="A4"></td><td id="A5"></td><td id="A6"></td><td id="A7"></td><td id="A8"></td><td id="A9"></td><td id="A10"></td><td id="A11"></td><td id="A12"></td><td id="A13"></td><td id="A14"></td><td id="A15"></td></tr>
+      <tr><td class="rowid">B</td><td id="B1"></td><td id="B2"></td><td id="B3"></td><td id="B4"></td><td id="B5"></td><td id="B6"></td><td id="B7"></td><td id="B8"></td><td id="B9"></td><td id="B10"></td><td id="B11"></td><td id="B12"></td><td id="B13"></td><td id="B14"></td><td id="B15"></td></tr>
+      <tr><td class="rowid">C</td><td id="C1"></td><td id="C2"></td><td id="C3"></td><td id="C4"></td><td id="C5"></td><td id="C6"></td><td id="C7"></td><td id="C8"></td><td id="C9"></td><td id="C10"></td><td id="C11"></td><td id="C12"></td><td id="C13"></td><td id="C14"></td><td id="C15"></td></tr>
+      <tr><td class="rowid">D</td><td id="D1"></td><td id="D2"></td><td id="D3"></td><td id="D4"></td><td id="D5"></td><td id="D6"></td><td id="D7"></td><td id="D8"></td><td id="D9"></td><td id="D10"></td><td id="D11"></td><td id="D12"></td><td id="D13"></td><td id="D14"></td><td id="D15"></td></tr>
+      <tr><td class="rowid">E</td><td id="E1"></td><td id="E2"></td><td id="E3"></td><td id="E4"></td><td id="E5"></td><td id="E6"></td><td id="E7"></td><td id="E8"></td><td id="E9"></td><td id="E10"></td><td id="E11"></td><td id="E12"></td><td id="E13"></td><td id="E14"></td><td id="E15"></td></tr>
+      <tr><td class="rowid">F</td><td id="F1"></td><td id="F2"></td><td id="F3"></td><td id="F4"></td><td id="F5"></td><td id="F6"></td><td id="F7"></td><td id="F8"></td><td id="F9"></td><td id="F10"></td><td id="F11"></td><td id="F12"></td><td id="F13"></td><td id="F14"></td><td id="F15"></td></tr>
+      <tr><td class="rowid">G</td><td id="G1"></td><td id="G2"></td><td id="G3"></td><td id="G4"></td><td id="G5"></td><td id="G6"></td><td id="G7"></td><td id="G8"></td><td id="G9"></td><td id="G10"></td><td id="G11"></td><td id="G12"></td><td id="G13"></td><td id="G14"></td><td id="G15"></td></tr>
+      <tr><td class="rowid">H</td><td id="H1"></td><td id="H2"></td><td id="H3"></td><td id="H4"></td><td id="H5"></td><td id="H6"></td><td id="H7"></td><td id="H8"></td><td id="H9"></td><td id="H10"></td><td id="H11"></td><td id="H12"></td><td id="H13"></td><td id="H14"></td><td id="H15"></td></tr>
+      <tr><td class="rowid">I</td><td id="I1"></td><td id="I2"></td><td id="I3"></td><td id="I4"></td><td id="I5"></td><td id="I6"></td><td id="I7"></td><td id="I8"></td><td id="I9"></td><td id="I10"></td><td id="I11"></td><td id="I12"></td><td id="I13"></td><td id="I14"></td><td id="I15"></td></tr>
+      <tr><td class="rowid">J</td><td id="J1"></td><td id="J2"></td><td id="J3"></td><td id="J4"></td><td id="J5"></td><td id="J6"></td><td id="J7"></td><td id="J8"></td><td id="J9"></td><td id="J10"></td><td id="J11"></td><td id="J12"></td><td id="J13"></td><td id="J14"></td><td id="J15"></td></tr>
+      <tr><td class="rowid">K</td><td id="K1"></td><td id="K2"></td><td id="K3"></td><td id="K4"></td><td id="K5"></td><td id="K6"></td><td id="K7"></td><td id="K8"></td><td id="K9"></td><td id="K10"></td><td id="K11"></td><td id="K12"></td><td id="K13"></td><td id="K14"></td><td id="K15"></td></tr>
+      <tr><td class="rowid">L</td><td id="L1"></td><td id="L2"></td><td id="L3"></td><td id="L4"></td><td id="L5"></td><td id="L6"></td><td id="L7"></td><td id="L8"></td><td id="L9"></td><td id="L10"></td><td id="L11"></td><td id="L12"></td><td id="L13"></td><td id="L14"></td><td id="L15"></td></tr>
+      <tr><td class="rowid">M</td><td id="M1"></td><td id="M2"></td><td id="M3"></td><td id="M4"></td><td id="M5"></td><td id="M6"></td><td id="M7"></td><td id="M8"></td><td id="M9"></td><td id="M10"></td><td id="M11"></td><td id="M12"></td><td id="M13"></td><td id="M14"></td><td id="M15"></td></tr>
+      <tr><td class="rowid">N</td><td id="N1"></td><td id="N2"></td><td id="N3"></td><td id="N4"></td><td id="N5"></td><td id="N6"></td><td id="N7"></td><td id="N8"></td><td id="N9"></td><td id="N10"></td><td id="N11"></td><td id="N12"></td><td id="N13"></td><td id="N14"></td><td id="N15"></td></tr>
+      <tr><td class="rowid">O</td><td id="O1"></td><td id="O2"></td><td id="O3"></td><td id="O4"></td><td id="O5"></td><td id="O6"></td><td id="O7"></td><td id="O8"></td><td id="O9"></td><td id="O10"></td><td id="O11"></td><td id="O12"></td><td id="O13"></td><td id="O14"></td><td id="O15"></td></tr>
+   </table>
+</div>
 
-      <div class="rack">
-         <table class="board">
-            <tr>
-            <td id="R1"></td>
-            <td id="R2"></td>
-            <td id="R3"></td>
-            <td id="R4"></td>
-            <td id="R5"></td>
-            <td id="R6"></td>
-            <td id="R7"></td>
-            </tr>
-         </table>
-      </div>
-
-      <div class="submitmove disabled" onmouseover="submitover()"
-         onmouseout="submitout()" onclick="submitMove()">Leika</div>
-
+<!-- Move history -->
+<div class="rightcol">
+   <div class="heading">
+      <h3 class="playerleft">{{ game.state.player_name(0) }}</h3>
+      <h3 class="playerright">{{ game.state.player_name(1) }}</h3>
+      <h3 class="scoreleft">{{ game.state.scores()[0] }}</h3>
+      <h3 class="scoreright">{{ game.state.scores()[1] }}</h3>
    </div>
+   <div class="movelist">
+      <div class="leftmove"><span class="score">14</span><span class="word">ORÐ</span></div>
+      <div class="rightmove"><span class="word">ANNAÐ</span><span class="score">18</span></div>
+      <div class="leftmove"><span class="score">32</span><span class="word">LANGTORÐ</span></div>
+      <div class="rightmove"><span class="word">ENNLENGRAORÐHÉR</span><span class="score">77</span></div>
+   </div>
+</div>
 
-</body>
-</html>
+<div class="rack">
+   <table class="board">
+      <tr>
+      <td id="R1"></td>
+      <td id="R2"></td>
+      <td id="R3"></td>
+      <td id="R4"></td>
+      <td id="R5"></td>
+      <td id="R6"></td>
+      <td id="R7"></td>
+      </tr>
+   </table>
+</div>
+
+<div class="submitmove disabled" onmouseover="submitover()"
+   onmouseout="submitout()" onclick="submitMove()">Leika</div>
+
+{% endblock %}
+

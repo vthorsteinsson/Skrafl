@@ -162,6 +162,14 @@ class Board:
             self._numtiles += 1
         self._tiles[row] = self._tiles[row][0:col] + tile + self._tiles[row][col + 1:]
 
+    def enum_tiles(self):
+        """ Enumerate the tiles on the board with their coordinates """
+        for x in range(Board.SIZE):
+            for y in range(Board.SIZE):
+                t = self.tile_at(x, y)
+                if t != u' ':
+                    yield (x, y, t)
+
     def adjacent(self, row, col, xd, yd, getter):
         """ Return the letters or tiles adjacent to the given square, in the direction (xd, yd) """
         result = u''
