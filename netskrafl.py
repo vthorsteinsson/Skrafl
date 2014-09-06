@@ -17,12 +17,11 @@ from flask import request, session, url_for
 
 import logging
 import time
+from random import randint
 
 from skraflmechanics import Manager, State, Move, Error
 from skraflplayer import AutoPlayer, AutoPlayer_MiniMax
 from languages import Alphabet
-import time
-from random import randint
 
 # Standard Flask initialization
 
@@ -33,7 +32,7 @@ app.secret_key = '\x03\\_,i\xfc\xaf=:L\xce\x9b\xc8z\xf8l\x000\x84\x11\xe1\xe6\xb
 manager = Manager()
 
 # The current game state for different users
-# !!! TODO: This will come from a database
+# !!! TODO: This will be stored persistently in the App Engine datastore
 games = dict()
 
 class Game:
@@ -67,12 +66,13 @@ class Game:
         apl = AutoPlayer(self.state)
         move = apl.generate_move()
         self.state.apply_move(move)
-        self.moves.append(move)
+        self.moves.append((1 - self.player_index, move))
         self.last_move = move
 
     def human_move(self, move):
+        """ Register the human move, update the score and move list """
         self.state.apply_move(move)
-        self.moves.append(move)
+        self.moves.append((self.player_index, move))
         self.last_move = None # No autoplayer move yet
 
     def enum_tiles(self):
@@ -83,16 +83,21 @@ class Game:
     def client_state(self):
         """ Create a package of information for the client about the current state """
         reply = dict()
+        num_moves = 2 # How many new moves to add to move list?
         if self.state.is_game_over():
             # The game is now over - one of the players finished it
             reply["result"] = Error.GAME_OVER # Not really an error
+            num_moves = 1
             if self.last_move is not None:
+                # Show the autoplayer move if it was the last move in the game
                 reply["lastmove"] = self.last_move.details()
+                num_moves = 2 # One new move to be added to move list
         else:
             reply["result"] = 0 # Indicate no error
             reply["rack"] = self.state.player_rack().details()
             reply["lastmove"] = self.last_move.details()
         reply["scores"] = self.state.scores()
+        reply["newmoves"] = [(player, m.summary(self.state.board())) for player, m in self.moves[-num_moves:]]
         return reply
 
 
@@ -116,6 +121,8 @@ def _process_move(movelist):
             row = u"ABCDEFGHIJKLMNO".index(sq[0])
             col = int(sq[1:]) - 1
             if tile[0] == u'?':
+                # If the blank tile is played, the next character contains
+                # its meaning, i.e. the letter it stands for
                 letter = tile[1]
             else:
                 letter = tile
@@ -125,16 +132,14 @@ def _process_move(movelist):
         m = None
 
     # Process the move string here
-    if m is None or m.num_covers() == 0:
-        err = Error.NULL_MOVE
-    else:
-        err = game.state.check_legality(m)
+    err = game.state.check_legality(m)
 
     if err != Error.LEGAL:
-        # Something was wrong with the move
-        # Show the user an error message
+        # Something was wrong with the move:
+        # show the user a corresponding error message
         return jsonify(result=err)
 
+    # Move is OK: register it and update thet state
     game.human_move(m)
 
     # Respond immediately with an autoplayer move
@@ -150,11 +155,11 @@ def _process_move(movelist):
     return jsonify(game.client_state())
 
 
-@app.route("/submitmove", methods=['GET', 'POST'])
+@app.route("/submitmove", methods=['POST'])
 def submitmove():
     movelist = []
     if request.method == 'POST':
-        # A form POST, probably from the page itself
+        # This URL should only receive Ajax POSTs from the client
         try:
             movelist = request.form.getlist('moves[]')
         except:
@@ -165,8 +170,7 @@ def submitmove():
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
-    """ Handler for the user login page
-    """
+    """ Handler for the user login page """
     login_error = False
     if request.method == 'POST':
         try:
@@ -183,19 +187,17 @@ def login():
 
 @app.route("/logout")
 def logout():
-    """ Handler for the user logout page
-    """
+    """ Handler for the user logout page """
     session.pop('username', None)
     return redirect(url_for("login"))
 
 
 @app.route("/")
 def main():
-    """ Handler for the main (index) page
-    """
+    """ Handler for the main (index) page """
 
     if 'username' not in session:
-        # User hasn't logged in yet
+        # User hasn't logged in yet: redirect to login page
         return redirect(url_for("login"))
 
     game = None

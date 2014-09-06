@@ -28,6 +28,18 @@
       }
    }
 
+   function appendMove(player, coord, word, score) {
+      if (player == 0) {
+         str = '<div class="leftmove"><span class="score">' + score + '</span>' +
+            '<span class="word"><i>' + word + '</i> (' + coord + ')</span></div>';
+      }
+      else {
+         str = '<div class="rightmove"><span class="word">(' + coord + ') <i>' + word + '</i></span>' +
+            '<span class="score">' + score + '</span></div>';
+      }
+      $("div.movelist").append(str);
+   }
+
    var elementDragged = null;
 
    function handleDragstart(e) {
@@ -153,6 +165,23 @@
       $("div.submitmove").toggleClass("over", false);
    }
 
+   function setPlayerStyles(human) {
+      /* Set styles that identify the human vs. autoplayer */
+      if (human == 0) {
+         /* The human is the first (left) player */
+         bgcolor_left = $(".racktile").css("background-color");
+         bgcolor_right = "#80CEB4"; /* freshtile */
+      }
+      else {
+         bgcolor_left = "#80CEB4"; /* freshtile */
+         bgcolor_right = $(".racktile").css("background-color");
+      }
+      $("div.leftmove").css({ "background-color" : bgcolor_left });
+      $("div.rightmove").css({ "background-color" : bgcolor_right });
+      $("h3.playerleft").css({ "background-color" : bgcolor_left });
+      $("h3.playerright").css({ "background-color" : bgcolor_right });
+   }
+
    function findCovers() {
       var moves = [];
       $("div.tile").each(function() {
@@ -191,7 +220,6 @@
          /* Add the new tiles laid down in response */
          if (json.lastmove !== undefined)
             for (i = 0; i < json.lastmove.length; i++) {
-               /* !!! Maybe do something fancy here to identify the tiles */
                sq = json.lastmove[i][0];
                placeTile(sq, json.lastmove[i][1], json.lastmove[i][2], json.lastmove[i][3]);
                $("#"+sq).children().eq(0).addClass("freshtile");
@@ -199,6 +227,18 @@
          /* Update the scores */
          $(".scoreleft").text(json.scores[0]);
          $(".scoreright").text(json.scores[1]);
+         /* Update the move list */
+         if (json.newmoves !== undefined) {
+            for (i = 0; i < json.newmoves.length; i++) {
+               player = json.newmoves[i][0];
+               coord = json.newmoves[i][1][0];
+               word = json.newmoves[i][1][1];
+               score = json.newmoves[i][1][2];
+               appendMove(player, coord, word, score);
+            }
+            identifyPlayers();
+         }
+         /* Refresh the submit button */
          updateSubmitMove();
       }
       else {
@@ -260,6 +300,8 @@
       placeTiles();
       initRackDraggable();
       initDropTargets();
+      initMoveList();
+      identifyPlayers();
    }
 
 

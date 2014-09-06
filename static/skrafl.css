@@ -146,14 +146,19 @@ div.letterscore {
 }
 
 div.heading {
+   position: relative;
+   width: 100%;
+   height: 80px;
    background-color: #bbbbcc;
-   padding-left: 8px;
-   padding-right: 8px;
+   top: 0; left: 0;
+   padding-left: 0px;
+   padding-right: 0px;
 }
 
 h3.playerleft {
    display: inline-block;
-   float: left;
+   position: absolute;
+   top: -16px; left: 0;
    width: 50%;
    font-size: 16px;
    line-height: 16px;
@@ -161,12 +166,15 @@ h3.playerleft {
    text-align: left;
    color: #222222;
    overflow: hidden;
-   margin-top: 8px;
-   margin-bottom: 4px;
+   padding-top: 8px;
+   padding-bottom: 8px;
+   padding-left: 4px;
 }
 
 h3.playerright {
    display: inline-block;
+   position: absolute;
+   top: -16px; right: 0;
    width: 50%;
    font-size: 16px;
    line-height: 16px;
@@ -174,14 +182,17 @@ h3.playerright {
    text-align: right;
    color: #222222;
    overflow: hidden;
-   margin-top: 8px;
-   margin-bottom: 4px;
+   padding-top: 8px;
+   padding-bottom: 8px;
+   padding-right: 4px;
 }
 
 h3.scoreleft {
    display: inline-block;
+   position: absolute;
+   top: 40px;
+   left: 0;
    width: 50%;
-   float: left;
    font-size: 22px;
    line-height: 22px;
    font-weight: 700;
@@ -190,10 +201,14 @@ h3.scoreleft {
    overflow: hidden;
    margin-top: 4px;
    margin-bottom: 4px;
+   padding-left: 4px;
 }
 
 h3.scoreright {
    display: inline-block;
+   position: absolute;
+   top: 40px;
+   right: 0;
    width: 50%;
    font-size: 22px;
    line-height: 22px;
@@ -203,9 +218,14 @@ h3.scoreright {
    overflow: hidden;
    margin-top: 4px;
    margin-bottom: 4px;
+   padding-right: 4px;
 }
 
 div.movelist {
+   position: absolute;
+   top: 84px;
+   left: 0px;
+   width: 100%;
    background-color: #3333f8;
    font-size: 15px;
    line-height: 15px;
@@ -214,13 +234,13 @@ div.movelist {
 }
 
 div.leftmove {
-   background-color: #f0bbbb;
+   /* background-color: #f0bbbb; */
    text-align: left;
    padding: 2px;
 }
 
 div.rightmove {
-   background-color: #9c99f8;
+   /* background-color: #9c99f8; */
    text-align: right;
    padding: 2px;
 }
@@ -232,6 +252,7 @@ span.score {
 }
 
 span.word {
+   text-transform: uppercase;
 }
 
 body {
@@ -284,7 +305,7 @@ div.rightcol {
    width: 204px;
    right: 4px;
    top: 48px;
-   margin-top: 22px;
+   margin-top: 24px;
 }
 
 div.rack {

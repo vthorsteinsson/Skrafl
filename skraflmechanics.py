@@ -566,6 +566,8 @@ class Move:
         self._col = col
         # Is the word horizontal or vertical?
         self._horizontal = horiz
+        # Cached score of this move
+        self._score = None
 
     def num_covers(self):
         """ Number of empty squares covered by this move """
@@ -576,6 +578,10 @@ class Move:
         return [(u"ABCDEFGHIJKLMNO"[c.row] + str(c.col + 1), c.tile, c.letter, \
             0 if c.tile == u'?' else Alphabet.scores[c.tile]) \
             for c in self._covers]
+
+    def summary(self, board):
+        """ Return a summary of the move, as a tuple: (coordinate, word, score) """
+        return (self.short_coordinate(), self._word, self.score(board))
 
     def short_coordinate(self):
         """ Return the coordinate of the move in 'Scrabble notation',
@@ -769,6 +775,10 @@ class Move:
 
     def score(self, board):
         """ Calculate the score of this move, which is assumed to be legal """
+
+        # Check for cached score
+        if self._score is not None:
+            return self._score
         # Sum of letter scores
         total = 0
         sc = 0
@@ -815,6 +825,8 @@ class Move:
         # Add the bingo bonus of 50 points for playing all (seven) tiles
         if numcovers == Rack.MAX_TILES:
             total += Move.BINGO_BONUS
+        # Cache the calculated score
+        self._score = total
         return total
 
     def apply(self, state):
@@ -848,6 +860,10 @@ class ExchangeMove:
             return Error.TOO_MANY_TILES_EXCHANGED
         # All checks pass: the play is legal
         return Error.LEGAL
+
+    def summary(self, board):
+        """ Return a summary of the move, as a tuple: (coordinate, word, score) """
+        return ("", u"EXC " + unicode(len(self._titles)), 0)
 
     def score(self, board):
         """ Calculate the score of this move, which is assumed to be legal """

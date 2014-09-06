@@ -5,7 +5,6 @@
 
 <script>
    function placeTiles() {
-
 {% for coord, tile, letter, score in game.enum_tiles() %}
       placeTile("{{ coord }}", "{{ tile }}", "{{ letter }}", "{{ score }}");
 {% endfor %}
@@ -13,7 +12,22 @@
 {% for tile, score in game.state.player_rack().details() %}
       placeTile("R{{ loop.index }}", "{{ tile }}", "{{ tile }}", "{{ score }}");
 {% endfor %}
+   }
 
+   function initMoveList() {
+{% for player, m in game.moves %}
+{% set coord, word, score = m.summary(game.state.board()) %}
+      appendMove({{ player }}, "{{ coord }}", "{{ word }}", "{{ score }}");
+{% endfor %}
+   }
+
+   function identifyPlayers() {
+{% if game.player_index == 0 %}
+      var human = 0;
+{% else %}
+      var human = 1;
+{% endif %}
+      setPlayerStyles(human);
    }
 </script>
 
@@ -56,10 +70,6 @@
       <h3 class="scoreright">{{ game.state.scores()[1] }}</h3>
    </div>
    <div class="movelist">
-      <div class="leftmove"><span class="score">14</span><span class="word">ORÐ</span></div>
-      <div class="rightmove"><span class="word">ANNAÐ</span><span class="score">18</span></div>
-      <div class="leftmove"><span class="score">32</span><span class="word">LANGTORÐ</span></div>
-      <div class="rightmove"><span class="word">ENNLENGRAORÐHÉR</span><span class="score">77</span></div>
    </div>
 </div>
 
