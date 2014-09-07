@@ -39,8 +39,13 @@
 
 {% block content %}
 
+<!-- User name and logout icon -->
+<div class="logout">
+{{ game.state.player_name(game.player_index) }} <a href='{{ url_for("logout") }}' title="Skrá mig út"><img src='{{ url_for("static", filename="glyphicons_387_log_out@2x.png") }}' width=21 height=18 border=0></a>
+</div>
+
+<!-- The board -->
 <div class="board">
-   <!-- The board -->
    <table class="board">
       <tr class="colid"><td></td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td><td>15</td></tr>
       <tr><td class="rowid">A</td><td id="A1"></td><td id="A2"></td><td id="A3"></td><td id="A4"></td><td id="A5"></td><td id="A6"></td><td id="A7"></td><td id="A8"></td><td id="A9"></td><td id="A10"></td><td id="A11"></td><td id="A12"></td><td id="A13"></td><td id="A14"></td><td id="A15"></td></tr>
@@ -61,7 +66,7 @@
    </table>
 </div>
 
-<!-- Move history -->
+<!-- Player names, scores and move history -->
 <div class="rightcol">
    <div class="heading">
       <h3 class="playerleft">{{ game.state.player_name(0) }}</h3>
@@ -73,6 +78,7 @@
    </div>
 </div>
 
+<!-- The rack -->
 <div class="rack">
    <table class="board">
       <tr>
@@ -87,10 +93,12 @@
    </table>
 </div>
 
+<!-- Move submit button -->
 <div class="submitmove disabled" onmouseover="submitover()"
-   onmouseout="submitout()" onclick="submitMove()">Leika</div>
+   onmouseout="submitout()" onclick="submitMove()">Leika <span class="glyphicon glyphicon-play"></span></div>
 
-<div class="error">
+<!-- Error message, normally hidden -->
+<div class="error"><span class="glyphicon glyphicon-exclamation-sign"></span>
    <!-- Must match error list in skraflmechanics.py (Error class) -->
    <p id="err_1">Enginn stafur lagður niður</p> <!-- NULL_MOVE = 1 -->
    <p id="err_2">Fyrsta orð verður að liggja um miðjureitinn</p> <!-- FIRST_MOVE_NOT_IN_CENTER = 2 -->

@@ -1,5 +1,39 @@
 /* Skrafl.css */
 
+@font-face {
+  font-family: 'Glyphicons Halflings';
+  src: url('glyphicons-halflings-regular.eot');
+  src: url('glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'),
+  url('glyphicons-halflings-regular.woff') format('woff'),
+  url('glyphicons-halflings-regular.ttf') format('truetype'),
+  url('glyphicons-halflings-regular.svg#glyphicons_halflingsregular') format('svg');
+}
+
+.glyphicon {
+  position: relative;
+  top: 2px;
+  display: inline-block;
+  font-family: 'Glyphicons Halflings';
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glyphicon-play:before {
+   content: "\e072";
+}
+.glyphicon-exclamation-sign:before {
+  content: "\e101";
+}
+.glyphicon-log-in:before {
+  content: "\e161";
+}
+.glyphicon-screenshot:before {
+  content: "\e087";
+}
+
 body {
    font-family: 'Open Sans', 'Helvetica Neue', 'Arial', sans-serif;
 }
@@ -20,6 +54,8 @@ table.board {
    min-width: 32px;
    min-height: 32px;
    overflow: hidden;
+   text-align: center;
+   font-size: 24px;
    background-color: #bbbbcc;
    border-style: solid;
    border-color: #f2f2f2;
@@ -92,14 +128,6 @@ td.rowid {
    background-color: #3333f8;
 }
 
-/*
-#H8 {
-   background-image: url(../static/CenterIcon.png);
-   background-size: 30px 30px;
-   background-repeat: no-repeat;
-}
-*/
-
 div.tile {
    /* background-color: #e0d8b0; */
    background-color: #E0C199;
@@ -109,7 +137,7 @@ div.tile {
    text-align: center;
    text-transform: uppercase;
    height: 30px;
-   width: 32px;
+   width: 100%; /* 30px; */
    overflow: hidden;
    margin: 0px;
    padding-top: 2px;
@@ -225,8 +253,10 @@ div.movelist {
    position: absolute;
    top: 84px;
    left: 0px;
+   height: 424px;
    width: 100%;
-   background-color: #3333f8;
+   background-color: #ccccbb;
+   overflow: auto;
    font-size: 15px;
    line-height: 15px;
    font-weight: 400;
@@ -294,6 +324,19 @@ div.pageheader {
    display:inline;
 }
 
+div.logout {
+   position: absolute;
+   top: 0;
+   right: 0;
+   font-size: 16px;
+   text-align: right;
+   vertical-align: middle;
+   width: 25%;
+   height: 40px;
+   margin: 8px;
+   padding-top: 8px;
+}
+
 div.board {
    position: absolute;
    top: 48px;
@@ -358,6 +401,70 @@ div.submitmove {
    padding-top: 4px;
    border-radius: 4px;
    cursor: default;
+}
+
+div.loginform {
+   position: absolute;
+   left: 204px;
+   top: 140px;
+   text-align: center;
+}
+
+input.username {
+   font-family: 'Open Sans', 'Helvetica Neue', 'Arial', sans-serif;
+   font-size: 20px;
+   font-weight: 700;
+   height: 32px;
+   width: 300px;
+   border-style: solid;
+   border-color: #55cc66;
+   border-width: 2px;
+   border-radius: 6px;
+   margin: 0;
+   padding-top: 2px;
+   padding-bottom: 2px;
+   padding-left: 8px;
+   padding-right: 8px;
+}
+
+input.username:focus {
+   background-color: #ffffc8;
+   border-style: solid;
+   border-color: #55cc66;
+   border-width: 2px;
+   border-radius: 6px;
+   outline: none;
+}
+
+button.login {
+   font-family: 'Open Sans', 'Helvetica Neue', 'Arial', sans-serif;
+   font-size: 20px;
+   font-weight: 400;
+   height: 40px;
+   color: white;
+   text-align: center;
+   width: 322px;
+   border-width: 0;
+   border-radius: 6px;
+   background-color: #55cc66;
+   margin-top: 20px;
+   margin-left: 0;
+   margin-right: 0;
+   margin-bottom: 0;
+   padding-top: 4px;
+   padding-bottom: 4px;
+   padding-left: 8px;
+   padding-right: 8px;
+   cursor: default;
+}
+
+button.login:focus {
+   outline: yellow solid 3px;
+   background-color: #55cc66;
+   /*
+   border-style: solid;
+   border-width: 3px;
+   border-color: yellow; */
 }
 
 div.over {

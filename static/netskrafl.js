@@ -37,7 +37,16 @@
          str = '<div class="rightmove"><span class="word">(' + coord + ') <i>' + word + '</i></span>' +
             '<span class="score">' + score + '</span></div>';
       }
-      $("div.movelist").append(str);
+      movelist = $("div.movelist");
+      movelist.append(str);
+      lastchild = $("div.movelist:last-child");
+      firstchild = $("div.movelist").children().eq(0);
+      topoffset = lastchild.position().top -
+         firstchild.position().top +
+         lastchild.height();
+      height = movelist.height()
+      if (topoffset >= height)
+         movelist.scrollTop(topoffset - height)
    }
 
    var elementDragged = null;

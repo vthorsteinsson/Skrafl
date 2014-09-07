@@ -8,12 +8,14 @@
 {% block content %}
 
 <div class="loginform">
-<p>Gjörðu svo vel að skrá þig til leiks í Netskrafli:</p>
+   <div><p>Gjörðu svo vel að skrá þig til leiks í Netskrafli:</p></div>
+   <div>
    <form name="frm1" id="frm1" action="{{ url_for('login') }}" method="post">
-      <input type="text" name="username" id="username" maxlength=15
-         autofocus required></input>
-      <button type="submit" id="submit">Skrá mig inn</button>
+      <div><input type="text" name="username" id="username" maxlength=15
+         autofocus required class="username"></input></div>
+      <div><button type="submit" id="submit" class="login"><span class="glyphicon glyphicon-log-in"></span>&nbsp;&nbsp;Skrá mig inn</button></div>
    </form>
+   </div>
 </div>
 
 {% endblock %}
