@@ -1,6 +1,8 @@
 
 /*
    Netskrafl.js
+   Client-side script for the Netskrafl server in netskrafl.py
+
    Author: Vilhjalmur Thorsteinsson, 2014
 */
 
@@ -11,24 +13,29 @@
          return;
       }
       if (sq.charAt(0) == "R") {
+         /* Placing a tile into the rack */
          attr = "class='tile racktile' draggable='true'";
          letter = (tile == "?") ? "&nbsp;" : tile;
       }
       else
+         /* Normal board tile */
          attr = "class='tile'";
       $("#"+sq).html("<div " + attr + ">" + letter +
          "<div class='letterscore'>" + score + "</div></div>");
       if (sq.charAt(0) == "R") {
+         /* Store associated data with rack tiles */
          $("#"+sq).children().eq(0).data("tile", tile);
          $("#"+sq).children().eq(0).data("score", score);
       }
       else
       if (tile == '?') {
+         /* Blank tile used as a letter: use different foreground color */
          $("#"+sq).children().eq(0).addClass("blanktile");
       }
    }
 
    function appendMove(player, coord, word, score) {
+      /* Add a move to the move history list */
       if (player == 0) {
          str = '<div class="leftmove"><span class="score">' + score + '</span>' +
             '<span class="word"><i>' + word + '</i> (' + coord + ')</span></div>';
@@ -40,7 +47,7 @@
       movelist = $("div.movelist");
       movelist.append(str);
       lastchild = $("div.movelist:last-child");
-      firstchild = $("div.movelist").children().eq(0);
+      firstchild = $("div.movelist").children().eq(0); /* :first-child doesn't work?! */
       topoffset = lastchild.position().top -
          firstchild.position().top +
          lastchild.height();
@@ -52,6 +59,7 @@
    var elementDragged = null;
 
    function handleDragstart(e) {
+      /* The dragstart target is the DIV inside a TD */
       e.dataTransfer.clearData();
       e.dataTransfer.setData('text/html', ""); /* We don't use this */
       e.dataTransfer.effectAllowed = 'move';
@@ -61,16 +69,13 @@
    }
 
    function handleDragend(e) {
-      /* p = e.target.parentNode;
-      p.removeChild(e.target); */
-      /* initDropTarget(elementDragged); */
-      /* Make the empty rack tile a drop target */
       if (elementDragged != null)
          elementDragged.style.opacity = "1.0";
       elementDragged = null;
    }
 
    function initDraggable(elem) {
+      /* The DIVs inside the board TDs are draggable */
       elem.addEventListener('dragstart', handleDragstart);
       elem.addEventListener('dragend', handleDragend);
    }
@@ -97,7 +102,7 @@
 
    function handleDragenter(e) {
       if (e.target.firstChild == null)
-        /* Can drop here: add yellow outline highlight to square*/
+        /* Empty square, can drop here: add yellow outline highlight to square*/
         this.classList.add("over");
    }
 
@@ -106,23 +111,68 @@
       this.classList.remove("over");
    }
 
+   function promptForBlank() {
+      var defq = "Hvaða staf táknar auða flísin?";
+      var err = "\nSláðu inn einn staf í íslenska stafrófinu."
+      var q = defq;
+      while(true) {
+         letter = prompt(q);
+         if (letter == null)
+            /* Pressed Esc or terminated */
+            return null;
+         if (letter.length != 1) {
+            q = defq + err;
+            continue;
+         }
+         letter = letter.toLowerCase();
+         if ("aábdðeéfghiíjklmoóprstuúvxyýþæö".indexOf(letter) == -1) {
+            q = defq + err;
+            continue;
+         }
+         return letter;
+      }
+   }
+
    function handleDrop(e) {
       if (e.preventDefault)
          e.preventDefault();
       if (e.stopPropagation)
          e.stopPropagation();
+      /* Save the elementDragged value as it will be set to null in handleDragend() */
+      var eld = elementDragged;
       e.target.classList.remove("over");
-      if (e.target.firstChild == null && elementDragged != null &&
-         elementDragged != e.target.firstChild) {
-         elementDragged.style.opacity = "1.0";
-         elementDragged.parentNode.removeChild(elementDragged);
-         e.target.appendChild(elementDragged);
+      if (eld != null)
+         eld.style.opacity = "1.0";
+      if (e.target.firstChild == null && eld != null &&
+         eld != e.target.firstChild) {
+         /* Looks like a legitimate drop */
+         var ok = true;
+         parentid = eld.parentNode.id;
+         if (parentid.charAt(0) == 'R') {
+            /* Dropping from the rack */
+            var t = $(eld).data("tile");
+            if (t == '?') {
+               /* Dropping a blank tile: we need to ask for its meaning */
+               e.target.classList.add("over");
+               letter = promptForBlank();
+               e.target.classList.remove("over");
+               if (letter == null)
+                  ok = false;
+               else {
+                  $(eld).data("letter", letter);
+                  $(eld).addClass("blanktile");
+                  eld.childNodes[0].nodeValue = letter;
+               }
+            }
+         }
+         if (ok) {
+            /* Complete the drop */
+            eld.parentNode.removeChild(eld);
+            e.target.appendChild(eld);
+         }
          elementDragged = null;
          updateSubmitMove();
       }
-      /* On a successful drop, remove the dragover/enter/leave/drop handlers from
-         the containing TD, and add new dragstart handlers to
-         the new contained DIV. Also add dragover to the empty tile in the rack. */
       return false;
    }
 
@@ -196,8 +246,12 @@
       $("div.tile").each(function() {
          var sq = $(this).parent().attr("id");
          var t = $(this).data("tile");
-         if (t != null && t != undefined && sq.charAt(0) != "R")
+         if (t != null && t != undefined && sq.charAt(0) != "R") {
+            if (t == '?')
+               /* Blank tile: add its meaning */
+               t += $(this).data("letter");
             moves.push(sq + "=" + t);
+         }
       });
       return moves;      
    }
@@ -223,8 +277,16 @@
             var sq = $(this).parent().attr("id");
             var t = $(this).data("tile");
             var score = $(this).data("score");
-            if (t != null && t !== undefined && sq.charAt(0) != "R")
-               placeTile(sq, t, t, score);
+            if (t != null && t !== undefined && sq.charAt(0) != "R") {
+               var letter = t;
+               if (letter == '?') {
+                  /* Blank tile: get its meaning */
+                  letter = $(this).data("letter");
+                  if (letter == null || letter == undefined)
+                     letter = t;
+               }
+               placeTile(sq, t, letter, score);
+            }
          });
          /* Add the new tiles laid down in response */
          if (json.lastmove !== undefined)
@@ -245,8 +307,8 @@
                score = json.newmoves[i][1][2];
                appendMove(player, coord, word, score);
             }
-            identifyPlayers();
          }
+         identifyPlayers();
          /* Refresh the submit button */
          updateSubmitMove();
       }

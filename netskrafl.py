@@ -124,6 +124,7 @@ def _process_move(movelist):
                 # If the blank tile is played, the next character contains
                 # its meaning, i.e. the letter it stands for
                 letter = tile[1]
+                tile = tile[0]
             else:
                 letter = tile
             print(u"Cover: row {0} col {1} tile '{2}' letter '{3}'".format(row, col, tile, letter))
