@@ -33,6 +33,15 @@
 .glyphicon-screenshot:before {
   content: "\e087";
 }
+.glyphicon-refresh:before {
+  content: "\e031";
+}
+.glyphicon-forward:before {
+  content: "\e075";
+}
+.glyphicon-fire:before {
+  content: "\e104";
+}
 
 body {
    font-family: 'Open Sans', 'Helvetica Neue', 'Arial', sans-serif;
@@ -56,7 +65,7 @@ table.board {
    overflow: hidden;
    text-align: center;
    font-size: 24px;
-   background-color: #bbbbcc;
+   background-color: #afb8bf;
    border-style: solid;
    border-color: #f2f2f2;
    border-width: 1px;
@@ -105,12 +114,13 @@ td.rowid {
 #H8, #B2, #C3, #D4, #E5, #B14, #C13, #D12, #E11,
 #K5, #L4, #M3, #N2, #K11, #L12, #M13, #N14 {
    /* Double word score */
-   background-color: #f0bbbb;
+   background-color: #f7d2d8;
 }
 
 #A1, #A8, #A15, #H1, #H15, #O1, #O8, #O15 {
    /* Triple word score */
-   background-color: #f04455;
+   /* background-color: #f04455; */
+   background-color: #ee4f68;
 }
 
 #A4, #A12, #C7, #C9, #D1, #D8, #D15,
@@ -119,18 +129,17 @@ td.rowid {
 #I3, #I7, #I9, #I13,
 #O4, #O12, #M7, #M9, #L1, #L8, #L15 {
    /* Double letter score */
-   background-color: #9c99f8;
+   background-color: #78aee6;
 }
 
 #B6, #B10, #F2, #F6, #F10, #F14,
 #N6, #N10, #J2, #J6, #J10, #J14 {
    /* Triple letter score */
-   background-color: #3333f8;
+   background-color: #006db8;
 }
 
 div.tile {
-   /* background-color: #e0d8b0; */
-   background-color: #E0C199;
+   background-color: #e4ad87;
    font-size: 25px;
    line-height: 25px;
    font-weight: 700;
@@ -148,7 +157,7 @@ div.tile {
 
 div.racktile {
    cursor: move;
-   background-color: #EFD873;
+   background-color: #fcce43;
 }
 
 div.blanktile {
@@ -156,7 +165,8 @@ div.blanktile {
 }
 
 div.freshtile {
-   background-color: #80CEB4;
+   /* background-color: #80CEB4; */
+   background-color: #7ad3b7;
 }
 
 div.letterscore {
@@ -177,7 +187,7 @@ div.heading {
    position: relative;
    width: 100%;
    height: 80px;
-   background-color: #bbbbcc;
+   background-color: #afb8bf;
    top: 0; left: 0;
    padding-left: 0px;
    padding-right: 0px;
@@ -255,7 +265,7 @@ div.movelist {
    left: 0px;
    height: 424px;
    width: 100%;
-   background-color: #ccccbb;
+   background-color: #d6d1c4;
    overflow: auto;
    font-size: 15px;
    line-height: 15px;
@@ -264,15 +274,22 @@ div.movelist {
 }
 
 div.leftmove {
-   /* background-color: #f0bbbb; */
    text-align: left;
    padding: 2px;
 }
 
 div.rightmove {
-   /* background-color: #9c99f8; */
    text-align: right;
    padding: 2px;
+}
+
+.humancolor {
+   /* background-color: #EFD873; */
+   background-color: #fcce43;
+}
+
+.autoplayercolor {
+   background-color: #7ad3b7;
 }
 
 span.score {
@@ -354,8 +371,13 @@ div.rightcol {
 div.rack {
    position: absolute;
    text-align: center;
-   bottom: 100px;
-   left: 168px;
+   bottom: 91px;
+   left: 172px;
+   background-color: #afb8bf;
+   padding: 8px;
+   border-width: 0;
+   border-radius: 4px;
+   margin: 0;
 }
 
 div.error {
@@ -366,7 +388,7 @@ div.error {
    left: 34px;
    width: 520px;
    height: 28px;
-   background-color: #f04455;
+   background-color: #ee4f68;
    font-size: 16px;
    font-weight: 700;
    color: white;
@@ -392,15 +414,66 @@ div.submitmove {
    height: 28px;
    text-align: center;
    bottom: 100px;
-   left: 450px;
-   background-color: #55cc66;
+   left: 446px;
+   background-color: #7ad3b7;
    font-size: 18px;
    font-weight: 700;
    color: white;
    margin: 0;
    padding-top: 4px;
    border-radius: 4px;
-   cursor: default;
+   cursor: pointer;
+}
+
+div.submitpass {
+   position: absolute;
+   width: 36px;
+   height: 28px;
+   text-align: center;
+   bottom: 100px;
+   left: 74px;
+   background-color: #ffa03b;
+   font-size: 18px;
+   font-weight: 700;
+   color: white;
+   margin: 0;
+   padding-top: 4px;
+   border-radius: 4px;
+   cursor: pointer;
+}
+
+div.submitresign {
+   position: absolute;
+   width: 36px;
+   height: 28px;
+   text-align: center;
+   bottom: 100px;
+   left: 32px;
+   background-color: #ee4f68;
+   font-size: 18px;
+   font-weight: 700;
+   color: white;
+   margin: 0;
+   padding-top: 4px;
+   border-radius: 4px;
+   cursor: pointer;
+}
+
+div.submitexchange {
+   position: absolute;
+   width: 36px;
+   height: 28px;
+   text-align: center;
+   bottom: 100px;
+   left: 116px;
+   background-color: #7ad3b7;
+   font-size: 18px;
+   font-weight: 700;
+   color: white;
+   margin: 0;
+   padding-top: 4px;
+   border-radius: 4px;
+   cursor: pointer;
 }
 
 div.loginform {
@@ -472,5 +545,5 @@ div.over {
 }
 
 div.disabled {
-   background-color: #dddddd;
+   background-color: #d6d1c4;
 }

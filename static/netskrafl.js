@@ -36,16 +36,22 @@
 
    function appendMove(player, coord, word, score) {
       /* Add a move to the move history list */
+      if (coord != "")
+         coord = "(" + coord + ")";
       if (player == 0) {
          str = '<div class="leftmove"><span class="score">' + score + '</span>' +
-            '<span class="word"><i>' + word + '</i> (' + coord + ')</span></div>';
+            '<span class="word"><i>' + word + '</i> ' + coord + '</span></div>';
       }
       else {
-         str = '<div class="rightmove"><span class="word">(' + coord + ') <i>' + word + '</i></span>' +
+         str = '<div class="rightmove"><span class="word">' + coord + ' <i>' + word + '</i></span>' +
             '<span class="score">' + score + '</span></div>';
       }
       movelist = $("div.movelist");
       movelist.append(str);
+      if (player == humanPlayer())
+         $("div.movelist").children().last().addClass("humancolor");
+      else
+         $("div.movelist").children().last().addClass("autoplayercolor");
       lastchild = $("div.movelist:last-child");
       firstchild = $("div.movelist").children().eq(0); /* :first-child doesn't work?! */
       topoffset = lastchild.position().top -
@@ -154,7 +160,9 @@
             if (t == '?') {
                /* Dropping a blank tile: we need to ask for its meaning */
                e.target.classList.add("over");
+               eld.style.opacity = "0.6";
                letter = promptForBlank();
+               eld.style.opacity = "1.0";
                e.target.classList.remove("over");
                if (letter == null)
                   ok = false;
@@ -224,23 +232,6 @@
       $("div.submitmove").toggleClass("over", false);
    }
 
-   function setPlayerStyles(human) {
-      /* Set styles that identify the human vs. autoplayer */
-      if (human == 0) {
-         /* The human is the first (left) player */
-         bgcolor_left = $(".racktile").css("background-color");
-         bgcolor_right = "#80CEB4"; /* freshtile */
-      }
-      else {
-         bgcolor_left = "#80CEB4"; /* freshtile */
-         bgcolor_right = $(".racktile").css("background-color");
-      }
-      $("div.leftmove").css({ "background-color" : bgcolor_left });
-      $("div.rightmove").css({ "background-color" : bgcolor_right });
-      $("h3.playerleft").css({ "background-color" : bgcolor_left });
-      $("h3.playerright").css({ "background-color" : bgcolor_right });
-   }
-
    function findCovers() {
       var moves = [];
       $("div.tile").each(function() {
@@ -308,7 +299,6 @@
                appendMove(player, coord, word, score);
             }
          }
-         identifyPlayers();
          /* Refresh the submit button */
          updateSubmitMove();
       }
@@ -319,8 +309,34 @@
       }
    }
 
-   function submitMove() {
-      var moves = findCovers();
+   function submitPass() {
+      submitMove('pass');
+   }
+
+   function submitExchange() {
+      submitMove('exch');
+   }
+
+   function submitResign() {
+      submitMove('rsgn');
+   }
+
+   function submitMove(movetype) {
+      var moves = [];
+      if (movetype == null || movetype == 'move')
+         moves = findCovers();
+      else
+      if (movetype == 'pass') {
+         moves.push("pass");
+      }
+      else
+      if (movetype == 'exch') {
+         moves.push("exch=" + exchangeTiles());
+      }
+      else
+      if (movetype == 'rsgn') {
+         moves.push("rsgn");
+      }
       if (moves.length == 0)
          return;
       /* Erase previous error message, if any */
@@ -353,11 +369,11 @@
 
          // code to run if the request fails; the raw request and
          // status codes are passed to the function
-         error: function( xhr, status, errorThrown ) {
-            alert( "Sorry, there was a problem!" );
-            console.log( "Error: " + errorThrown );
-            console.log( "Status: " + status );
-            console.dir( xhr );
+         error: function(xhr, status, errorThrown) {
+            alert("Villa í netsamskiptum");
+            console.log("Error: " + errorThrown);
+            console.log("Status: " + status);
+            console.dir(xhr);
          },
 
          // code to run regardless of success or failure
@@ -372,7 +388,14 @@
       initRackDraggable();
       initDropTargets();
       initMoveList();
-      identifyPlayers();
+      if (humanPlayer() == 0) {
+         $("h3.playerleft").addClass("humancolor");
+         $("h3.playerright").addClass("autoplayercolor");
+      }
+      else {
+         $("h3.playerright").addClass("humancolor");
+         $("h3.playerleft").addClass("autoplayercolor");
+      }
    }
 
 

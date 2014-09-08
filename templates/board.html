@@ -21,13 +21,9 @@
 {% endfor %}
    }
 
-   function identifyPlayers() {
-{% if game.player_index == 0 %}
-      var human = 0;
-{% else %}
-      var human = 1;
-{% endif %}
-      setPlayerStyles(human);
+   function humanPlayer() {
+      /* Identify whether the human player is 0 or 1 */
+      return {{ game.player_index }};
    }
 </script>
 
@@ -95,7 +91,19 @@
 
 <!-- Move submit button -->
 <div class="submitmove disabled" onmouseover="submitover()"
-   onmouseout="submitout()" onclick="submitMove()">Leika <span class="glyphicon glyphicon-play"></span></div>
+   onmouseout="submitout()" onclick="submitMove('move')">Leika <span class="glyphicon glyphicon-play"></span></div>
+
+<!-- Pass button -->
+<div class="submitpass" title="Pass" onmouseover="this.classList.add('over')"
+   onmouseout="this.classList.remove('over')" onclick="submitPass()"><span class="glyphicon glyphicon-forward"></span></div>
+
+<!-- Exchange button -->
+<div class="submitexchange" title="Skipta stöfum" onmouseover="this.classList.add('over')"
+   onmouseout="this.classList.remove('over')" onclick="submitExchange()"><span class="glyphicon glyphicon-refresh"></span></div>
+
+<!-- Resign button -->
+<div class="submitresign" title="Gefa leik" onmouseover="this.classList.add('over')"
+   onmouseout="this.classList.remove('over')" onclick="submitResign()"><span class="glyphicon glyphicon-fire"></span></div>
 
 <!-- Error message, normally hidden -->
 <div class="error"><span class="glyphicon glyphicon-exclamation-sign"></span>

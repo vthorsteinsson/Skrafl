@@ -863,7 +863,7 @@ class ExchangeMove:
 
     def summary(self, board):
         """ Return a summary of the move, as a tuple: (coordinate, word, score) """
-        return ("", u"EXC " + unicode(len(self._titles)), 0)
+        return (u"", u"EXCH " + unicode(len(self._titles)), 0)
 
     def score(self, board):
         """ Calculate the score of this move, which is assumed to be legal """
@@ -886,6 +886,10 @@ class PassMove:
     def __str__(self):
         """ Return the standard move notation of a coordinate followed by the word formed """
         return u"Pass"
+
+    def summary(self, board):
+        """ Return a summary of the move, as a tuple: (coordinate, word, score) """
+        return (u"", u"PASS", 0)
 
     def check_legality(self, state):
         """ Check whether this move is legal on the board """

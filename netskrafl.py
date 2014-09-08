@@ -19,7 +19,7 @@ import logging
 import time
 from random import randint
 
-from skraflmechanics import Manager, State, Move, Error
+from skraflmechanics import Manager, State, Move, PassMove, ExchangeMove, Error
 from skraflplayer import AutoPlayer, AutoPlayer_MiniMax
 from languages import Alphabet
 
@@ -117,6 +117,19 @@ def _process_move(movelist):
     m = Move(u'', 0, 0)
     try:
         for mstr in movelist:
+            if mstr == u"pass":
+                # Pass move
+                print(u"Pass move")
+                m = PassMove()
+                break
+            if mstr[0:4] == u"exch":
+                # Exchange move
+                # !!! TBD !!!
+                break
+            if mstr == u"rsgn":
+                # Resign from game
+                # !!! TBD !!!
+                break
             sq, tile = mstr.split(u'=')
             row = u"ABCDEFGHIJKLMNO".index(sq[0])
             col = int(sq[1:]) - 1
@@ -129,7 +142,8 @@ def _process_move(movelist):
                 letter = tile
             print(u"Cover: row {0} col {1} tile '{2}' letter '{3}'".format(row, col, tile, letter))
             m.add_cover(row, col, tile, letter)
-    except:
+    except Exception as e:
+        print(u"Exception {0}".format(e))
         m = None
 
     # Process the move string here
@@ -140,7 +154,7 @@ def _process_move(movelist):
         # show the user a corresponding error message
         return jsonify(result=err)
 
-    # Move is OK: register it and update thet state
+    # Move is OK: register it and update the state
     game.human_move(m)
 
     # Respond immediately with an autoplayer move
