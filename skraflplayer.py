@@ -429,7 +429,7 @@ class ExtendRightNavigator:
         if self._pix < self._lenp:
             # Still going through the prefix
             if self._prefix[self._pix] != newchar:
-                print(u"Prefix is '{0}' but newchar is '{1}'".format(self._prefix[self._pix], newchar))
+                # print(u"Prefix is '{0}' but newchar is '{1}'".format(self._prefix[self._pix], newchar))
                 assert False
                 return False # Should not happen - all prefixes should exist in the graph
             # So far, so good: move on
@@ -643,10 +643,10 @@ class AutoPlayer:
             scored_candidates.sort(key=keyfunc)
 
         # Simply return the top scoring move
-        print(u"Autoplayer: Rack '{0}' generated {1} candidate moves:".format(self._rack, len(scored_candidates)))
+        # print(u"Autoplayer: Rack '{0}' generated {1} candidate moves:".format(self._rack, len(scored_candidates)))
         # Show top 20 candidates
-        for m, sc in scored_candidates[0:20]:
-            print(u"Move {0} score {1}".format(m, sc))
+        # for m, sc in scored_candidates[0:20]:
+        #    print(u"Move {0} score {1}".format(m, sc))
         return scored_candidates[0][0]
 
 

@@ -119,7 +119,7 @@ def _process_move(movelist):
         for mstr in movelist:
             if mstr == u"pass":
                 # Pass move
-                print(u"Pass move")
+                # print(u"Pass move")
                 m = PassMove()
                 break
             if mstr[0:4] == u"exch":
@@ -140,7 +140,7 @@ def _process_move(movelist):
                 tile = tile[0]
             else:
                 letter = tile
-            print(u"Cover: row {0} col {1} tile '{2}' letter '{3}'".format(row, col, tile, letter))
+            print(u"Cover: row {0} col {1}".format(row, col))
             m.add_cover(row, col, tile, letter)
     except Exception as e:
         print(u"Exception {0}".format(e))

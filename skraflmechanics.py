@@ -744,7 +744,7 @@ class Move:
                     self._word += board.letter_at(self._row + ix, self._col)
         # Check whether the word is in the dictionary
         if self._word not in Manager.word_db():
-            print(u"Word '{0}' not found in dictionary".format(self._word))
+            # print(u"Word '{0}' not found in dictionary".format(self._word))
             return Error.WORD_NOT_IN_DICTIONARY
         # Check that the play is adjacent to some previously placed tile
         # (unless this is the first move, i.e. the board is empty)
@@ -865,6 +865,10 @@ class ExchangeMove:
         """ Return a summary of the move, as a tuple: (coordinate, word, score) """
         return (u"", u"EXCH " + unicode(len(self._titles)), 0)
 
+    def details(self):
+        """ Return a tuple list describing tiles committed to the board by this move """
+        return [] # No tiles
+
     def score(self, board):
         """ Calculate the score of this move, which is assumed to be legal """
         # An exchange move does not affect the score
@@ -890,6 +894,10 @@ class PassMove:
     def summary(self, board):
         """ Return a summary of the move, as a tuple: (coordinate, word, score) """
         return (u"", u"PASS", 0)
+
+    def details(self):
+        """ Return a tuple list describing tiles committed to the board by this move """
+        return [] # No tiles
 
     def check_legality(self, state):
         """ Check whether this move is legal on the board """

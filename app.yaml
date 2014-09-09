@@ -1,4 +1,4 @@
-application: skraflhjalp
+application: netskrafl
 version: 1
 runtime: python27
 api_version: 1
@@ -20,8 +20,20 @@ handlers:
 - url: /touch-icon-iphone-retina.png
   static_files: static/touch-icon-iphone-retina.png
   upload: static/touch-icon-iphone-retina.png
+- url: /skrafl.css
+  static_files: static/skrafl.css
+  upload: static/skrafl.css
+- url: /netskrafl.js
+  static_files: static/netskrafl.js
+  upload: static/netskrafl.js
+- url: /glyphicons-halflings-regular.ttf
+  static_files: static/glyphicons-halflings-regular.ttf
+  upload: static/glyphicons-halflings-regular.ttf
+- url: /glyphicons-halflings-regular.woff
+  static_files: static/glyphicons-halflings-regular.woff
+  upload: static/glyphicons-halflings-regular.woff
 - url: .*
-  script: skrafl.app
+  script: netskrafl.app
 
 skip_files:
 - ^(.*/)?.*\.txt$
