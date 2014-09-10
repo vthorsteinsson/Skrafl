@@ -63,6 +63,12 @@ class Game:
 
     def autoplayer_move(self):
         """ Let the AutoPlayer make its move """
+        # !!! DEBUG for testing various move types
+        # rnd = randint(0,3)
+        # if rnd == 0:
+        #     print(u"Generating ExchangeMove")
+        #     move = ExchangeMove(self.state.player_rack().contents()[0:randint(1,7)])
+        # else:
         apl = AutoPlayer(self.state)
         move = apl.generate_move()
         self.state.apply_move(move)
@@ -83,7 +89,6 @@ class Game:
     def client_state(self):
         """ Create a package of information for the client about the current state """
         reply = dict()
-        num_moves = 2 # How many new moves to add to move list?
         if self.state.is_game_over():
             # The game is now over - one of the players finished it
             reply["result"] = Error.GAME_OVER # Not really an error
@@ -92,12 +97,24 @@ class Game:
                 # Show the autoplayer move if it was the last move in the game
                 reply["lastmove"] = self.last_move.details()
                 num_moves = 2 # One new move to be added to move list
+            newmoves = [(player, m.summary(self.state.board())) for player, m in self.moves[-num_moves:]]
+            # Lastplayer is the player who finished the game
+            lastplayer = self.moves[-1][0]
+            # The losing rack
+            rack = self.state._racks[1 - lastplayer].contents()
+            # Subtract the score of the losing rack from the losing player
+            newmoves.append((1 - lastplayer, (u"", rack, -1 * Alphabet.score(rack))))
+            # Add the score of the losing rack to the winning player
+            newmoves.append((lastplayer, (u"", rack, 1 * Alphabet.score(rack))))
+            # Add a synthetic "game over" move
+            newmoves.append((1 - lastplayer, (u"", u"OVER", 0)))
+            reply["newmoves"] = newmoves
         else:
             reply["result"] = 0 # Indicate no error
             reply["rack"] = self.state.player_rack().details()
             reply["lastmove"] = self.last_move.details()
+            reply["newmoves"] = [(player, m.summary(self.state.board())) for player, m in self.moves[-2:]]
         reply["scores"] = self.state.scores()
-        reply["newmoves"] = [(player, m.summary(self.state.board())) for player, m in self.moves[-num_moves:]]
         return reply
 
 

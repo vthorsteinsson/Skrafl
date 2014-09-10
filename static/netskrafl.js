@@ -36,14 +36,41 @@
 
    function appendMove(player, coord, word, score) {
       /* Add a move to the move history list */
-      if (coord != "")
+      wrdclass = "wordmove";
+      if (coord == "") {
+         /* Not a regular tile move */
+         wrdclass = "othermove";
+         if (word == "PASS")
+            /* Pass move */
+            word = "Pass";
+         else
+         if (word.indexOf("EXCH") == 0) {
+            /* Exchange move */
+            numtiles = parseInt(word.slice(5));
+            word = "Skipti um " + numtiles.toString() + (numtiles == 1 ? " staf" : " stafi");
+         }
+         else
+         if (word == "RSGN")
+            /* Resigned from game */
+            word = "Gaf leikinn";
+         else
+         if (word == "OVER") {
+            /* Game over */
+            word = "Leik lokið";
+            wrdclass = "gameover"; /* !!! TODO: use a different class from leftmove/rightmove below */
+         }
+         else
+            /* The rack leave at the end of the game */
+            wrdclass = "wordmove";
+      }
+      else
          coord = "(" + coord + ")";
       if (player == 0) {
          str = '<div class="leftmove"><span class="score">' + score + '</span>' +
-            '<span class="word"><i>' + word + '</i> ' + coord + '</span></div>';
+            '<span class="' + wrdclass + '"><i>' + word + '</i> ' + coord + '</span></div>';
       }
       else {
-         str = '<div class="rightmove"><span class="word">' + coord + ' <i>' + word + '</i></span>' +
+         str = '<div class="rightmove"><span class="' + wrdclass + '">' + coord + ' <i>' + word + '</i></span>' +
             '<span class="score">' + score + '</span></div>';
       }
       movelist = $("div.movelist");

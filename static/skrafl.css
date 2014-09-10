@@ -298,8 +298,12 @@ span.score {
    padding-right: 4px;
 }
 
-span.word {
+span.wordmove {
    text-transform: uppercase;
+}
+
+span.othermove {
+   text-transform: none;
 }
 
 body {
