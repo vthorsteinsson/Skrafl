@@ -283,8 +283,15 @@ div.rightmove {
    padding: 2px;
 }
 
+div.gameover {
+   text-align: center;
+   padding: 2px;
+   background-color: #ffa03b;
+   color: white;
+   font-weight: 700;
+}
+
 .humancolor {
-   /* background-color: #EFD873; */
    background-color: #fcce43;
 }
 
@@ -538,10 +545,6 @@ button.login {
 button.login:focus {
    outline: yellow solid 3px;
    background-color: #55cc66;
-   /*
-   border-style: solid;
-   border-width: 3px;
-   border-color: yellow; */
 }
 
 div.over {

@@ -65,6 +65,10 @@
       }
       else
          coord = "(" + coord + ")";
+      if (wrdclass == "gameover") {
+         str = '<div class="gameover">' + word + '</div>';
+      }
+      else
       if (player == 0) {
          str = '<div class="leftmove"><span class="score">' + score + '</span>' +
             '<span class="' + wrdclass + '"><i>' + word + '</i> ' + coord + '</span></div>';
@@ -75,10 +79,12 @@
       }
       movelist = $("div.movelist");
       movelist.append(str);
-      if (player == humanPlayer())
-         $("div.movelist").children().last().addClass("humancolor");
-      else
-         $("div.movelist").children().last().addClass("autoplayercolor");
+      if (wrdclass != "gameover")
+         if (player == humanPlayer())
+            $("div.movelist").children().last().addClass("humancolor");
+         else
+            $("div.movelist").children().last().addClass("autoplayercolor");
+      /* Manage the scrolling of the move list */
       lastchild = $("div.movelist:last-child");
       firstchild = $("div.movelist").children().eq(0); /* :first-child doesn't work?! */
       topoffset = lastchild.position().top -
@@ -328,6 +334,12 @@
          }
          /* Refresh the submit button */
          updateSubmitMove();
+         if (json.result == GAME_OVER) {
+            /* Game over: disable Pass, Exchange and Resign buttons */
+            $("div.submitpass").toggleClass("disabled", true);
+            $("div.submitresign").toggleClass("disabled", true);
+            $("div.submitexchange").toggleClass("disabled", true);
+         }
       }
       else {
          /* Genuine error: display in error bar */
@@ -337,15 +349,18 @@
    }
 
    function submitPass() {
-      submitMove('pass');
+      if (!$("div.submitmove").hasClass("disabled"))
+         submitMove('pass');
    }
 
    function submitExchange() {
-      submitMove('exch');
+      if (!$("div.submitexchange").hasClass("disabled"))
+         submitMove('exch');
    }
 
    function submitResign() {
-      submitMove('rsgn');
+      if (!$("div.submitresign").hasClass("disabled"))
+         submitMove('rsgn');
    }
 
    function submitMove(movetype) {
