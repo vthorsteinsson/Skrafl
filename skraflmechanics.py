@@ -382,6 +382,7 @@ class State:
             self._player_names = [u"", u""]
             self._num_passes = 0 # Number of consecutive Pass moves
             self._num_moves = 0 # Number of moves made
+            self._game_resigned = False
             self._racks = [Rack(), Rack()]
             # Initialize a fresh, full bag of tiles
             self._bag = Bag()
@@ -396,6 +397,7 @@ class State:
             self._player_names = copy._player_names[:]
             self._num_passes = copy._num_passes
             self._num_moves = copy._num_moves
+            self._game_resigned = copy._game_resigned
             self._racks = [Rack(copy._racks[0]), Rack(copy._racks[1])]
             self._bag = Bag(copy._bag)
 
@@ -418,12 +420,14 @@ class State:
         self._scores[self._player_to_move] += self.score(move)
         # Apply the move to the board state
         move.apply(self)
-        # Draw new tiles if required
-        self.player_rack().replenish(self._bag)
-        # It's the other player's move
-        self._player_to_move = 1 - self._player_to_move
-        # Increment the move count
-        self._num_moves += 1
+        if not self.is_game_over():
+            # Game is still ongoing:
+            # Draw new tiles if required
+            self.player_rack().replenish(self._bag)
+            # Increment the move count
+            self._num_moves += 1
+            # It's the other player's move
+            self._player_to_move = 1 - self._player_to_move
         return True
 
     def score(self, move):
@@ -458,6 +462,10 @@ class State:
         """ Randomize the tiles on the current player's rack """
         self.player_rack().randomize_and_sort(self._bag)
 
+    def resign_game(self):
+        """ Cause the game to end by resigning from it """
+        self._game_resigned = True
+
     def board(self):
         """ Return the Board object of this state """
         return self._board
@@ -468,10 +476,13 @@ class State:
 
     def is_game_over(self):
         """ The game is over if either rack is empty or if both players have passed 3 times in a row """
-        return self._racks[0].is_empty() or self._racks[1].is_empty() or self._num_passes >= 6
+        return self._racks[0].is_empty() or self._racks[1].is_empty() or self._num_passes >= 6 or self._game_resigned
 
     def finalize_score(self):
         """ When game is completed, update scores with the tiles left """
+        if self._game_resigned:
+            # In case of a resignation, the resigning player has already lost all points
+            return
         for ix in range(2):
             # Add the score of the opponent's tiles
             self._scores[ix] += Alphabet.score(self._racks[1 - ix].contents())
@@ -913,4 +924,39 @@ class PassMove:
         """ Apply this move, assumed to be legal, to the current game state """
         # Increment the number of consecutive Pass moves
         state.add_pass()
+
+
+class ResignMove:
+
+    """ Represents a resign move, where the player forfeits the game """
+
+    def __init__(self, forfeited_points):
+        self._forfeited_points = forfeited_points
+
+    def __str__(self):
+        """ Return the standard move notation of a coordinate followed by the word formed """
+        return u"Resign"
+
+    def summary(self, board):
+        """ Return a summary of the move, as a tuple: (coordinate, word, score) """
+        return (u"", u"RSGN", - self._forfeited_points)
+
+    def details(self):
+        """ Return a tuple list describing tiles committed to the board by this move """
+        return [] # No tiles
+
+    def check_legality(self, state):
+        """ Check whether this move is legal on the board """
+        # Always legal
+        return Error.LEGAL
+
+    def score(self, board):
+        """ Calculate the score of this move, which is assumed to be legal """
+        # A resignation loses all points
+        return - self._forfeited_points
+
+    def apply(self, state):
+        """ Apply this move, assumed to be legal, to the current game state """
+        # Resign the game, causing is_game_over() to become True
+        state.resign_game()
 

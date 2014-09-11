@@ -19,7 +19,7 @@ import logging
 import time
 from random import randint
 
-from skraflmechanics import Manager, State, Move, PassMove, ExchangeMove, Error
+from skraflmechanics import Manager, State, Move, PassMove, ExchangeMove, ResignMove, Error
 from skraflplayer import AutoPlayer, AutoPlayer_MiniMax
 from languages import Alphabet
 
@@ -47,6 +47,8 @@ class Game:
         self.player_index = 0
         # The last move made by the autoplayer
         self.last_move = None
+        # Was the game finished by resignation?
+        self.resigned = False
         # History of moves in this game so far
         self.moves = []
 
@@ -60,6 +62,9 @@ class Game:
         # If AutoPlayer is first to move, generate the first move
         if self.player_index == 1:
             self.autoplayer_move()
+
+    def resign(self):
+        self.resigned = True
 
     def autoplayer_move(self):
         """ Let the AutoPlayer make its move """
@@ -100,12 +105,14 @@ class Game:
             newmoves = [(player, m.summary(self.state.board())) for player, m in self.moves[-num_moves:]]
             # Lastplayer is the player who finished the game
             lastplayer = self.moves[-1][0]
-            # The losing rack
-            rack = self.state._racks[1 - lastplayer].contents()
-            # Subtract the score of the losing rack from the losing player
-            newmoves.append((1 - lastplayer, (u"", rack, -1 * Alphabet.score(rack))))
-            # Add the score of the losing rack to the winning player
-            newmoves.append((lastplayer, (u"", rack, 1 * Alphabet.score(rack))))
+            if not self.resigned:
+                # If the game did not end by resignation,
+                # account for the losing rack
+                rack = self.state._racks[1 - lastplayer].contents()
+                # Subtract the score of the losing rack from the losing player
+                newmoves.append((1 - lastplayer, (u"", rack, -1 * Alphabet.score(rack))))
+                # Add the score of the losing rack to the winning player
+                newmoves.append((lastplayer, (u"", rack, 1 * Alphabet.score(rack))))
             # Add a synthetic "game over" move
             newmoves.append((1 - lastplayer, (u"", u"OVER", 0)))
             reply["newmoves"] = newmoves
@@ -136,7 +143,6 @@ def _process_move(movelist):
         for mstr in movelist:
             if mstr == u"pass":
                 # Pass move
-                # print(u"Pass move")
                 m = PassMove()
                 break
             if mstr[0:4] == u"exch":
@@ -144,8 +150,9 @@ def _process_move(movelist):
                 # !!! TBD !!!
                 break
             if mstr == u"rsgn":
-                # Resign from game
-                # !!! TBD !!!
+                # Resign from game, forfeiting all points
+                m = ResignMove(game.state.scores()[game.player_index])
+                game.resign()
                 break
             sq, tile = mstr.split(u'=')
             row = u"ABCDEFGHIJKLMNO".index(sq[0])

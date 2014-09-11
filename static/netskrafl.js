@@ -96,6 +96,7 @@
    }
 
    var elementDragged = null;
+   var showingDialog = false;
 
    function handleDragstart(e) {
       /* The dragstart target is the DIV inside a TD */
@@ -253,11 +254,11 @@
    }
 
    function updateSubmitMove() {
-      $("div.submitmove").toggleClass("disabled", (findCovers().length == 0));
+      $("div.submitmove").toggleClass("disabled", (findCovers().length == 0 || showingDialog));
    }
 
    function submitover() {
-      if (!$("div.submitmove").hasClass("disabled"))
+      if (!$("div.submitmove").hasClass("disabled") && !showingDialog)
          $("div.submitmove").toggleClass("over", true);
    }
 
@@ -358,15 +359,37 @@
          submitMove('exch');
    }
 
-   function submitResign() {
-      if (!$("div.submitresign").hasClass("disabled"))
+   function confirmResign(yes) {
+      $("div.resign").css("visibility", "hidden");
+      showingDialog = false;
+      $("div.submitpass").toggleClass("disabled", false);
+      $("div.submitresign").toggleClass("disabled", false);
+      $("div.submitexchange").toggleClass("disabled", false);
+      updateSubmitMove();
+      if (yes)
          submitMove('rsgn');
+   }
+
+   function submitResign() {
+      if (!$("div.submitresign").hasClass("disabled")) {
+         /* Show the yes/no panel */
+         $("div.resign").css("visibility", "visible");
+         showingDialog = true;
+         /* Disable all other actions while panel is shown */
+         $("div.submitpass").toggleClass("disabled", true);
+         $("div.submitresign").toggleClass("disabled", true);
+         $("div.submitexchange").toggleClass("disabled", true);
+         $("div.submitmove").toggleClass("disabled", true);
+      }
    }
 
    function submitMove(movetype) {
       var moves = [];
-      if (movetype == null || movetype == 'move')
+      if (movetype == null || movetype == 'move') {
+         if ($("div.submitmove").hasClass("disabled"))
+            return;
          moves = findCovers();
+      }
       else
       if (movetype == 'pass') {
          moves.push("pass");
