@@ -1,24 +1,28 @@
 ﻿# -*- coding: utf-8 -*-
 
-""" Scrabble rack permutations
+""" SCRABBLE(tm) rack permutations
 
-Author: Vilhjalmur Thorsteinsson, 2014
+    Author: Vilhjalmur Thorsteinsson, 2014
 
-This module implements a main class named Tabulator and
-a helper class named WordDatabase.
+    This module implements a main class named Tabulator and
+    a helper class named WordDatabase.
 
-Tabulator takes a Scrabble rack and processes it to find
-all valid word permutations within the rack. It can then
-be queried for the number of such permutations, the list
-of permutations, the highest "plain" score in the list,
-and the list of the permutations having the highest such score.
-It also generates valid combinations of the
-rack with a single additional letter.
+    Tabulator takes a SCRABBLE(tm) rack and processes it to find
+    all valid word permutations within the rack. It can then
+    be queried for the number of such permutations, the list
+    of permutations, the highest "plain" score in the list,
+    and the list of the permutations having the highest such score.
+    It also generates valid combinations of the
+    rack with a single additional letter.
 
-WordDatabase can judge whether a particular word is valid
-in (Icelandic) Scrabble. It uses a preprocessed word graph
-(DAWG) loaded from a text file. The word graph is implemented
-in class DawgDictionary in dawgdictionary.py.
+    WordDatabase can judge whether a particular word is valid
+    on the board, given a dictionary. It uses a preprocessed word
+    graph (DAWG) loaded from a text file. The word graph is
+    implemented in class DawgDictionary in dawgdictionary.py.
+
+    Note: SCRABBLE is a registered trademark. This software or its author
+    are in no way affiliated with or endorsed by the owners or licensees
+    of the SCRABBLE trademark.
 
 """
 

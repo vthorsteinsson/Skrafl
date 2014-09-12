@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 
-""" Skraflmechanics
+""" Skraflmechanics - the inner workings of a SCRABBLE(tm) game server
 
     Author: Vilhjalmur Thorsteinsson, 2014
 
     This module contains classes that implement various
-    mechanics for a Scrabble(tm)-like game, including the
+    mechanics for a SCRABBLE(tm)-like game, including the
     board itself, the players, their racks, moves,
     scoring, etc.
 
     Algorithms for automatic (computer) play are found
     in skraflplayer.py
+
+    Note: SCRABBLE is a registered trademark. This software or its author
+    are in no way affiliated with or endorsed by the owners or licensees
+    of the SCRABBLE trademark.
 
 """
 

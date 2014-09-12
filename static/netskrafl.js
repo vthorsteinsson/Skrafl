@@ -4,6 +4,7 @@
    Client-side script for the Netskrafl server in netskrafl.py
 
    Author: Vilhjalmur Thorsteinsson, 2014
+   
 */
 
    function placeTile(sq, tile, letter, score) {

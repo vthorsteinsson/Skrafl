@@ -1,4 +1,5 @@
-﻿
+﻿# -*- coding: utf-8 -*-
+
 """ Web server for netskrafl.appspot.com
 
     Author: Vilhjalmur Thorsteinsson, 2014
@@ -7,7 +8,11 @@
     a crossword game similar to SCRABBLE(tm).
 
     The actual game logic is found in skraflplayer.py and
-    skraflmechanics.py.
+    skraflmechanics.py. The web client code is found in netskrafl.js
+
+    Note: SCRABBLE is a registered trademark. This software or its author
+    are in no way affiliated with or endorsed by the owners or licensees
+    of the SCRABBLE trademark.
 
 """
 
@@ -20,8 +25,9 @@ import time
 from random import randint
 
 from skraflmechanics import Manager, State, Move, PassMove, ExchangeMove, Error
-from skraflplayer import AutoPlayer, AutoPlayer_MiniMax
+from skraflplayer import AutoPlayer
 from languages import Alphabet
+
 
 # Standard Flask initialization
 
@@ -34,6 +40,7 @@ manager = Manager()
 # The current game state for different users
 # !!! TODO: This will be stored persistently in the App Engine datastore
 games = dict()
+
 
 class Game:
     """ A wrapper class for a particular game that is in process
@@ -157,10 +164,10 @@ def _process_move(movelist):
                 tile = tile[0]
             else:
                 letter = tile
-            print(u"Cover: row {0} col {1}".format(row, col))
+            # print(u"Cover: row {0} col {1}".format(row, col))
             m.add_cover(row, col, tile, letter)
     except Exception as e:
-        print(u"Exception {0}".format(e))
+        logging.info(u"Exception in _process_move(): {0}".format(e).encode("latin-1"))
         m = None
 
     # Process the move string here

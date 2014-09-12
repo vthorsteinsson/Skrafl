@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-""" Skraflplayer
+""" Skraflplayer - an automatic SCRABBLE(tm) player
 
     Author: Vilhjalmur Thorsteinsson, 2014
 
@@ -57,6 +57,10 @@
     Steps 1)-3) above are mostly implemented in the class LeftPartNavigator,
     while steps 4)-7) are found in ExtendRightNavigator. These classes
     correspond to the Appel & Jacobson LeftPart and ExtendRight functions.
+
+    Note: SCRABBLE is a registered trademark. This software or its author
+    are in no way affiliated with or endorsed by the owners or licensees
+    of the SCRABBLE trademark.
 
 """
 
