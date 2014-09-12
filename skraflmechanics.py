@@ -424,12 +424,12 @@ class State:
         self._scores[self._player_to_move] += self.score(move)
         # Apply the move to the board state
         move.apply(self)
-        if not self.is_game_over():
+        # Increment the move count
+        self._num_moves += 1
+        if not (self._game_resigned or self._num_passes >= 6):
             # Game is still ongoing:
             # Draw new tiles if required
             self.player_rack().replenish(self._bag)
-            # Increment the move count
-            self._num_moves += 1
             # It's the other player's move
             self._player_to_move = 1 - self._player_to_move
         return True
@@ -480,7 +480,7 @@ class State:
 
     def is_game_over(self):
         """ The game is over if either rack is empty or if both players have passed 3 times in a row """
-        return self._racks[0].is_empty() or self._racks[1].is_empty() or self._num_passes >= 6 or self._game_resigned
+        return self._racks[0].is_empty() or self._racks[1].is_empty() or (self._num_passes >= 6) or self._game_resigned
 
     def finalize_score(self):
         """ When game is completed, update scores with the tiles left """

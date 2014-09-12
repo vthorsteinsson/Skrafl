@@ -43,6 +43,7 @@ games = dict()
 
 
 class Game:
+
     """ A wrapper class for a particular game that is in process
         or completed. Contains inter alia a State instance.
     """
@@ -54,7 +55,7 @@ class Game:
         self.player_index = 0
         # The last move made by the autoplayer
         self.last_move = None
-        # Was the game finished by resignation?
+        # Was the game finished by resigning?
         self.resigned = False
         # History of moves in this game so far
         self.moves = []
@@ -203,6 +204,7 @@ def _process_move(movelist):
 
 @app.route("/submitmove", methods=['POST'])
 def submitmove():
+    """ Handle a move that is being submitted from the client """
     movelist = []
     if request.method == 'POST':
         # This URL should only receive Ajax POSTs from the client

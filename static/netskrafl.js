@@ -351,7 +351,7 @@
    }
 
    function submitPass() {
-      if (!$("div.submitmove").hasClass("disabled"))
+      if (!$("div.submitpass").hasClass("disabled"))
          submitMove('pass');
    }
 
@@ -384,6 +384,8 @@
       }
    }
 
+   var submitTemp = "";
+
    function submitMove(movetype) {
       var moves = [];
       if (movetype == null || movetype == 'move') {
@@ -411,6 +413,8 @@
       $("div.freshtile").removeClass("freshtile");
       /* Remove highlight from button */
       submitout();
+      submitTemp = $("div.submitmove").html();
+      $("div.submitmove").html("<img src='static/ajax-loader.gif' border=0/>");
       /* Talk to the game server using jQuery/Ajax */
       $.ajax({
          // the URL for the request
@@ -444,7 +448,7 @@
 
          // code to run regardless of success or failure
          complete: function( xhr, status ) {
-            /* Don't need this */
+            $("div.submitmove").html(submitTemp);
          }
       });
    }
