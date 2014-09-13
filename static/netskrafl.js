@@ -58,10 +58,11 @@
          if (word == "OVER") {
             /* Game over */
             word = "Leik lokið";
-            wrdclass = "gameover"; /* !!! TODO: use a different class from leftmove/rightmove below */
+            wrdclass = "gameover";
          }
          else
-            /* The rack leave at the end of the game */
+            /* The rack leave at the end of the game (which is always in lowercase
+               and thus cannot be confused with the above abbreviations) */
             wrdclass = "wordmove";
       }
       else
@@ -71,10 +72,12 @@
       }
       else
       if (player == 0) {
+         /* Left side player */
          str = '<div class="leftmove"><span class="score">' + score + '</span>' +
             '<span class="' + wrdclass + '"><i>' + word + '</i> ' + coord + '</span></div>';
       }
       else {
+         /* Right side player */
          str = '<div class="rightmove"><span class="' + wrdclass + '">' + coord + ' <i>' + word + '</i></span>' +
             '<span class="score">' + score + '</span></div>';
       }
@@ -87,7 +90,7 @@
             $("div.movelist").children().last().addClass("autoplayercolor");
       /* Manage the scrolling of the move list */
       lastchild = $("div.movelist:last-child");
-      firstchild = $("div.movelist").children().eq(0); /* :first-child doesn't work?! */
+      firstchild = $("div.movelist").children().eq(0);
       topoffset = lastchild.position().top -
          firstchild.position().top +
          lastchild.height();
@@ -122,10 +125,12 @@
    }
 
    function initRackDraggable() {
+      /* Make the seven tiles in the rack draggable */
       for (i = 1; i <= 7; i++) {
          rackTileId = "R" + i.toString();
          rackTile = document.getElementById(rackTileId);
          if (rackTile && rackTile.firstChild)
+            /* There is a tile in this rack slot */
             initDraggable(rackTile.firstChild);
       }
    }
@@ -134,10 +139,10 @@
       if (e.preventDefault)
          e.preventDefault();
       if (e.target.firstChild)
-        /* There is already a tile in the square: drop will have no effect */
-        e.dataTransfer.dropEffect = 'none';
+         /* There is already a tile in the square: drop will have no effect */
+         e.dataTransfer.dropEffect = 'none';
       else
-        e.dataTransfer.dropEffect = 'move';
+         e.dataTransfer.dropEffect = 'move';
       return false;
    }
 
@@ -167,6 +172,7 @@
          }
          letter = letter.toLowerCase();
          if ("aábdðeéfghiíjklmoóprstuúvxyýþæö".indexOf(letter) == -1) {
+            /* Not an allowed letter: add an error message and prompt again */
             q = defq + err;
             continue;
          }
@@ -238,6 +244,7 @@
    }
 
    function initDropTargets() {
+      /* All board squares are drop targets */
       for (x = 1; x <= 15; x++)
          for (y = 1; y <= 15; y++) {
             coord = "ABCDEFGHIJKLMNO".charAt(y - 1) + x.toString();
@@ -268,6 +275,7 @@
    }
 
    function findCovers() {
+      /* Return a list of the newly laid tiles on the board */
       var moves = [];
       $("div.tile").each(function() {
          var sq = $(this).parent().attr("id");
@@ -282,7 +290,7 @@
       return moves;      
    }
 
-   var GAME_OVER = 13;
+   var GAME_OVER = 13; /* Error code corresponding to the Error class in skraflmechanics.py */
 
    function updateState(json) {
       /* Work through the returned JSON object to update the
@@ -293,7 +301,11 @@
          var i = 0;
          if (json.result == 0)
             for (i = 0; i < json.rack.length; i++)
-               placeTile("R" + (i + 1).toString(), json.rack[i][0], json.rack[i][0], json.rack[i][1]);
+               placeTile("R" + (i + 1).toString(), /* Coordinate */
+                  json.rack[i][0], /* Tile */
+                  json.rack[i][0], /* Letter */
+                  json.rack[i][1]); /* Score */
+         /* Clear the rest of the rack */
          for (; i < 7; i++)
             placeTile("R" + (i + 1).toString(), "", "", 0);
          if (json.result == 0)
@@ -318,7 +330,10 @@
          if (json.lastmove !== undefined)
             for (i = 0; i < json.lastmove.length; i++) {
                sq = json.lastmove[i][0];
-               placeTile(sq, json.lastmove[i][1], json.lastmove[i][2], json.lastmove[i][3]);
+               placeTile(sq, /* Coordinate */
+                  json.lastmove[i][1], /* Tile */
+                  json.lastmove[i][2], /* Letter */
+                  json.lastmove[i][3]); /* Score */
                $("#"+sq).children().eq(0).addClass("freshtile");
             }
          /* Update the scores */
@@ -387,6 +402,10 @@
    var submitTemp = "";
 
    function submitMove(movetype) {
+      if (submitTemp.length > 0)
+         /* Avoid re-entrancy: if submitTemp contains text, we are already
+            processing a previous Ajax call. */
+         return;
       var moves = [];
       if (movetype == null || movetype == 'move') {
          if ($("div.submitmove").hasClass("disabled"))
@@ -413,6 +432,7 @@
       $("div.freshtile").removeClass("freshtile");
       /* Remove highlight from button */
       submitout();
+      /* Show a temporary animated GIF while the Ajax call is being processed */
       submitTemp = $("div.submitmove").html();
       $("div.submitmove").html("<img src='static/ajax-loader.gif' border=0/>");
       /* Talk to the game server using jQuery/Ajax */
@@ -447,8 +467,9 @@
          },
 
          // code to run regardless of success or failure
-         complete: function( xhr, status ) {
+         complete: function(xhr, status) {
             $("div.submitmove").html(submitTemp);
+            submitTemp = "";
          }
       });
    }
