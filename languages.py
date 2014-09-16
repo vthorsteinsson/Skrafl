@@ -12,6 +12,8 @@
 
 """
 
+from functools import reduce
+
 class Alphabet:
 
     """ This implementation of the Alphabet class encapsulates particulars of the Icelandic

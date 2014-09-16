@@ -590,8 +590,9 @@ class Move:
 
     def details(self):
         """ Return a list of tuples describing this move """
-        return [(u"ABCDEFGHIJKLMNO"[c.row] + str(c.col + 1), c.tile, c.letter, \
-            0 if c.tile == u'?' else Alphabet.scores[c.tile]) \
+        return [(Board.ROWIDS[c.row] + str(c.col + 1), # Coordinate
+            c.tile, c.letter, # Tile and letter
+            0 if c.tile == u'?' else Alphabet.scores[c.tile]) # Score
             for c in self._covers]
 
     def summary(self, board):
@@ -734,9 +735,6 @@ class Move:
                 row += 1
             # Now we know the length
             self._numletters = row - self._row + 1
-        # !!! For cosmetic purposes, we may want to see if a single cover
-        # !!! creates a longer word vertically than horizontally and switch
-        # !!! orientation in that case
         # Assemble the resulting word
         self._word = u''
         cix = 0

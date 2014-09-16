@@ -7,11 +7,19 @@
     This module implements a testing function for the
     functionality in skraflmechanics.py and skraflplayer.py
 
+    Usage: python skrafltester.py [-n number_of_games_to_run]
+
 """
+
+from __future__ import print_function
+
+import sys
+import getopt
 
 from skraflmechanics import Manager, State, Move, ExchangeMove, Error
 from skraflplayer import AutoPlayer, AutoPlayer_MiniMax
 import time
+
 
 def test_move(state, movestring):
     # Test placing a simple move
@@ -46,7 +54,7 @@ def test_move(state, movestring):
         return False
     print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
     state.apply_move(move)
-    print(unicode(state))
+    print(state)
     return True
 
 def test_exchange(state, numtiles):
@@ -58,7 +66,7 @@ def test_exchange(state, numtiles):
         return False
     print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
     state.apply_move(move)
-    print(unicode(state))
+    print(state)
     return True
 
 def test_game(players):
@@ -75,7 +83,7 @@ def test_game(players):
     for ix in range(2):
         state.set_player_name(ix, players[ix][0])
 
-    print unicode(state)
+    print(state)
 
     # test_move(state, u"H4 stuði")
     # test_move(state, u"5E detts")
@@ -102,12 +110,12 @@ def test_game(players):
         #     # Oops: the autoplayer generated an illegal move
         #     print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
         #     return
-        print(u"Play {0} scores {1} points ({2:.2f} seconds)".format(unicode(move), state.score(move), g1 - g0))
+        print(u"Play {0} scores {1} points ({2:.2f} seconds)".format(move, state.score(move), g1 - g0))
 
         # Apply the move to the state and switch players
         state.apply_move(move)
 
-        print(unicode(state))
+        print(state)
 
     # Tally the tiles left and calculate the final score
     state.finalize_score()
@@ -119,11 +127,7 @@ def test_game(players):
 
     return state.scores()
 
-
-def test():
-
-    print(u"Welcome to the Skrafl game tester")
-    print(u"Author: Vilhjalmur Thorsteinsson, 2014")
+def test(num_games):
 
     manager = Manager()
 
@@ -137,12 +141,12 @@ def test():
     gameswon = [0, 0]
     totalpoints = [0, 0]
     sumofmargin = [0, 0]
-    num_games = 0
+
+    t0 = time.time()
 
     # Run games
-    NUM_GAMES = 4
-    for ix in range(NUM_GAMES):
-        print(u"\nGame {0}/{1} starting".format(ix + 1, NUM_GAMES))
+    for ix in range(num_games):
+        print(u"\nGame {0}/{1} starting".format(ix + 1, num_games))
         if ix % 2 == 1:
             # Odd game: swap players
             players[0], players[1] = players[1], players[0]
@@ -160,10 +164,11 @@ def test():
             sumofmargin[1] += (p1 - p0)
         totalpoints[0] += p0
         totalpoints[1] += p1
-        num_games += 1
 
-    print(u"Test completed, {0} games played".format(num_games))
-    
+    t1 = time.time()
+
+    print(u"Test completed, {0} games played in {1:.2f} seconds".format(num_games, t1 - t0))
+
     def reportscore(player):
         if gameswon[player] == 0:
             print(u"{2} won {0} games and scored an average of {1:.1f} points per game".format(gameswon[player],
@@ -174,3 +179,44 @@ def test():
 
     reportscore(0)
     reportscore(1)
+
+
+class Usage(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+
+def main(argv=None):
+    """ Guido van Rossum's pattern for a Python main function """
+
+    print(u"Welcome to the Skrafl game tester")
+    print(u"Author: Vilhjalmur Thorsteinsson, 2014")
+
+    if argv is None:
+        argv = sys.argv
+    try:
+        try:
+            opts, args = getopt.getopt(argv[1:], "hn:", ["help", "numgames"])
+        except getopt.error as msg:
+             raise Usage(msg)
+        num_games = 4
+        # process options
+        for o, a in opts:
+            if o in ("-h", "--help"):
+                print(__doc__)
+                sys.exit(0)
+            elif o in ("-n", "--numgames"):
+                num_games = int(a)
+        # process arguments
+        for arg in args:
+            pass
+
+        test(num_games)
+
+    except Usage as err:
+        print(err.msg, file=sys.stderr)
+        print("for help use --help", file=sys.stderr)
+        return 2
+
+if __name__ == "__main__":
+    sys.exit(main())

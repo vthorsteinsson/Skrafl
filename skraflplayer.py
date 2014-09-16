@@ -23,10 +23,10 @@
     To save processing time, the cross-check sets are also intersected with
     the letters in the rack, unless the rack contains a blank tile.
 
-    Any empty square with a nonzero cross-check set or adjacent to
+    Any empty square with a non-null cross-check set or adjacent to
     a covered square within the axis is a potential anchor square.
-    Each anchor square is examined in turn. The algorithm roughly
-    proceeds as follows:
+    Each anchor square is examined in turn, from "left" to "right".
+    The algorithm roughly proceeds as follows:
 
     1) Count the number of empty non-anchor squares to the left of
         the anchor. Call the number 'maxleft'.
@@ -464,8 +464,6 @@ class ExtendRightNavigator:
         if final and (self._pix > self._lenp) and len(matched) > 1 and (self._index >= Board.SIZE or
             self._axis.is_empty(self._index)):
 
-            # print(u"Found solution {0} with {1} tiles to the left of the anchor".format(matched, self._lenp))
-
             # Solution found - make a Move object for it and add it to the AutoPlayer's list
             ix = self._anchor - self._lenp # The word's starting index within the axis
             row, col = self._axis.coordinate_of(ix)
@@ -580,10 +578,10 @@ class AutoPlayer:
             # central axis (any move played there can identically be
             # played horizontally), and with only one anchor in the
             # middle square
-            axis = self._axis_from_column(Board.SIZE / 2)
+            axis = self._axis_from_column(int(Board.SIZE / 2))
             axis.init_crosschecks()
             # Mark the center anchor
-            axis.mark_anchor(Board.SIZE / 2)
+            axis.mark_anchor(int(Board.SIZE / 2))
             axis.generate_moves()
         else:
             # Normal move: go through all 15 (row) + 15 (column) axes and generate
