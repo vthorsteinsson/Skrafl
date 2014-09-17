@@ -52,9 +52,9 @@ def test_move(state, movestring):
     if legal != Error.LEGAL:
         print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
         return False
-    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
+    print(u"Play {0} is legal and scores {1} points".format(move, state.score(move)))
     state.apply_move(move)
-    print(state)
+    print(state.__str__())
     return True
 
 def test_exchange(state, numtiles):
@@ -64,9 +64,9 @@ def test_exchange(state, numtiles):
     if legal != Error.LEGAL:
         print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
         return False
-    print(u"Play {0} is legal and scores {1} points".format(unicode(move), state.score(move)))
+    print(u"Play {0} is legal and scores {1} points".format(move, state.score(move)))
     state.apply_move(move)
-    print(state)
+    print(state.__str__())
     return True
 
 def test_game(players):
@@ -83,7 +83,7 @@ def test_game(players):
     for ix in range(2):
         state.set_player_name(ix, players[ix][0])
 
-    print(state)
+    print(state.__str__()) # This works in Python 2 and 3
 
     # test_move(state, u"H4 stuði")
     # test_move(state, u"5E detts")
@@ -115,7 +115,7 @@ def test_game(players):
         # Apply the move to the state and switch players
         state.apply_move(move)
 
-        print(state)
+        print(state.__str__())
 
     # Tally the tiles left and calculate the final score
     state.finalize_score()

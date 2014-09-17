@@ -1,4 +1,5 @@
-﻿
+﻿# -*- coding: utf-8 -*-
+
 """ Web server for Scrabble rack permutations
 
     Author: Vilhjalmur Thorsteinsson, 2014
@@ -18,8 +19,13 @@ from flask import request
 
 import logging
 import time
+import sys
 
 import skraflpermuter
+
+
+# Get Python major version number
+PY2 = sys.version_info[0] == 2
 
 # Standard Flask initialization
 
@@ -58,13 +64,19 @@ def main():
     if request.method == 'POST':
         # A form POST, probably from the page itself
         try:
-            rack = unicode(request.form['rack'])
+            if PY2:
+                rack = unicode(request.form['rack'])
+            else:
+                rack = request.form['rack']
         except:
             rack = u''
     else:
         # Presumably a GET: look at the URL parameters
         try:
-            rack = unicode(request.args.get('rack',''))
+            if PY2:
+                rack = unicode(request.args.get('rack',''))
+            else:
+                rack = request.args.get('rack','')
         except:
             rack = u''
     if rack:
@@ -82,7 +94,5 @@ def help():
 
 # Run a default Flask web server for testing if invoked directly as a main program
 
-"""
 if __name__ == "__main__":
     app.run(debug=True)
-"""

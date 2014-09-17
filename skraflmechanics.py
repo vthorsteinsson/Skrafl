@@ -876,7 +876,7 @@ class ExchangeMove:
 
     def summary(self, board):
         """ Return a summary of the move, as a tuple: (coordinate, word, score) """
-        return (u"", u"EXCH " + unicode(len(self._tiles)), 0)
+        return (u"", u"EXCH " + str(len(self._tiles)), 0)
 
     def details(self):
         """ Return a tuple list describing tiles committed to the board by this move """

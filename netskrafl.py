@@ -22,12 +22,16 @@ from flask import request, session, url_for
 
 import logging
 import time
+import sys
 from random import randint
 
 from skraflmechanics import Manager, State, Move, PassMove, ExchangeMove, ResignMove, Error
 from skraflplayer import AutoPlayer
 from languages import Alphabet
 
+
+# Get Python major version number
+PY2 = sys.version_info[0] == 2
 
 # Standard Flask initialization
 
@@ -222,7 +226,10 @@ def login():
     login_error = False
     if request.method == 'POST':
         try:
-            username = unicode(request.form['username']).strip()
+            if PY2:
+                username = unicode(request.form['username']).strip()
+            else:
+                username = request.form['username'].strip()
         except:
             username = u''
         if username:
