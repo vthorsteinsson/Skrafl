@@ -10,6 +10,11 @@
     The actual game logic is found in skraflplayer.py and
     skraflmechanics.py. The web client code is found in netskrafl.js
 
+    The server is compatible with Python 2.7 and 3.x, CPython and PyPy.
+    (To get it to run under PyPy 2.7.6 the author had to patch
+    \pypy\lib-python\2.7\mimetypes.py to fix a bug that was not
+    present in the CPython 2.7 distribution of the same file.)
+
     Note: SCRABBLE is a registered trademark. This software or its author
     are in no way affiliated with or endorsed by the owners or licensees
     of the SCRABBLE trademark.
@@ -22,16 +27,12 @@ from flask import request, session, url_for
 
 import logging
 import time
-import sys
 from random import randint
 
 from skraflmechanics import Manager, State, Move, PassMove, ExchangeMove, ResignMove, Error
 from skraflplayer import AutoPlayer
 from languages import Alphabet
 
-
-# Get Python major version number
-PY2 = sys.version_info[0] == 2
 
 # Standard Flask initialization
 
@@ -226,10 +227,9 @@ def login():
     login_error = False
     if request.method == 'POST':
         try:
-            if PY2:
-                username = unicode(request.form['username']).strip()
-            else:
-                username = request.form['username'].strip()
+            # Funny string addition below ensures that username is
+            # a Unicode string under both Python 2 and 3
+            username = u'' + request.form['username'].strip()
         except:
             username = u''
         if username:

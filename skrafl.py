@@ -1,15 +1,24 @@
 ﻿# -*- coding: utf-8 -*-
 
-""" Web server for Scrabble rack permutations
+""" Web server for SCRABBLE(tm) rack permutations
 
     Author: Vilhjalmur Thorsteinsson, 2014
 
     This web server module uses the Flask framework to implement
-    a simple form page where the user can enter a Scrabble rack
+    a simple form page where the user can enter a SCRABBLE(tm) rack
     and get a list of all legal word permutations from the rack,
     as well as combinations with a single additional letter.
 
     The actual permutation engine is found in skraflpermuter.py
+
+    The server is compatible with Python 2.7 and 3.x, CPython and PyPy.
+    (To get it to run under PyPy 2.7.6 the author had to patch
+    \pypy\lib-python\2.7\mimetypes.py to fix a bug that was not
+    present in the CPython 2.7 distribution of the same file.)
+
+    Note: SCRABBLE is a registered trademark. This software or its author
+    are in no way affiliated with or endorsed by the owners or licensees
+    of the SCRABBLE trademark.
 
 """
 
@@ -19,13 +28,9 @@ from flask import request
 
 import logging
 import time
-import sys
 
 import skraflpermuter
 
-
-# Get Python major version number
-PY2 = sys.version_info[0] == 2
 
 # Standard Flask initialization
 
@@ -64,19 +69,17 @@ def main():
     if request.method == 'POST':
         # A form POST, probably from the page itself
         try:
-            if PY2:
-                rack = unicode(request.form['rack'])
-            else:
-                rack = request.form['rack']
+            # Funny string addition below ensures that the result is in
+            # Unicode under both Python 2 and 3
+            rack = u'' + request.form['rack']
         except:
             rack = u''
     else:
         # Presumably a GET: look at the URL parameters
         try:
-            if PY2:
-                rack = unicode(request.args.get('rack',''))
-            else:
-                rack = request.args.get('rack','')
+            # Funny string addition below ensures that the result is in
+            # Unicode under both Python 2 and 3
+            rack = u'' + request.args.get('rack','')
         except:
             rack = u''
     if rack:
