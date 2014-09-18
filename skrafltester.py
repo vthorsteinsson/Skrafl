@@ -7,7 +7,10 @@
     This module implements a testing function for the
     functionality in skraflmechanics.py and skraflplayer.py
 
-    Usage: python skrafltester.py [-n number_of_games_to_run]
+    Usage: python skrafltester.py
+        [-n number_of_games_to_run, default 4]
+        [-o minimax|autoplayer to choose opponent, default minimax]
+        [-s to run silently, i.e. only with ending summary]
 
 """
 
@@ -69,7 +72,7 @@ def test_exchange(state, numtiles):
     print(state.__str__())
     return True
 
-def test_game(players):
+def test_game(players, silent):
     """ Go through a whole game by pitting two AutoPlayers against each other """
     # The players parameter is a list of tuples: (playername, constructorfunc)
     # where constructorfunc accepts a State parameter and returns a freshly
@@ -83,7 +86,8 @@ def test_game(players):
     for ix in range(2):
         state.set_player_name(ix, players[ix][0])
 
-    print(state.__str__()) # This works in Python 2 and 3
+    if not silent:
+        print(state.__str__()) # This works in Python 2 and 3
 
     # test_move(state, u"H4 stuði")
     # test_move(state, u"5E detts")
@@ -110,24 +114,27 @@ def test_game(players):
         #     # Oops: the autoplayer generated an illegal move
         #     print(u"Play is not legal, code {0}".format(Error.errortext(legal)))
         #     return
-        print(u"Play {0} scores {1} points ({2:.2f} seconds)".format(move, state.score(move), g1 - g0))
+        if not silent:
+            print(u"Play {0} scores {1} points ({2:.2f} seconds)".format(move, state.score(move), g1 - g0))
 
         # Apply the move to the state and switch players
         state.apply_move(move)
 
-        print(state.__str__())
+        if not silent:
+            print(state.__str__())
 
     # Tally the tiles left and calculate the final score
     state.finalize_score()
     p0, p1 = state.scores()
     t1 = time.time()
 
-    print(u"Game over, final score {4} {0} : {5} {1} after {2} moves ({3:.2f} seconds)".format(p0, p1,
-        state.num_moves(), t1 - t0, state.player_name(0), state.player_name(1)))
+    if not silent:
+        print(u"Game over, final score {4} {0} : {5} {1} after {2} moves ({3:.2f} seconds)".format(p0, p1,
+            state.num_moves(), t1 - t0, state.player_name(0), state.player_name(1)))
 
     return state.scores()
 
-def test(num_games):
+def test(num_games, opponent, silent):
 
     manager = Manager()
 
@@ -137,7 +144,14 @@ def test(num_games):
     def minimax_creator(state):
         return AutoPlayer_MiniMax(state)
 
-    players = [(u"AutoPlayer", autoplayer_creator), (u"MiniMax", minimax_creator)]
+    players = [None, None]
+    if opponent and opponent == u'autoplayer':
+        players[0] = (u"AutoPlayer A", autoplayer_creator)
+        players[1] = (u"AutoPlayer B", autoplayer_creator)
+    else:
+        players[0] = (u"AutoPlayer", autoplayer_creator)
+        players[1] = (u"MiniMax", minimax_creator)
+
     gameswon = [0, 0]
     totalpoints = [0, 0]
     sumofmargin = [0, 0]
@@ -146,16 +160,17 @@ def test(num_games):
 
     # Run games
     for ix in range(num_games):
-        print(u"\nGame {0}/{1} starting".format(ix + 1, num_games))
+        if not silent:
+            print(u"\nGame {0}/{1} starting".format(ix + 1, num_games))
         if ix % 2 == 1:
             # Odd game: swap players
             players[0], players[1] = players[1], players[0]
-            p1, p0 = test_game(players)
+            p1, p0 = test_game(players, silent)
             # Swap back
             players[0], players[1] = players[1], players[0]
         else:
             # Even game
-            p0, p1 = test_game(players)
+            p0, p1 = test_game(players, silent)
         if p0 > p1:
             gameswon[0] += 1
             sumofmargin[0] += (p0 - p1)
@@ -167,7 +182,8 @@ def test(num_games):
 
     t1 = time.time()
 
-    print(u"Test completed, {0} games played in {1:.2f} seconds".format(num_games, t1 - t0))
+    print(u"Test completed, {0} games played in {1:.2f} seconds, {2:.2f} seconds per game".format(num_games,
+        t1 - t0, (t1 - t0) / num_games))
 
     def reportscore(player):
         if gameswon[player] == 0:
@@ -196,10 +212,12 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "hn:", ["help", "numgames"])
+            opts, args = getopt.getopt(argv[1:], "hn:o:s", ["help", "numgames", "opponent", "silent"])
         except getopt.error as msg:
              raise Usage(msg)
         num_games = 4
+        opponent = None
+        silent = False
         # process options
         for o, a in opts:
             if o in ("-h", "--help"):
@@ -207,11 +225,15 @@ def main(argv=None):
                 sys.exit(0)
             elif o in ("-n", "--numgames"):
                 num_games = int(a)
+            elif o in ("-o", "--opponent"):
+                opponent = str(a).lower()
+            elif o in ("-s", "--silent"):
+                silent = True
         # process arguments
         for arg in args:
             pass
 
-        test(num_games)
+        test(num_games, opponent, silent)
 
     except Usage as err:
         print(err.msg, file=sys.stderr)
