@@ -64,7 +64,7 @@
 
 """
 
-from dawgdictionary import DawgDictionary
+from dawgdictionary import DawgDictionary, Navigation
 from skraflmechanics import Manager, State, Board, Cover, Move, ExchangeMove, PassMove
 from languages import Alphabet
 
@@ -230,7 +230,7 @@ class Axis:
             x += xd
             y += yd
 
-    def _gen_moves_from_anchor(self, index, maxleft):
+    def _gen_moves_from_anchor(self, index, maxleft, lpn):
         """ Find valid moves emanating (on the left and right) from this anchor """
 
         if maxleft == 0 and index > 0 and not self.is_empty(index - 1):
@@ -241,23 +241,36 @@ class Axis:
                 leftpart = self._sq[ix - 1]._letter + leftpart
                 ix -= 1
             # Use the ExtendRightNavigator to find valid words with this left part
-            nav = ExtendRightNavigator(self, index, leftpart, self._rack, self._autoplayer)
+            nav = LeftFindNavigator(leftpart)
             Manager.word_db().navigate(nav)
+            ns = nav.state()
+            if ns is not None:
+                # We found a matching prefix in the graph
+                matched, prefix, nextnode = ns
+                assert matched == leftpart
+                nav = ExtendRightNavigator(self, index, self._rack)
+                Navigation(nav).resume(prefix, nextnode, leftpart)
             return
 
         # We are not completing an existing left part
         # Begin by extending an empty prefix to the right, i.e. placing
         # tiles on the anchor square itself and to its right
-        nav = ExtendRightNavigator(self, index, u'', self._rack, self._autoplayer)
+        nav = ExtendRightNavigator(self, index, self._rack)
         Manager.word_db().navigate(nav)
 
-        if maxleft > 0:
+        if maxleft > 0 and lpn is not None:
             # Follow this by an effort to permute left prefixes into the open space
             # to the left of the anchor square
-            nav = LeftPartNavigator(self, index, maxleft, self._rack, self._autoplayer)
-            Manager.word_db().navigate(nav)
+            for leftlen in range(1, maxleft + 1):
+                lplist = lpn.leftparts(leftlen)
+                if lplist is not None:
+                    for leftpart, rackleave, prefix, nextnode in lplist:
+                        nav = ExtendRightNavigator(self, index, rackleave)
+                        Navigation(nav).resume(prefix, nextnode, leftpart)
+            # nav = LeftPartNavigator(self, index, maxleft, self._rack, self._autoplayer)
+            # Manager.word_db().navigate(nav)
 
-    def generate_moves(self):
+    def generate_moves(self, lpn):
         """ Find all valid moves on this axis by attempting to place tiles
             at and around all anchor squares """
         last_anchor = -1
@@ -272,38 +285,30 @@ class Axis:
                     left -= 1
                 # We have a maximum left part length of min(opensq, lenrack-1) as the anchor
                 # square itself must always be filled from the rack
-                self._gen_moves_from_anchor(i, min(opensq, lenrack - 1))
+                self._gen_moves_from_anchor(i, min(opensq, lenrack - 1), lpn)
                 last_anchor = i
 
     
-class LeftPartNavigator:
+class LeftPermutationNavigator:
 
     """ A navigation class to be used with DawgDictionary.navigate()
-        to find all Appel & Jacobson LeftParts, i.e. permutations
-        of the rack of length 0..limit that can be placed to the
-        left of the anchor square and subsequently extended to the
-        right using an ExtendRightNavigator.
-
-        This function is independent of any particular board or
-        axis configuration. It is only dependent on the limit,
-        i.e. how many squares are available to be filled, and on
-        the rack.
-
-        The left part navigations can thus potentially be precomputed at
-        the start of move generation.
-
+        to find all left parts of words that are possible with
+        a particular rack. The results are accumulated by length.
+        This calculation is only done once at the start of move
+        generation for a particular rack and board.
     """
 
-    def __init__(self, axis, anchor, limit, rack, autoplayer):
+    def __init__(self, rack):
         self._rack = rack
         self._stack = []
+        self._maxleft = len(rack) - 1 # One tile on the anchor itself
+        assert self._maxleft > 0
+        self._leftparts = [None] * self._maxleft
         self._index = 0
-        self._limit = limit
-        # We only store the axis, anchor and autoplayer to pass them on to ExtendRightNavigator
-        self._axis = axis
-        self._anchor = anchor
-        # The autoplayer that invoked the navigator
-        self._autoplayer = autoplayer
+
+    def leftparts(self, length):
+        """ Returns a list of leftparts of the length requested """
+        return self._leftparts[length - 1] if length > 0 and length <= self._maxleft else None
 
     def push_edge(self, firstchar):
         """ Returns True if the edge should be entered or False if not """
@@ -317,8 +322,9 @@ class LeftPartNavigator:
 
     def accepting(self):
         """ Returns False if the navigator does not want more characters """
-        # Continue as long as there is something left on the rack
-        return bool(self._rack) and self._index < self._limit
+        # Continue until we have generated all left parts possible from the
+        # rack but leaving at least one tile
+        return self._index < self._maxleft
 
     def accepts(self, newchar):
         """ Returns True if the navigator will accept the new character """
@@ -334,16 +340,74 @@ class LeftPartNavigator:
             self._rack = self._rack.replace(u'?', u'', 1)
         return True
 
-    def accept(self, matched, final):
+    def accept_resumable(self, prefix, nextnode, matched):
         """ Called to inform the navigator of a match and whether it is a final word """
-        nav = ExtendRightNavigator(self._axis, self._anchor, matched, self._rack, self._autoplayer)
-        Manager.word_db().navigate(nav)
+        # Accumulate all possible left parts, by length
+        lm = len(matched) - 1
+        if self._leftparts[lm] is None:
+            self._leftparts[lm] = list()
+        # Store the matched word part as well as the remaining part
+        # of the prefix of the edge we were on, and the next node.
+        # This gives us the ability to resume the navigation later at
+        # the saved point, to generate right parts.
+        self._leftparts[lm].append((matched, self._rack, prefix, nextnode))
 
     def pop_edge(self):
         """ Called when leaving an edge that has been navigated """
         self._rack, self._index = self._stack.pop()
         # We need to visit all outgoing edges, so return True
         return True
+
+    def done(self):
+        """ Called when the whole navigation is done """
+        pass
+
+
+class LeftFindNavigator:
+
+    """ A navigation class to trace a left part that is
+        already on the board, and note its ending position in
+        the graph.
+    """
+
+    def __init__(self, prefix):
+        # The prefix to the left of the anchor
+        self._prefix = prefix
+        self._lenp = len(prefix)
+        # Prefix index
+        self._pix = 0
+        self._state = None
+
+    def state(self):
+        return self._state
+
+    def push_edge(self, firstchar):
+        """ Returns True if the edge should be entered or False if not """
+        # If we are still navigating through the prefix, do a simple compare
+        return firstchar == self._prefix[self._pix]
+
+    def accepting(self):
+        """ Returns False if the navigator does not want more characters """
+        return self._pix < self._lenp
+
+    def accepts(self, newchar):
+        """ Returns True if the navigator will accept the new character """
+        if self._prefix[self._pix] != newchar:
+            assert False
+            return False # Should not happen - all prefixes should exist in the graph
+        # So far, so good: move on
+        self._pix += 1
+        return True
+
+    def accept_resumable(self, prefix, nextnode, matched):
+        """ Called to inform the navigator of a match and whether it is a final word """
+        if self._pix == self._lenp:
+            # Found the left part: save the position (state)
+            self._state = (matched, prefix, nextnode)
+
+    def pop_edge(self):
+        """ Called when leaving an edge that has been navigated """
+        return False
 
     def done(self):
         """ Called when the whole navigation is done """
@@ -368,20 +432,13 @@ class ExtendRightNavigator:
         the board.
     """
 
-    def __init__(self, axis, anchor, prefix, rack, autoplayer):
+    def __init__(self, axis, anchor, rack):
         self._axis = axis
         self._rack = rack
-        # The prefix to the left of the anchor
-        self._prefix = prefix
-        self._lenp = len(prefix)
-        # Prefix index
-        self._pix = 0
         self._anchor = anchor
         # The tile we are placing next
         self._index = anchor
         self._stack = []
-        # The autoplayer that invokes the navigator
-        self._autoplayer = autoplayer
         # Cache the initial check we do when pushing into an edge
         self._last_check = None
 
@@ -404,22 +461,16 @@ class ExtendRightNavigator:
 
     def push_edge(self, firstchar):
         """ Returns True if the edge should be entered or False if not """
-        # If we are still navigating through the prefix, do a simple compare
-        if self._pix < self._lenp:
-            return firstchar == self._prefix[self._pix]
         # We are in the right part: check whether we have a potential match
         self._last_check = self._check(firstchar)
         if self._last_check == Match.NO:
             return False
         # Match: save our rack and our index and move into the edge
-        self._stack.append((self._rack, self._index, self._pix))
+        self._stack.append((self._rack, self._index))
         return True
 
     def accepting(self):
         """ Returns False if the navigator does not want more characters """
-        if self._pix < self._lenp:
-            # Still navigating the prefix: continue
-            return True
         # Continue as long as there is something left to check
         if self._index >= Board.SIZE:
             # Gone off the board edge
@@ -430,15 +481,6 @@ class ExtendRightNavigator:
 
     def accepts(self, newchar):
         """ Returns True if the navigator will accept the new character """
-        if self._pix < self._lenp:
-            # Still going through the prefix
-            if self._prefix[self._pix] != newchar:
-                # print(u"Prefix is '{0}' but newchar is '{1}'".format(self._prefix[self._pix], newchar))
-                assert False
-                return False # Should not happen - all prefixes should exist in the graph
-            # So far, so good: move on
-            self._pix += 1
-            return True
         # We are on the anchor square or to its right
         # Use the cached check from push_edge if we have one
         match = self._check(newchar) if self._last_check is None else self._last_check
@@ -448,7 +490,6 @@ class ExtendRightNavigator:
             return False
         # We're fine with this: accept the character and remove from the rack
         self._index += 1
-        self._pix += 1
         if match == Match.RACK_TILE:
             # We used a rack tile: remove it from the rack before continuing
             if newchar in self._rack:
@@ -461,16 +502,17 @@ class ExtendRightNavigator:
 
     def accept(self, matched, final):
         """ Called to inform the navigator of a match and whether it is a final word """
-        if final and (self._pix > self._lenp) and len(matched) > 1 and (self._index >= Board.SIZE or
+        if final and len(matched) > 1 and (self._index >= Board.SIZE or
             self._axis.is_empty(self._index)):
 
             # Solution found - make a Move object for it and add it to the AutoPlayer's list
-            ix = self._anchor - self._lenp # The word's starting index within the axis
+            ix = self._index - len(matched) # The word's starting index within the axis
             row, col = self._axis.coordinate_of(ix)
             xd, yd = self._axis.coordinate_step()
             move = Move(matched, row, col, self._axis.is_horizontal())
             # Fetch the rack as it was at the beginning of move generation
-            rack = self._autoplayer.rack()
+            autoplayer = self._axis._autoplayer
+            rack = autoplayer.rack()
             for c in matched:
                 if self._axis.is_empty(ix):
                     # Empty square that is being covered by this move
@@ -491,14 +533,11 @@ class ExtendRightNavigator:
                 col += yd
             # Check that we've picked off the correct number of tiles
             assert len(rack) == len(self._rack)
-            self._autoplayer.add_candidate(move)
+            autoplayer.add_candidate(move)
 
     def pop_edge(self):
         """ Called when leaving an edge that has been navigated """
-        if not self._stack:
-            # We are still navigating through the prefix: short-circuit
-            return False
-        self._rack, self._index, self._pix = self._stack.pop()
+        self._rack, self._index = self._stack.pop()
         # Once past the prefix, we need to visit all outgoing edges, so return True
         return True
 
@@ -570,6 +609,14 @@ class AutoPlayer:
     def _generate_move(self, depth):
         """ Finds and returrns a Move object to be played, weighted by countermoves """
 
+        # Start by generating all possible permutations of the
+        # rack that form left parts of words, ordering them by length
+        if len(self._rack) > 1:
+            lpn = LeftPermutationNavigator(self._rack)
+            Manager.word_db().navigate(lpn)
+        else:
+            lpn = None
+
         # Generate moves in one-dimensional space by looking at each axis
         # (row or column) on the board separately
 
@@ -578,22 +625,24 @@ class AutoPlayer:
             # central axis (any move played there can identically be
             # played horizontally), and with only one anchor in the
             # middle square
-            axis = self._axis_from_column(int(Board.SIZE / 2))
+            axis = self._axis_from_column(Board.SIZE // 2)
             axis.init_crosschecks()
             # Mark the center anchor
-            axis.mark_anchor(int(Board.SIZE / 2))
-            axis.generate_moves()
+            axis.mark_anchor(Board.SIZE // 2)
+            axis.generate_moves(lpn)
         else:
             # Normal move: go through all 15 (row) + 15 (column) axes and generate
             # valid moves within each of them
             for r in range(Board.SIZE):
                 axis = self._axis_from_row(r)
                 axis.init_crosschecks()
-                axis.generate_moves()
+                axis.generate_moves(lpn)
             for c in range(Board.SIZE):
                 axis = self._axis_from_column(c)
                 axis.init_crosschecks()
-                axis.generate_moves()
+                axis.generate_moves(lpn)
+        # Delete the reference to LeftPermutationNavigator to save memory
+        lpn = None
         # We now have a list of valid candidate moves; pick the best one
         move = self._find_best_move(depth)
         if move is not None:

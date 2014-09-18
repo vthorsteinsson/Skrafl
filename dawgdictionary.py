@@ -161,58 +161,6 @@ class DawgDictionary:
         self.navigate(nav)
         return nav.result()
 
-    def _navigate_from_node(self, nav, node, matched):
-        """ Starting from a given node, navigate outgoing edges """
-        # Go through the edges of this node and follow the ones
-        # okayed by the navigator
-        for prefix, nextnode in node.edges.items():
-            if nav.push_edge(prefix[0]):
-                # This edge is a candidate: navigate through it
-                self._navigate_from_edge(nav, prefix, nextnode, matched)
-                if not nav.pop_edge():
-                    # Short-circuit and finish the loop if pop_edge() returns False
-                    break
-
-    def _navigate_from_edge(self, nav, prefix, nextnode, matched):
-        """ Navigate along an edge, accepting partial and full matches """
-        # Go along the edge as long as the navigator is accepting
-        lenp = len(prefix)
-        j = 0
-        while j < lenp and nav.accepting():
-            # See if the navigator is OK with accepting the current character
-            if not nav.accepts(prefix[j]):
-                # Nope: we're done with this edge
-                return
-            # So far, we have a match: add a letter to the matched path
-            matched += prefix[j]
-            j += 1
-            # Check whether the next prefix character is a vertical bar, denoting finality
-            final = False
-            if j < lenp and prefix[j] == u'|':
-                final = True
-                j += 1
-            elif (j >= lenp) and ((nextnode is None) or nextnode.final):
-                # If we're at the final char of the prefix and the next node is final,
-                # set the final flag as well (there is no trailing vertical bar in this case)
-                final = True
-            # Tell the navigator where we are
-            # !!! To consider: adding placement information to the nav.accept() call
-            # !!! including prefix, nextnode and j, as well as an additional startj
-            # !!! parameter to _navigate_from_edge(), allowing LeftPartNavigator to
-            # !!! initiate an ExtendRightNavigator from the place where it left off
-            # !!! without having to re-navigate through the left part prefix.
-            nav.accept(matched, final)
-        # We're done following the prefix for as long as it goes and
-        # as long as the navigator was accepting
-        if j < lenp:
-            # We didn't complete the prefix, so the navigator must no longer
-            # be interested (accepting): we're done
-            return
-        if nav.accepting() and (nextnode is not None):
-            # Gone through the entire edge and still have rack letters left:
-            # continue with the next node
-            self._navigate_from_node(nav, nextnode, matched)
-
     def navigate(self, nav):
         """ A generic function to navigate through the DAWG under
             the control of a navigation object.
@@ -238,15 +186,90 @@ class DawgDictionary:
             nav.done()
             return
         root = self._nodes[0] # Start at the root
+        Navigation(nav).go(root)
+
+
+class Navigation:
+
+    """ Manages the state for a navigation while it is in progress """
+
+    def __init__(self, nav):
+        self._nav = nav
+        # If the navigator has a method called accept_resumable(),
+        # note it and call it with additional state information instead of
+        # plain accept()
+        self._resumable = callable(getattr(nav, "accept_resumable", None))
+
+    def _navigate_from_node(self, node, matched):
+        """ Starting from a given node, navigate outgoing edges """
+        # Go through the edges of this node and follow the ones
+        # okayed by the navigator
+        for prefix, nextnode in node.edges.items():
+            if self._nav.push_edge(prefix[0]):
+                # This edge is a candidate: navigate through it
+                self._navigate_from_edge(prefix, nextnode, matched)
+                if not self._nav.pop_edge():
+                    # Short-circuit and finish the loop if pop_edge() returns False
+                    break
+
+    def _navigate_from_edge(self, prefix, nextnode, matched):
+        """ Navigate along an edge, accepting partial and full matches """
+        # Go along the edge as long as the navigator is accepting
+        lenp = len(prefix)
+        j = 0
+        while j < lenp and self._nav.accepting():
+            # See if the navigator is OK with accepting the current character
+            if not self._nav.accepts(prefix[j]):
+                # Nope: we're done with this edge
+                return
+            # So far, we have a match: add a letter to the matched path
+            matched += prefix[j]
+            j += 1
+            # Check whether the next prefix character is a vertical bar, denoting finality
+            final = False
+            if j < lenp and prefix[j] == u'|':
+                final = True
+                j += 1
+            elif (j >= lenp) and ((nextnode is None) or nextnode.final):
+                # If we're at the final char of the prefix and the next node is final,
+                # set the final flag as well (there is no trailing vertical bar in this case)
+                final = True
+            # Tell the navigator where we are
+            # !!! To consider: adding placement information to the nav.accept() call
+            # !!! including prefix, nextnode and j, as well as an additional startj
+            # !!! parameter to _navigate_from_edge(), allowing LeftPartNavigator to
+            # !!! initiate an ExtendRightNavigator from the place where it left off
+            # !!! without having to re-navigate through the left part prefix.
+            if self._resumable:
+                self._nav.accept_resumable(prefix[j:], nextnode, matched)
+            else:
+                self._nav.accept(matched, final)
+        # We're done following the prefix for as long as it goes and
+        # as long as the navigator was accepting
+        if j < lenp:
+            # We didn't complete the prefix, so the navigator must no longer
+            # be interested (accepting): we're done
+            return
+        if self._nav.accepting() and (nextnode is not None):
+            # Gone through the entire edge and still have rack letters left:
+            # continue with the next node
+            self._navigate_from_node(nextnode, matched)
+
+    def go(self, root):
+        """ Perform the navigation using the given navigator """
         if root is None:
             # No root: no navigation
-            nav.done()
+            self._nav.done()
             return
         # The ship is ready to go
-        if nav.accepting():
+        if self._nav.accepting():
             # Leave shore and navigate the open seas
-            self._navigate_from_node(nav, root, u'')
-        nav.done()
+            self._navigate_from_node(root, u'')
+        self._nav.done()
+
+    def resume(self, prefix, nextnode, matched):
+        """ Resume navigation from a previously saved state """
+        self._navigate_from_edge(prefix, nextnode, matched)
 
 
 class FindNavigator:
