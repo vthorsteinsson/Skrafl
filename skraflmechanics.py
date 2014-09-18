@@ -765,7 +765,7 @@ class Move:
             # Must go through the center square
             center = False
             for c in self._covers:
-                if c.row == Board.SIZE / 2 and c.col == Board.SIZE / 2:
+                if c.row == Board.SIZE // 2 and c.col == Board.SIZE // 2:
                     center = True
                     break
             if not center:
