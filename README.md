@@ -2,8 +2,8 @@
 
 ### English summary
 
-This set of pure Python 2.7 / PyPy 2.3.1 programs and modules implements a dictionary and
-word permutation engine that is the core of an
+This set of pure Python 2.7 & 3.x (CPython and PyPy) compatible programs and modules
+implements a dictionary and word permutation engine that is the core of an
 [Icelandic SCRABBLE(tm) Helper website](http://skraflhjalp.appspot.com).
 
 The web and its engine are helpful for SCRABBLE(tm) players, crossword
