@@ -149,7 +149,8 @@ class Alphabet:
         """ Subtract all letters in b from a, counting each instance separately """
         # Note that this cannot be done with sets, as they fold multiple letter instances into one
         lcount = [a.count(c) - b.count(c) for c in Alphabet.order]
-        return u''.join([Alphabet.order[ix] * lcount[ix] for ix in range(len(lcount)) if lcount > 0])
+        return u''.join([Alphabet.order[ix] * lcount[ix]
+            for ix in range(len(lcount)) if lcount[ix] > 0])
 
     @staticmethod
     def full_bag():
