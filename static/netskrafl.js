@@ -414,6 +414,14 @@
       }
       else
       if (movetype == 'pass') {
+         /* Remove any tiles that have already been placed on the board */
+         $("div.tile").each(function() {
+            var sq = $(this).parent().attr("id");
+            var t = $(this).data("tile");
+            if (t != null && t != undefined && sq.charAt(0) != "R") {
+               placeTile(sq, "", "", 0);
+            }
+         });
          moves.push("pass");
       }
       else

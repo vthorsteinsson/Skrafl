@@ -65,7 +65,7 @@ table.board {
    overflow: hidden;
    text-align: center;
    font-size: 24px;
-   background-color: #afb8bf;
+   background-color: #afb8bf; /* Pantone 7543 U */
    border-style: solid;
    border-color: #f2f2f2;
    border-width: 1px;
@@ -114,13 +114,12 @@ td.rowid {
 #H8, #B2, #C3, #D4, #E5, #B14, #C13, #D12, #E11,
 #K5, #L4, #M3, #N2, #K11, #L12, #M13, #N14 {
    /* Double word score */
-   background-color: #f7d2d8;
+   background-color: #f7d2d8; /* Pantone 698 U */
 }
 
 #A1, #A8, #A15, #H1, #H15, #O1, #O8, #O15 {
    /* Triple word score */
-   /* background-color: #f04455; */
-   background-color: #ee4f68;
+   background-color: #ee4f68; /* Pantone 192 U */
 }
 
 #A4, #A12, #C7, #C9, #D1, #D8, #D15,
@@ -129,17 +128,17 @@ td.rowid {
 #I3, #I7, #I9, #I13,
 #O4, #O12, #M7, #M9, #L1, #L8, #L15 {
    /* Double letter score */
-   background-color: #78aee6;
+   background-color: #78aee6; /* Pantone 284 U */
 }
 
 #B6, #B10, #F2, #F6, #F10, #F14,
 #N6, #N10, #J2, #J6, #J10, #J14 {
    /* Triple letter score */
-   background-color: #006db8;
+   background-color: #006db8; /* Pantone 300 U */
 }
 
 div.tile {
-   background-color: #e4ad87;
+   background-color: #e4ad87; /* Pantone 721 U */
    font-size: 25px;
    line-height: 25px;
    font-weight: 700;
@@ -157,7 +156,7 @@ div.tile {
 
 div.racktile {
    cursor: move;
-   background-color: #fcce43;
+   background-color: #fcce43; /* Pantone 7404 U */
 }
 
 div.blanktile {
@@ -165,8 +164,7 @@ div.blanktile {
 }
 
 div.freshtile {
-   /* background-color: #80CEB4; */
-   background-color: #7ad3b7;
+   background-color: #7ad3b7; /* Pantone 337 U */
 }
 
 div.letterscore {
@@ -187,7 +185,7 @@ div.heading {
    position: relative;
    width: 100%;
    height: 80px;
-   background-color: #afb8bf;
+   background-color: #afb8bf; /* Pantone 7543 U */
    top: 0; left: 0;
    padding-left: 0px;
    padding-right: 0px;
@@ -265,7 +263,7 @@ div.movelist {
    left: 0px;
    height: 424px;
    width: 100%;
-   background-color: #d6d1c4;
+   background-color: #d6d1c4; /* Pantone 7534 U */
    overflow: auto;
    font-size: 15px;
    line-height: 15px;
@@ -286,17 +284,17 @@ div.rightmove {
 div.gameover {
    text-align: center;
    padding: 2px;
-   background-color: #ffa03b;
+   background-color: #ffa03b; /* Pantone 137 U */
    color: white;
    font-weight: 700;
 }
 
 .humancolor {
-   background-color: #fcce43;
+   background-color: #fcce43; /* Pantone 7404 U */
 }
 
 .autoplayercolor {
-   background-color: #7ad3b7;
+   background-color: #7ad3b7; /* Pantone 337 U */
 }
 
 span.score {
@@ -324,7 +322,7 @@ div.container {
    left: 0;
    width: 768px;
    height: 768px;
-   background-color: #FFF1DC;
+   background-color: #FFF1DC; /* Pantone 7506 U */
 }
 
 div.pageheader {
@@ -384,7 +382,7 @@ div.rack {
    text-align: center;
    bottom: 91px;
    left: 172px;
-   background-color: #afb8bf;
+   background-color: #afb8bf; /* Pantone 7543 U */
    padding: 8px;
    border-width: 0;
    border-radius: 4px;
@@ -399,7 +397,7 @@ div.error {
    left: 34px;
    width: 520px;
    height: 28px;
-   background-color: #ee4f68;
+   background-color: #ee4f68; /* Pantone 192 U */
    font-size: 16px;
    font-weight: 700;
    color: white;
@@ -427,7 +425,7 @@ div.resign {
    left: 34px;
    width: 520px;
    height: 28px;
-   background-color: #ee4f68;
+   background-color: #ee4f68; /* Pantone 192 U */
    font-size: 16px;
    font-weight: 700;
    color: white;
@@ -442,7 +440,7 @@ span.yesnobutton {
    background-color: white;
    font-size: 16px;
    font-weight: 700;
-   color: #ee4f68;
+   color: #ee4f68; /* Pantone 192 U */
    margin-top: 0;
    margin-bottom: 0;
    margin-left: 4px;
@@ -462,7 +460,7 @@ div.submitmove {
    text-align: center;
    bottom: 100px;
    left: 446px;
-   background-color: #7ad3b7;
+   background-color: #7ad3b7; /* Pantone 337 U */
    font-size: 18px;
    font-weight: 700;
    color: white;
@@ -479,7 +477,7 @@ div.submitpass {
    text-align: center;
    bottom: 100px;
    left: 74px;
-   background-color: #ffa03b;
+   background-color: #ffa03b; /* Pantone 137 U */
    font-size: 18px;
    font-weight: 700;
    color: white;
@@ -496,7 +494,7 @@ div.submitresign {
    text-align: center;
    bottom: 100px;
    left: 32px;
-   background-color: #ee4f68;
+   background-color: #ee4f68; /* Pantone 192 U */
    font-size: 18px;
    font-weight: 700;
    color: white;
@@ -513,7 +511,7 @@ div.submitexchange {
    text-align: center;
    bottom: 100px;
    left: 116px;
-   background-color: #7ad3b7;
+   background-color: #7ad3b7; /* Pantone 337 U */
    font-size: 18px;
    font-weight: 700;
    color: white;
@@ -588,5 +586,5 @@ div.over {
 }
 
 div.disabled {
-   background-color: #d6d1c4;
+   background-color: #d6d1c4; /* Pantone 7534 U */
 }
