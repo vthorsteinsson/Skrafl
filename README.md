@@ -49,8 +49,9 @@ with or endorsed by the owners or licensees of the SCRABBLE trademark.*
 
 Vefur sem hjálpar skröflurum að finna orð í rekkanum og tengja þau við stafi sem fyrir eru.
 
-Vefurinn er byggður á Python 2.7 og notar [Flask](http://flask.pocoo.org/)
-undirforritasafnið, þar með talið [Jinja2](http://jinja.pocoo.org/) sniðmátakerfið (templates).
+Vefurinn er byggður á Python 2.7 (en keyrir einnig undir Python 3.x) og
+notar [Flask](http://flask.pocoo.org/) undirforritasafnið, þar með talið
+[Jinja2](http://jinja.pocoo.org/) sniðmátakerfið (templates).
 
 Hann notar [Bootstrap](http://getbootstrap.com/) CSS-safnið fyrir viðmót og þægilega aðlögun að
 mismunandi skjám, þ.e. síma, spjaldtölvu eða borðtölvu.
