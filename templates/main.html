@@ -26,7 +26,24 @@
 
 <style>
    .resultword { line-height: 2.20em; }
+   .originalword { cursor: pointer; }
+   .originalword:hover {
+      outline: yellow solid 3px;
+   }
+   input.form-control {
+      height: 40px;
+      font-size: 22px;
+      font-weight: 700;
+   }
 </style>
+
+<script>
+   function updateInput(rack) {
+      rackelem = document.getElementById('rack');
+      rackelem.value = rack.replace(/\s+/g, '');
+      rackelem.focus();
+   }
+</script>
 
 </head>
 <body role="document">

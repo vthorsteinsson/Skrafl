@@ -6,7 +6,7 @@
       <div class="panel panel-success">
          <div class="panel-heading">
             <h3>
-               <span class="label label-success">
+               <span class="label label-success originalword" onclick="updateInput('{{ result.rack() }}')">
 {% if result.is_valid_word(result.rack()) %}
                   <span class="glyphicon glyphicon-ok"></span>&nbsp;
 {% endif %}

@@ -102,7 +102,8 @@ class Game:
     def enum_tiles(self):
         """ Enumerate all tiles on the board in a convenient form """
         for x, y, tile, letter in self.state.board().enum_tiles():
-            yield (u"ABCDEFGHIJKLMNO"[x] + str(y + 1), tile, letter, 0 if tile == u'?' else Alphabet.scores[tile])
+            yield (u"ABCDEFGHIJKLMNO"[x] + str(y + 1), tile, letter,
+                0 if tile == u'?' else Alphabet.scores[tile])
 
     def client_state(self):
         """ Create a package of information for the client about the current state """
