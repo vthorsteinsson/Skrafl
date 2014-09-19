@@ -4,13 +4,13 @@
 
     Author: Vilhjalmur Thorsteinsson, 2014
 
-    This module implements a testing function for the
+    This program implements a testing function for the
     functionality in skraflmechanics.py and skraflplayer.py
 
     Usage: python skrafltester.py
-        [-n number_of_games_to_run, default 4]
-        [-o minimax|autoplayer to choose opponent, default minimax]
-        [-s to run silently, i.e. only with ending summary]
+        [-n number_of_games_to_run (default 4)]
+        [-o minimax|autoplayer (to choose opponent, default minimax)]
+        [-s (to run silently, i.e. only with ending summary)]
 
 """
 
@@ -205,9 +205,6 @@ class Usage(Exception):
 def main(argv=None):
     """ Guido van Rossum's pattern for a Python main function """
 
-    print(u"Welcome to the Skrafl game tester")
-    print(u"Author: Vilhjalmur Thorsteinsson, 2014")
-
     if argv is None:
         argv = sys.argv
     try:
@@ -232,6 +229,9 @@ def main(argv=None):
         # process arguments
         for arg in args:
             pass
+
+        print(u"Welcome to the Skrafl game tester")
+        print(u"Running {0} games against {1}".format(num_games, opponent or u"autoplayer"))
 
         test(num_games, opponent, silent)
 

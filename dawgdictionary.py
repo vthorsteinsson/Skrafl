@@ -235,14 +235,12 @@ class Navigation:
                 # set the final flag as well (there is no trailing vertical bar in this case)
                 final = True
             # Tell the navigator where we are
-            # !!! To consider: adding placement information to the nav.accept() call
-            # !!! including prefix, nextnode and j, as well as an additional startj
-            # !!! parameter to _navigate_from_edge(), allowing LeftPartNavigator to
-            # !!! initiate an ExtendRightNavigator from the place where it left off
-            # !!! without having to re-navigate through the left part prefix.
             if self._resumable:
+                # The navigator wants to know the position in the graph
+                # so that navigation can be resumed later from this spot
                 self._nav.accept_resumable(prefix[j:], nextnode, matched)
             else:
+                # Normal navigator: tell it about the match
                 self._nav.accept(matched, final)
         # We're done following the prefix for as long as it goes and
         # as long as the navigator was accepting

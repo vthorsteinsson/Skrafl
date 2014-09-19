@@ -267,8 +267,6 @@ class Axis:
                     for leftpart, rackleave, prefix, nextnode in lplist:
                         nav = ExtendRightNavigator(self, index, rackleave)
                         Navigation(nav).resume(prefix, nextnode, leftpart)
-            # nav = LeftPartNavigator(self, index, maxleft, self._rack, self._autoplayer)
-            # Manager.word_db().navigate(nav)
 
     def generate_moves(self, lpn):
         """ Find all valid moves on this axis by attempting to place tiles
@@ -770,17 +768,23 @@ class AutoPlayer_MiniMax(AutoPlayer):
         weighted_candidates = []
         min_score = None
 
+        print(u"Looking at {0} top scoring candidate moves".format(NUM_CANDIDATES))
         # Look at the top scoring candidates
         for m, score in scored_candidates[0:NUM_CANDIDATES]:
+
+            print(u"Candidate move {0} with raw score {1}".format(m, score))
 
             # Create a game state where the candidate move has been played
             teststate = State(self._state) # Copy constructor
             teststate.apply_move(m)
 
+            countermoves = list()
+
             if teststate.is_game_over():
                 # This move finishes the game. The opponent then scores nothing
                 # !!! TODO: (and in fact we get her tile score, but leave that aside here)
                 avg_score = 0.0
+                countermoves.append(0)
             else:
                 # Loop over NUM_TEST_RACKS random racks to find the average countermove score
                 sum_score = 0
@@ -798,19 +802,27 @@ class AutoPlayer_MiniMax(AutoPlayer):
                         # Go one level deeper into move generation
                         move = apl._generate_move(depth = depth - 1)
                         # Calculate the score of this random rack based move
+                        # but do not apply it to the teststate
                         sc = teststate.score(move)
+                        if sc > 100:
+                            print(u"Countermove rack '{0}' generated move {1} scoring {2}".format(rack, move, sc))
                         # Cache the score
                         rackscores[rack] = sc
                     sum_score += sc
+                    countermoves.append(sc)
                 # Calculate the average score of the countermoves to this candidate
                 # !!! TODO: Maybe a median score is better than average?
                 avg_score = float(sum_score) / NUM_TEST_RACKS
+
+            print(u"Average score of {0} countermove racks is {1:.2f}".format(NUM_TEST_RACKS, avg_score))
+            print(countermoves)
 
             # Keep track of the lowest countermove score across all candidates as a baseline
             min_score = avg_score if (min_score is None) or (avg_score < min_score) else min_score
             # Keep track of the weighted candidate moves
             weighted_candidates.append((m, score, avg_score))
 
+        print(u"Lowest score of countermove to all evaluated candidates is {0:.2f}".format(min_score))
         # Sort the candidates by the plain score after subtracting the effect of
         # potential countermoves, measured as the countermove score in excess of
         # the lowest countermove score found
