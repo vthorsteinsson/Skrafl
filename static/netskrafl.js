@@ -290,6 +290,23 @@
       return moves;      
    }
 
+   function updateBag(bag) {
+      $("#bag").html("");
+      var lenbag = bag.length;
+      var ix = 0;
+      while (lenbag > 0) {
+         /* Rows */
+         var str = "<tr>";
+         /* Columns: max 13 tiles per row */
+         for (var i = 0; i < 13 && lenbag > 0; i++) {
+            str += "<td>" + bag[ix++] + "</td>";
+            lenbag--;
+         }
+         str += "</tr>";
+         $("#bag").append(str);
+      }
+   }
+
    var GAME_OVER = 13; /* Error code corresponding to the Error class in skraflmechanics.py */
 
    function updateState(json) {
@@ -349,6 +366,9 @@
                appendMove(player, coord, word, score);
             }
          }
+         /* Update the bag */
+         if (json.bag !== undefined)
+            updateBag(json.bag);
          /* Refresh the submit button */
          updateSubmitMove();
          if (json.result == GAME_OVER) {
@@ -487,6 +507,7 @@
       initRackDraggable();
       initDropTargets();
       initMoveList();
+      initBag();
       if (humanPlayer() == 0) {
          $("h3.playerleft").addClass("humancolor");
          $("h3.playerright").addClass("autoplayercolor");

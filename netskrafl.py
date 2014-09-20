@@ -29,7 +29,7 @@ import logging
 import time
 from random import randint
 
-from skraflmechanics import Manager, State, Move, PassMove, ExchangeMove, ResignMove, Error
+from skraflmechanics import Manager, State, Board, Move, PassMove, ExchangeMove, ResignMove, Error
 from skraflplayer import AutoPlayer
 from languages import Alphabet
 
@@ -102,8 +102,15 @@ class Game:
     def enum_tiles(self):
         """ Enumerate all tiles on the board in a convenient form """
         for x, y, tile, letter in self.state.board().enum_tiles():
-            yield (u"ABCDEFGHIJKLMNO"[x] + str(y + 1), tile, letter,
+            yield (Board.ROWIDS[x] + str(y + 1), tile, letter,
                 0 if tile == u'?' else Alphabet.scores[tile])
+
+    BAG_SORT_ORDER = Alphabet.order + u'?'
+
+    def bag(self):
+        """ Returns the bag as it should be displayed, i.e. including the autoplayer's rack """
+        displaybag = self.state.bag().contents() + self.state._racks[1 - self.player_index].contents()
+        return u''.join(sorted(displaybag, key=lambda ch: Game.BAG_SORT_ORDER.index(ch)))
 
     def client_state(self):
         """ Create a package of information for the client about the current state """
@@ -135,6 +142,7 @@ class Game:
             reply["rack"] = self.state.player_rack().details()
             reply["lastmove"] = self.last_move.details()
             reply["newmoves"] = [(player, m.summary(self.state.board())) for player, m in self.moves[-2:]]
+        reply["bag"] = self.bag()
         reply["scores"] = self.state.scores()
         return reply
 

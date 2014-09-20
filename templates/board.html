@@ -21,6 +21,10 @@
 {% endfor %}
    }
 
+   function initBag(bag) {
+      updateBag("{{ game.bag() }}");
+   }
+
    function humanPlayer() {
       /* Identify whether the human player is 0 or 1 */
       return {{ game.player_index }};
@@ -87,6 +91,12 @@
       <td id="R7"></td>
       </tr>
    </table>
+</div>
+
+<!-- The bag -->
+<div class="bag">
+<table id="bag">
+</table>
 </div>
 
 <!-- Move submit button -->
