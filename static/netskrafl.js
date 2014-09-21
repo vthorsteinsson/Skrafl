@@ -1,4 +1,3 @@
-
 /*
    Netskrafl.js
    Client-side script for the Netskrafl server in netskrafl.py
@@ -15,7 +14,7 @@
       }
       if (sq.charAt(0) == "R") {
          /* Placing a tile into the rack */
-         attr = "class='tile racktile' draggable='true'";
+         attr = "class='tile racktile'";
          letter = (tile == "?") ? "&nbsp;" : tile;
       }
       else
@@ -23,15 +22,16 @@
          attr = "class='tile'";
       $("#"+sq).html("<div " + attr + ">" + letter +
          "<div class='letterscore'>" + score + "</div></div>");
+      elem = $("#"+sq).children().eq(0);
       if (sq.charAt(0) == "R") {
          /* Store associated data with rack tiles */
-         $("#"+sq).children().eq(0).data("tile", tile);
-         $("#"+sq).children().eq(0).data("score", score);
+         elem.data("tile", tile);
+         elem.data("score", score);
       }
       else
       if (tile == '?') {
          /* Blank tile used as a letter: use different foreground color */
-         $("#"+sq).children().eq(0).addClass("blanktile");
+         elem.addClass("blanktile");
       }
    }
 
@@ -99,8 +99,9 @@
          movelist.scrollTop(topoffset - height)
    }
 
-   var elementDragged = null;
-   var showingDialog = false;
+   var elementDragged = null; /* The element being dragged with the mouse */
+   var showingDialog = false; /* Is a modal dialog banner being shown? */
+   var exchangeAllowed = true; /* Is an exchange move allowed? */
 
    function handleDragstart(e) {
       /* The dragstart target is the DIV inside a TD */
@@ -120,18 +121,30 @@
 
    function initDraggable(elem) {
       /* The DIVs inside the board TDs are draggable */
+      $(elem).attr("draggable", "true");
       elem.addEventListener('dragstart', handleDragstart);
       elem.addEventListener('dragend', handleDragend);
    }
 
-   function initRackDraggable() {
-      /* Make the seven tiles in the rack draggable */
+   function removeDraggable(elem) {
+      /* The DIVs inside the board TDs are draggable */
+      $(elem).attr("draggable", "false");
+      elem.removeEventListener('dragstart', handleDragstart);
+      elem.removeEventListener('dragend', handleDragend);
+   }
+
+   function initRackDraggable(state) {
+      /* Make the seven tiles in the rack draggable or not, depending on
+         the state parameter */
       for (i = 1; i <= 7; i++) {
          rackTileId = "R" + i.toString();
          rackTile = document.getElementById(rackTileId);
          if (rackTile && rackTile.firstChild)
             /* There is a tile in this rack slot */
-            initDraggable(rackTile.firstChild);
+            if (state)
+               initDraggable(rackTile.firstChild);
+            else
+               removeDraggable(rackTile.firstChild);
       }
    }
 
@@ -181,6 +194,7 @@
    }
 
    function handleDrop(e) {
+      /* A tile is being dropped on a square on the board or into the rack */
       if (e.preventDefault)
          e.preventDefault();
       if (e.stopPropagation)
@@ -220,7 +234,7 @@
             e.target.appendChild(eld);
          }
          elementDragged = null;
-         updateSubmitMove();
+         updateButtonState();
       }
       return false;
    }
@@ -261,17 +275,54 @@
       }
    }
 
-   function updateSubmitMove() {
-      $("div.submitmove").toggleClass("disabled", (findCovers().length == 0 || showingDialog));
+   function updateButtonState() {
+      tilesPlaced = findCovers().length;
+      $("div.submitmove").toggleClass("disabled",
+         (tilesPlaced == 0 || showingDialog));
+      $("div.submitexchange").toggleClass("disabled",
+         (tilesPlaced != 0 || showingDialog || !exchangeAllowed));
+      $("div.submitpass").toggleClass("disabled",
+         (tilesPlaced != 0 || showingDialog));
+      $("div.submitresign").toggleClass("disabled",
+         showingDialog);
+      /* Erase previous error message, if any */
+      $("div.error").css("visibility", "hidden");
    }
 
-   function submitover() {
-      if (!$("div.submitmove").hasClass("disabled") && !showingDialog)
+   function submitOver() {
+      if (!$("div.submitmove").hasClass("disabled"))
          $("div.submitmove").toggleClass("over", true);
    }
 
-   function submitout() {
+   function submitOut() {
       $("div.submitmove").toggleClass("over", false);
+   }
+
+   function passOver() {
+      if (!$("div.submitpass").hasClass("disabled"))
+         $("div.submitpass").toggleClass("over", true);
+   }
+
+   function passOut() {
+      $("div.submitpass").toggleClass("over", false);
+   }
+
+   function exchangeOver() {
+      if (!$("div.submitexchange").hasClass("disabled"))
+         $("div.submitexchange").toggleClass("over", true);
+   }
+
+   function exchangeOut() {
+      $("div.submitexchange").toggleClass("over", false);
+   }
+
+   function resignOver() {
+      if (!$("div.submitresign").hasClass("disabled"))
+         $("div.submitresign").toggleClass("over", true);
+   }
+
+   function resignOut() {
+      $("div.submitresign").toggleClass("over", false);
    }
 
    function findCovers() {
@@ -280,7 +331,7 @@
       $("div.tile").each(function() {
          var sq = $(this).parent().attr("id");
          var t = $(this).data("tile");
-         if (t != null && t != undefined && sq.charAt(0) != "R") {
+         if (t !== null && t !== undefined && sq.charAt(0) != "R") {
             if (t == '?')
                /* Blank tile: add its meaning */
                t += $(this).data("letter");
@@ -291,6 +342,7 @@
    }
 
    function updateBag(bag) {
+      /* Update the bag display in the lower right corner */
       $("#bag").html("");
       var lenbag = bag.length;
       var ix = 0;
@@ -299,7 +351,11 @@
          var str = "<tr>";
          /* Columns: max 13 tiles per row */
          for (var i = 0; i < 13 && lenbag > 0; i++) {
-            str += "<td>" + bag[ix++] + "</td>";
+            var tile = bag[ix++]
+            if (tile == "?")
+               /* Show wildcard tiles '?' as blanks */
+               tile = "&nbsp;";
+            str += "<td>" + tile + "</td>";
             lenbag--;
          }
          str += "</tr>";
@@ -326,18 +382,18 @@
          for (; i < 7; i++)
             placeTile("R" + (i + 1).toString(), "", "", 0);
          if (json.result == 0)
-            initRackDraggable();
+            initRackDraggable(true);
          /* Glue the laid-down tiles to the board */
          $("div.tile").each(function() {
             var sq = $(this).parent().attr("id");
             var t = $(this).data("tile");
             var score = $(this).data("score");
-            if (t != null && t !== undefined && sq.charAt(0) != "R") {
+            if (t !== null && t !== undefined && sq.charAt(0) != "R") {
                var letter = t;
                if (letter == '?') {
                   /* Blank tile: get its meaning */
                   letter = $(this).data("letter");
-                  if (letter == null || letter == undefined)
+                  if (letter === null || letter === undefined)
                      letter = t;
                }
                placeTile(sq, t, letter, score);
@@ -369,8 +425,11 @@
          /* Update the bag */
          if (json.bag !== undefined)
             updateBag(json.bag);
-         /* Refresh the submit button */
-         updateSubmitMove();
+         /* See if an exchange move is still allowed */
+         if (json.xchg !== undefined)
+            exchangeAllowed = json.xchg;
+         /* Enable and disable buttons as required */
+         updateButtonState();
          if (json.result == GAME_OVER) {
             /* Game over: disable Pass, Exchange and Resign buttons */
             $("div.submitpass").toggleClass("disabled", true);
@@ -390,32 +449,72 @@
          submitMove('pass');
    }
 
+   function confirmExchange(yes) {
+      /* The user has either confirmed or cancelled the exchange */
+      $("div.exchange").css("visibility", "hidden");
+      showingDialog = false;
+      updateButtonState();
+      /* Take the rack out of exchange mode */
+      var exch = "";
+      for (i = 1; i <= 7; i++) {
+         rackTileId = "#R" + i.toString();
+         rackTile = $(rackTileId).children().eq(0)
+         if (rackTile) {
+            /* There is a tile in this rack slot */
+            if (rackTile.hasClass("xchgsel")) {
+               exch += rackTile.data("tile");
+               rackTile.removeClass("xchgsel");
+            }
+            /* Stop listening to clicks */
+            rackTile.removeClass("xchg").off("click.xchg");
+         }
+      }
+      initRackDraggable(true);
+      if (yes) {
+         submitMove('exch=' + exch);
+      }
+   }
+
    function submitExchange() {
-      if (!$("div.submitexchange").hasClass("disabled"))
-         submitMove('exch');
+      /* The user has clicked the exchange button: show exchange banner */
+      if (!$("div.submitexchange").hasClass("disabled")) {
+         $("div.exchange").css("visibility", "visible");
+         showingDialog = true;
+         updateButtonState();
+         initRackDraggable(false);
+         /* Disable all other actions while panel is shown */
+         /* Put the rack in exchange mode */
+         for (i = 1; i <= 7; i++) {
+            rackTileId = "#R" + i.toString();
+            rackTile = $(rackTileId).children().eq(0)
+            if (rackTile)
+               /* There is a tile in this rack slot: mark it as
+                  exchangeable and attack a click handler to it */
+               rackTile.addClass("xchg").on("click.xchg", function (e) {
+                  $(this).toggleClass("xchgsel");
+               });
+         }
+      }
    }
 
    function confirmResign(yes) {
+      /* The user has either confirmed or cancelled the resignation */
       $("div.resign").css("visibility", "hidden");
       showingDialog = false;
-      $("div.submitpass").toggleClass("disabled", false);
-      $("div.submitresign").toggleClass("disabled", false);
-      $("div.submitexchange").toggleClass("disabled", false);
-      updateSubmitMove();
+      initRackDraggable(true);
+      updateButtonState();
       if (yes)
          submitMove('rsgn');
    }
 
    function submitResign() {
+      /* The user has clicked the resign button: show resignation banner */
       if (!$("div.submitresign").hasClass("disabled")) {
-         /* Show the yes/no panel */
          $("div.resign").css("visibility", "visible");
          showingDialog = true;
+         initRackDraggable(false);
          /* Disable all other actions while panel is shown */
-         $("div.submitpass").toggleClass("disabled", true);
-         $("div.submitresign").toggleClass("disabled", true);
-         $("div.submitexchange").toggleClass("disabled", true);
-         $("div.submitmove").toggleClass("disabled", true);
+         updateButtonState();
       }
    }
 
@@ -427,7 +526,7 @@
             processing a previous Ajax call. */
          return;
       var moves = [];
-      if (movetype == null || movetype == 'move') {
+      if (movetype === null || movetype == 'move') {
          if ($("div.submitmove").hasClass("disabled"))
             return;
          moves = findCovers();
@@ -438,18 +537,20 @@
          $("div.tile").each(function() {
             var sq = $(this).parent().attr("id");
             var t = $(this).data("tile");
-            if (t != null && t != undefined && sq.charAt(0) != "R") {
+            if (t !== null && t !== undefined && sq.charAt(0) != "R") {
                placeTile(sq, "", "", 0);
             }
          });
          moves.push("pass");
       }
       else
-      if (movetype == 'exch') {
-         moves.push("exch=" + exchangeTiles());
+      if (movetype.indexOf('exch=') == 0) {
+         /* Exchange move */
+         moves.push(movetype);
       }
       else
       if (movetype == 'rsgn') {
+         /* Resigning from game */
          moves.push("rsgn");
       }
       if (moves.length == 0)
@@ -459,7 +560,7 @@
       /* Freshly laid tiles are no longer fresh */
       $("div.freshtile").removeClass("freshtile");
       /* Remove highlight from button */
-      submitout();
+      submitOut();
       /* Show a temporary animated GIF while the Ajax call is being processed */
       submitTemp = $("div.submitmove").html();
       $("div.submitmove").html("<img src='static/ajax-loader.gif' border=0/>");
@@ -503,8 +604,9 @@
    }
 
    function initSkrafl(jQuery) {
+      /* Called when the page is displayed or refreshed */
       placeTiles();
-      initRackDraggable();
+      initRackDraggable(true);
       initDropTargets();
       initMoveList();
       initBag();
@@ -516,6 +618,7 @@
          $("h3.playerright").addClass("humancolor");
          $("h3.playerleft").addClass("autoplayercolor");
       }
+      updateButtonState();
    }
 
 

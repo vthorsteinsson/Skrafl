@@ -42,6 +42,12 @@
 .glyphicon-fire:before {
   content: "\e104";
 }
+.glyphicon-ok:before {
+  content: "\e013";
+}
+.glyphicon-remove:before {
+  content: "\e014";
+}
 
 body {
    font-family: 'Open Sans', 'Helvetica Neue', 'Arial', sans-serif;
@@ -157,6 +163,15 @@ div.tile {
 div.racktile {
    cursor: move;
    background-color: #fcce43; /* Pantone 7404 U */
+}
+
+div.xchg {
+   cursor: pointer;
+}
+
+div.xchgsel {
+   color: #e0e0e0;
+   background-color: #ee4f68; /* Pantone 192 U */
 }
 
 div.blanktile {
@@ -397,7 +412,7 @@ div.bag {
    height: 160px;
    /* background-color: #d6d1c4; */ /* Pantone 7534 U */
    font-size: 11px;
-   font-weight: 400;
+   font-weight: 700;
    text-transform: uppercase;
    text-align: center;
    margin: 0;
@@ -478,6 +493,27 @@ span.yesnobutton {
    padding-right: 12px;
    border-radius: 4px;
    cursor: pointer;
+}
+
+span.xchgbtn {
+   color: #7ad3b7; /* Pantone 337 U */
+}
+
+div.exchange {
+   position: absolute;
+   text-align: center;
+   display: block;
+   bottom: 40px;
+   left: 34px;
+   width: 512px;
+   height: 28px;
+   background-color: #7ad3b7; /* Pantone 337 U */
+   font-size: 16px;
+   font-weight: 700;
+   color: white;
+   margin: 0;
+   padding-top: 4px;
+   visibility: hidden;
 }
 
 div.submitmove {

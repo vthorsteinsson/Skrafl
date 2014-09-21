@@ -107,7 +107,7 @@ class Game:
 
     BAG_SORT_ORDER = Alphabet.order + u'?'
 
-    def bag(self):
+    def display_bag(self):
         """ Returns the bag as it should be displayed, i.e. including the autoplayer's rack """
         displaybag = self.state.bag().contents() + self.state._racks[1 - self.player_index].contents()
         return u''.join(sorted(displaybag, key=lambda ch: Game.BAG_SORT_ORDER.index(ch)))
@@ -137,12 +137,15 @@ class Game:
             # Add a synthetic "game over" move
             newmoves.append((1 - lastplayer, (u"", u"OVER", 0)))
             reply["newmoves"] = newmoves
+            reply["bag"] = "" # Bag is now empty, by definition
+            reply["xchg"] = False # Exchange move not allowed
         else:
             reply["result"] = 0 # Indicate no error
             reply["rack"] = self.state.player_rack().details()
             reply["lastmove"] = self.last_move.details()
             reply["newmoves"] = [(player, m.summary(self.state.board())) for player, m in self.moves[-2:]]
-        reply["bag"] = self.bag()
+            reply["bag"] = self.display_bag()
+            reply["xchg"] = self.state.is_exchange_allowed()
         reply["scores"] = self.state.scores()
         return reply
 
@@ -167,9 +170,9 @@ def _process_move(movelist):
                 # Pass move
                 m = PassMove()
                 break
-            if mstr[0:4] == u"exch":
+            if mstr[0:5] == u"exch=":
                 # Exchange move
-                # !!! TBD !!!
+                m = ExchangeMove(mstr[5:])
                 break
             if mstr == u"rsgn":
                 # Resign from game, forfeiting all points

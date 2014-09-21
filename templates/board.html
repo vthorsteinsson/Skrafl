@@ -22,7 +22,10 @@
    }
 
    function initBag(bag) {
-      updateBag("{{ game.bag() }}");
+      updateBag("{{ game.display_bag() }}");
+{% if not game.state.is_exchange_allowed() %}
+      exchangeAllowed = false;
+{% endif %}      
    }
 
    function humanPlayer() {
@@ -94,26 +97,26 @@
 </div>
 
 <!-- The bag -->
-<div class="bag">
+<div class="bag" title="Flísar sem eftir eru í pokanum">
 <table id="bag">
 </table>
 </div>
 
 <!-- Move submit button -->
-<div class="submitmove disabled" onmouseover="submitover()"
-   onmouseout="submitout()" onclick="submitMove('move')">Leika <span class="glyphicon glyphicon-play"></span></div>
+<div class="submitmove disabled" onmouseover="submitOver()"
+   onmouseout="submitOut()" onclick="submitMove('move')">Leika <span class="glyphicon glyphicon-play"></span></div>
 
 <!-- Pass button -->
-<div class="submitpass" title="Pass" onmouseover="this.classList.add('over')"
-   onmouseout="this.classList.remove('over')" onclick="submitPass()"><span class="glyphicon glyphicon-forward"></span></div>
+<div class="submitpass" title="Pass" onmouseover="passOver()"
+   onmouseout="passOut()" onclick="submitPass()"><span class="glyphicon glyphicon-forward"></span></div>
 
 <!-- Exchange button -->
-<div class="submitexchange" title="Skipta stöfum" onmouseover="this.classList.add('over')"
-   onmouseout="this.classList.remove('over')" onclick="submitExchange()"><span class="glyphicon glyphicon-refresh"></span></div>
+<div class="submitexchange" title="Skipta stöfum" onmouseover="exchangeOver()"
+   onmouseout="exchangeOut()" onclick="submitExchange()"><span class="glyphicon glyphicon-refresh"></span></div>
 
 <!-- Resign button -->
-<div class="submitresign" title="Gefa leik" onmouseover="this.classList.add('over')"
-   onmouseout="this.classList.remove('over')" onclick="submitResign()"><span class="glyphicon glyphicon-fire"></span></div>
+<div class="submitresign" title="Gefa leik" onmouseover="resignOver()"
+   onmouseout="resignOut()" onclick="submitResign()"><span class="glyphicon glyphicon-fire"></span></div>
 
 <!-- Error message, normally hidden -->
 <div class="error"><span class="glyphicon glyphicon-exclamation-sign"></span>
@@ -137,6 +140,13 @@
    &nbsp;Viltu gefa leikinn?&nbsp;
    <span class="yesnobutton" onclick="confirmResign(true)">Já</span>
    <span class="yesnobutton" onclick="confirmResign(false)">Nei</span>
+</div>
+
+<!-- Exchange tiles -->
+<div class="exchange"><span class="glyphicon glyphicon-refresh"></span>
+   &nbsp;Smelltu á flísarnar sem þú vilt skipta&nbsp;
+   <span class="yesnobutton xchgbtn" title="Skipta" onclick="confirmExchange(true)"><span class="glyphicon glyphicon-ok"></span></span>
+   <span class="yesnobutton xchgbtn" title="Hætta við" onclick="confirmExchange(false)"><span class="glyphicon glyphicon-remove"></span></span>
 </div>
 
 {% endblock %}
