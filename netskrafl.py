@@ -21,17 +21,20 @@
 
 """
 
-from flask import Flask
-from flask import render_template, redirect, jsonify
-from flask import request, session, url_for
-
 import logging
 import time
 from random import randint
 
+from flask import Flask
+from flask import render_template, redirect, jsonify
+from flask import request, session, url_for
+
+from google.appengine.api import users
+
 from skraflmechanics import Manager, State, Board, Move, PassMove, ExchangeMove, ResignMove, Error
 from skraflplayer import AutoPlayer
 from languages import Alphabet
+import skrafldb
 
 
 # Standard Flask initialization
@@ -42,9 +45,66 @@ app.secret_key = '\x03\\_,i\xfc\xaf=:L\xce\x9b\xc8z\xf8l\x000\x84\x11\xe1\xe6\xb
 
 manager = Manager()
 
-# The current game state for different users
-# !!! TODO: This will be stored persistently in the App Engine datastore
-games = dict()
+
+class User:
+
+    """ Information about a human user including nickname and preferences """
+
+    def __init__(self):
+        u = users.get_current_user()
+        if u is None:
+            self._user_id = None
+        else:
+            self._user_id = u.user_id()
+        self._nickname = u.nickname() # Default
+        self._inactive = False
+        self._preferences = { }
+
+    # The users that have been authenticated in this session
+    _cache = dict()
+
+    def fetch(self):
+        u = skrafldb.User.fetch(self._user_id)
+        if u is None:
+            skrafldb.User.create(self._user_id, self.nickname())
+            # Use the default properties for a newly created user
+            return
+        self._nickname = u.nickname
+        self._inactive = u.inactive
+
+    def update(self):
+        skrafldb.User.update(self._user_id, self._nickname, self._inactive)
+
+    def id(self):
+        return self._user_id
+
+    def nickname(self):
+        return self._nickname or self._user_id
+
+    def set_nickname(self, nickname):
+        self._nickname = nickname
+
+    def logout_url(self):
+        return users.create_logout_url("/")
+
+    @classmethod
+    def current(cls):
+        user = users.get_current_user()
+        if user is None:
+            return None
+        if user.user_id() in User._cache:
+            return User._cache[user.user_id()]
+        u = User()
+        u.fetch()
+        User._cache[u.id()] = u
+        return u
+
+    @classmethod
+    def current_nickname(cls):
+        u = cls.current()
+        if u is None:
+            return None
+        return u.nickname()
 
 
 class Game:
@@ -65,18 +125,45 @@ class Game:
         # History of moves in this game so far
         self.moves = []
 
-    def start_new(self, username):
+    # The current game state for different users
+    # !!! TODO: This will be stored persistently in the App Engine datastore
+    _cache = dict()
+
+    @classmethod
+    def current(cls):
+        """ Obtain the current game state """
+        user = User.current()
+        user_id = None if user is None else user.id()
+        if not user_id or user_id not in Game._cache:
+            # No game state found
+            return None
+        # Fetch the game state
+        # !!! TODO: Will fetch from persistent state
+        return Game._cache[user_id]
+
+    @classmethod
+    def new(cls, username):
         """ Start and initialize a new game """
-        self.username = username
-        self.state = State()
-        self.player_index = randint(0, 1)
-        self.state.set_player_name(self.player_index, username)
-        self.state.set_player_name(1 - self.player_index, u"Netskrafl")
+        game = cls()
+        game.username = username
+        game.state = State()
+        game.player_index = randint(0, 1)
+        game.state.set_player_name(game.player_index, username)
+        game.state.set_player_name(1 - game.player_index, u"Netskrafl")
         # If AutoPlayer is first to move, generate the first move
-        if self.player_index == 1:
-            self.autoplayer_move()
+        if game.player_index == 1:
+            game.autoplayer_move()
+        user = User.current()
+        if user is not None:
+            Game._cache[user.id()] = game
+        return game
+
+    def set_human_name(self, nickname):
+        """ Set the nickname of the human player """
+        self.state.set_player_name(self.player_index, nickname)
 
     def resign(self):
+        """ The human player is resigning the game """
         self.resigned = True
 
     def autoplayer_move(self):
@@ -155,12 +242,11 @@ def _process_move(movelist):
         Returns True if OK or False if the move was illegal
     """
 
-    username = session['username']
-    if not username or username not in games:
-        return jsonify(result=Error.NULL_MOVE)
+    game = Game.current()
 
-    # Fetch the game state
-    game = games[username]
+    if game is None:
+        # !!! TODO: more informative error message about relogging in
+        return jsonify(result=Error.NULL_MOVE)
 
     # Parse the move from the movestring we got back
     m = Move(u'', 0, 0)
@@ -233,6 +319,32 @@ def submitmove():
     return _process_move(movelist)
 
 
+@app.route("/userprefs", methods=['GET', 'POST'])
+def userprefs():
+    """ Handler for the user preferences page """
+
+    user = User.current()
+    if user is None:
+        # User hasn't logged in yet: redirect to login page
+        return redirect(users.create_login_url("/userprefs"))
+
+    if request.method == 'POST':
+        try:
+            # Funny string addition below ensures that username is
+            # a Unicode string under both Python 2 and 3
+            nickname = u'' + request.form['nickname'].strip()
+        except:
+            nickname = u''
+        if nickname:
+            user.set_nickname(nickname)
+            user.update()
+            game = Game.current()
+            if game is not None:
+                game.set_human_name(nickname)
+            return redirect(url_for("main"))
+    return render_template("userprefs.html", user = user)
+
+
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     """ Handler for the user login page """
@@ -263,25 +375,23 @@ def logout():
 def main():
     """ Handler for the main (index) page """
 
-    if 'username' not in session:
+    user = User.current()
+    # if 'username' not in session:
+    #    return redirect(url_for("login"))
+    if user is None:
         # User hasn't logged in yet: redirect to login page
-        return redirect(url_for("login"))
+        return redirect(users.create_login_url("/"))
 
-    game = None
-    username = session['username']
-    if username in games:
-        game = games[username]
-        if game.state.is_game_over():
-            # Trigger creation of a new game if the previous one was finished
-            game = None
+    game = Game.current()
+    if game is not None and game.state.is_game_over():
+        # Trigger creation of a new game if the previous one was finished
+        game = None
 
     if game is None:
         # Create a fresh game for this user
-        game = Game()
-        game.start_new(username)
-        games[username] = game
+        game = Game.new(user.nickname())
 
-    return render_template("board.html", game = game)
+    return render_template("board.html", game = game, user = user)
 
 
 @app.route("/help/")
