@@ -290,6 +290,18 @@ def help():
     return render_template("help.html")
 
 
+@app.errorhandler(404)
+def page_not_found(e):
+    """ Return a custom 404 error """
+    return u'Sorry, nothing at this URL', 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    """ Return a custom 500 error """
+    return u'Sorry, unexpected error: {}'.format(e), 500
+
+
 # Run a default Flask web server for testing if invoked directly as a main program
 
 if __name__ == "__main__":
