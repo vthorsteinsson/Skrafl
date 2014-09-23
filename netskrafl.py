@@ -34,7 +34,7 @@ from google.appengine.api import users
 from skraflmechanics import Manager, State, Board, Move, PassMove, ExchangeMove, ResignMove, Error
 from skraflplayer import AutoPlayer
 from languages import Alphabet
-from skrafldb import UserModel, GameModel, MoveModel, CoverModel
+from skrafldb import UserModel, GameModel, MoveModel
 
 
 # Standard Flask initialization
@@ -176,19 +176,10 @@ class Game:
         movelist = []
         for player, m in self.moves:
             mm = MoveModel()
-            coord, word, score = m.summary(self.state.board())
+            coord, tiles, score = m.summary(self.state.board())
             mm.coord = coord
-            mm.word = word
+            mm.tiles = tiles
             mm.score = score
-            covlist = []
-            for coord, tile, letter, score in m.details():
-                cm = CoverModel()
-                cm.coord = coord
-                cm.tile = tile
-                cm.letter = letter
-                cm.score = score
-                covlist.append(cm)
-            mm.covers = covlist
             movelist.append(mm)
         gm.moves = movelist
         gm.put()

@@ -511,6 +511,7 @@ class ExtendRightNavigator:
             # Fetch the rack as it was at the beginning of move generation
             autoplayer = self._axis._autoplayer
             rack = autoplayer.rack()
+            tiles = u''
             for c in matched:
                 if self._axis.is_empty(ix):
                     # Empty square that is being covered by this move
@@ -518,17 +519,23 @@ class ExtendRightNavigator:
                     if c in rack:
                         rack = rack.replace(c, u'', 1)
                         tile = c
+                        tiles += c
                     else:
                         # Must be a wildcard match
                         rack = rack.replace(u'?', u'', 1)
                         tile = u'?'
+                        tiles += tile + c
                     assert row in range(Board.SIZE)
                     assert col in range(Board.SIZE)
                     # Add this cover to the Move object
                     move.add_validated_cover(Cover(row, col, tile, c))
+                else:
+                    tiles += c
                 ix += 1
                 row += xd
                 col += yd
+            # Note the tiles played in the move
+            move.set_tiles(tiles)
             # Check that we've picked off the correct number of tiles
             assert len(rack) == len(self._rack)
             autoplayer.add_candidate(move)

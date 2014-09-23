@@ -35,29 +35,29 @@
       }
    }
 
-   function appendMove(player, coord, word, score) {
+   function appendMove(player, coord, tiles, score) {
       /* Add a move to the move history list */
       wrdclass = "wordmove";
       if (coord == "") {
          /* Not a regular tile move */
          wrdclass = "othermove";
-         if (word == "PASS")
+         if (tiles == "PASS")
             /* Pass move */
-            word = "Pass";
+            tiles = "Pass";
          else
-         if (word.indexOf("EXCH") == 0) {
+         if (tiles.indexOf("EXCH") == 0) {
             /* Exchange move */
-            numtiles = parseInt(word.slice(5));
-            word = "Skipti um " + numtiles.toString() + (numtiles == 1 ? " staf" : " stafi");
+            numtiles = parseInt(tiles.slice(5));
+            tiles = "Skipti um " + numtiles.toString() + (numtiles == 1 ? " staf" : " stafi");
          }
          else
-         if (word == "RSGN")
+         if (tiles == "RSGN")
             /* Resigned from game */
-            word = "Gaf leikinn";
+            tiles = "Gaf leikinn";
          else
-         if (word == "OVER") {
+         if (tiles == "OVER") {
             /* Game over */
-            word = "Leik lokið";
+            tiles = "Leik lokið";
             wrdclass = "gameover";
          }
          else
@@ -65,20 +65,22 @@
                and thus cannot be confused with the above abbreviations) */
             wrdclass = "wordmove";
       }
-      else
+      else {
          coord = "(" + coord + ")";
+         tiles = tiles.replace("?", ""); /* !!! TODO: Display wildcard characters differently? */
+      }
       if (wrdclass == "gameover") {
-         str = '<div class="gameover">' + word + '</div>';
+         str = '<div class="gameover">' + tiles + '</div>';
       }
       else
       if (player == 0) {
          /* Left side player */
          str = '<div class="leftmove"><span class="score">' + score + '</span>' +
-            '<span class="' + wrdclass + '"><i>' + word + '</i> ' + coord + '</span></div>';
+            '<span class="' + wrdclass + '"><i>' + tiles + '</i> ' + coord + '</span></div>';
       }
       else {
          /* Right side player */
-         str = '<div class="rightmove"><span class="' + wrdclass + '">' + coord + ' <i>' + word + '</i></span>' +
+         str = '<div class="rightmove"><span class="' + wrdclass + '">' + coord + ' <i>' + tiles + '</i></span>' +
             '<span class="score">' + score + '</span></div>';
       }
       movelist = $("div.movelist");
@@ -417,9 +419,9 @@
             for (i = 0; i < json.newmoves.length; i++) {
                player = json.newmoves[i][0];
                coord = json.newmoves[i][1][0];
-               word = json.newmoves[i][1][1];
+               tiles = json.newmoves[i][1][1];
                score = json.newmoves[i][1][2];
-               appendMove(player, coord, word, score);
+               appendMove(player, coord, tiles, score);
             }
          }
          /* Update the bag */

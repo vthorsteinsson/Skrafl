@@ -98,22 +98,12 @@ class UserModel(ndb.Model):
 #         return User.get_by_id(uuid)
 
 
-class CoverModel(ndb.Model):
-    """ Models a square being covered in a Move """
-
-    coord = ndb.StringProperty(required = True)
-    tile = ndb.StringProperty(required = True)
-    letter = ndb.StringProperty()
-    score = ndb.IntegerProperty()
-
-
 class MoveModel(ndb.Model):
     """ Models a single move in a Game """
 
     coord = ndb.StringProperty()
-    word = ndb.StringProperty()
+    tiles = ndb.StringProperty()
     score = ndb.IntegerProperty(default = 0)
-    covers = ndb.LocalStructuredProperty(CoverModel, repeated = True)
 
 
 class GameModel(ndb.Model):

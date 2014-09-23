@@ -576,6 +576,8 @@ class Move:
         self._numletters = 0 if word is None else len(word)
         # The word formed
         self._word = word
+        # The tiles used to form the word. '?' tiles are followed by the letter they represent.
+        self._tiles = None
         # Starting row and column of word formed
         self._row = row
         self._col = col
@@ -583,6 +585,10 @@ class Move:
         self._horizontal = horiz
         # Cached score of this move
         self._score = None
+
+    def set_tiles(self, tiles):
+        """ Set the tiles string once it is known """
+        self._tiles = tiles
 
     def num_covers(self):
         """ Number of empty squares covered by this move """
@@ -596,8 +602,8 @@ class Move:
             for c in self._covers]
 
     def summary(self, board):
-        """ Return a summary of the move, as a tuple: (coordinate, word, score) """
-        return (self.short_coordinate(), self._word, self.score(board))
+        """ Return a summary of the move, as a tuple: (coordinate, tiles, score) """
+        return (self.short_coordinate(), self._tiles, self.score(board))
 
     def short_coordinate(self):
         """ Return the coordinate of the move in 'Scrabble notation',
@@ -735,26 +741,41 @@ class Move:
                 row += 1
             # Now we know the length
             self._numletters = row - self._row + 1
+
         # Assemble the resulting word
         self._word = u''
+        self._tiles = u''
         cix = 0
+
         for ix in range(self._numletters):
+
+            def add(cix):
+                ltr = self._covers[cix].letter
+                tile = self._covers[cix].tile
+                self._word += ltr
+                self._tiles += tile + (ltr if tile == u'?' else u'')
+
             if horiz:
                 if cix < len(self._covers) and self._col + ix == self._covers[cix].col:
                     # This is one of the new letters
-                    self._word += self._covers[cix].letter
+                    add(cix)
                     cix += 1
                 else:
                     # This is a letter that was already on the board
-                    self._word += board.letter_at(self._row, self._col + ix)
+                    ltr = board.letter_at(self._row, self._col + ix)
+                    self._word += ltr
+                    self._tiles += ltr
             else:
                 if cix < len(self._covers) and self._row + ix == self._covers[cix].row:
                     # This is one of the new letters
-                    self._word += self._covers[cix].letter
+                    add(cix)
                     cix += 1
                 else:
                     # This is a letter that was already on the board
-                    self._word += board.letter_at(self._row + ix, self._col)
+                    ltr = board.letter_at(self._row + ix, self._col)
+                    self._word += ltr
+                    self._tiles += ltr
+
         # Check whether the word is in the dictionary
         if self._word not in Manager.word_db():
             # print(u"Word '{0}' not found in dictionary".format(self._word))
@@ -862,7 +883,7 @@ class ExchangeMove:
         self._tiles = tiles
 
     def __str__(self):
-        """ Return the standard move notation of a coordinate followed by the word formed """
+        """ Return a readable description of the move """
         return u"Exchanged {0}".format(len(self._tiles))
 
     def check_legality(self, state):
