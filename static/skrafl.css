@@ -170,7 +170,7 @@ div.xchg {
 }
 
 div.xchgsel {
-   color: #e0e0e0;
+   color: white;
    background-color: #ee4f68; /* Pantone 192 U */
 }
 
@@ -638,10 +638,10 @@ button.login {
    padding-bottom: 4px;
    padding-left: 8px;
    padding-right: 8px;
-   cursor: default;
+   cursor: pointer;
 }
 
-button.login:focus {
+button.login:focus, button.login:hover {
    outline: yellow solid 3px;
    background-color: #55cc66;
 }

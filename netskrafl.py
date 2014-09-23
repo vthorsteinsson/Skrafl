@@ -34,7 +34,7 @@ from google.appengine.api import users
 from skraflmechanics import Manager, State, Board, Move, PassMove, ExchangeMove, ResignMove, Error
 from skraflplayer import AutoPlayer
 from languages import Alphabet
-import skrafldb
+from skrafldb import UserModel, GameModel, MoveModel, CoverModel
 
 
 # Standard Flask initialization
@@ -64,16 +64,17 @@ class User:
     _cache = dict()
 
     def fetch(self):
-        u = skrafldb.User.fetch(self._user_id)
+        u = UserModel.fetch(self._user_id)
         if u is None:
-            skrafldb.User.create(self._user_id, self.nickname())
+            UserModel.create(self._user_id, self.nickname())
             # Use the default properties for a newly created user
             return
         self._nickname = u.nickname
         self._inactive = u.inactive
+        self._preferences = u.prefs
 
     def update(self):
-        skrafldb.User.update(self._user_id, self._nickname, self._inactive)
+        UserModel.update(self._user_id, self._nickname, self._inactive, self._preferences)
 
     def id(self):
         return self._user_id
@@ -94,7 +95,7 @@ class User:
             return None
         if user.user_id() in User._cache:
             return User._cache[user.user_id()]
-        u = User()
+        u = cls()
         u.fetch()
         User._cache[u.id()] = u
         return u
@@ -150,13 +151,47 @@ class Game:
         game.player_index = randint(0, 1)
         game.state.set_player_name(game.player_index, username)
         game.state.set_player_name(1 - game.player_index, u"Netskrafl")
-        # If AutoPlayer is first to move, generate the first move
-        if game.player_index == 1:
-            game.autoplayer_move()
+        # Cache the game so it can be looked up by user id
         user = User.current()
         if user is not None:
             Game._cache[user.id()] = game
+        # If AutoPlayer is first to move, generate the first move
+        if game.player_index == 1:
+            game.autoplayer_move()
+        # Store the new game in persistent storage
+        game._store_db(user.id())
         return game
+
+    def _store_db(self, user_id):
+        """ Store the game state in persistent storage """
+        gm = GameModel()
+        gm.set_player(self.player_index, user_id)
+        gm.set_player(1 - self.player_index, None)
+        gm.rack0 = self.state._racks[0].contents()
+        gm.rack1 = self.state._racks[1].contents()
+        gm.score0 = self.state._scores[0]
+        gm.score1 = self.state._scores[1]
+        gm.to_move = len(self.moves) % 2
+        gm.over = self.state.is_game_over()
+        movelist = []
+        for player, m in self.moves:
+            mm = MoveModel()
+            coord, word, score = m.summary(self.state.board())
+            mm.coord = coord
+            mm.word = word
+            mm.score = score
+            covlist = []
+            for coord, tile, letter, score in m.details():
+                cm = CoverModel()
+                cm.coord = coord
+                cm.tile = tile
+                cm.letter = letter
+                cm.score = score
+                covlist.append(cm)
+            mm.covers = covlist
+            movelist.append(mm)
+        gm.moves = movelist
+        gm.put()
 
     def set_human_name(self, nickname):
         """ Set the nickname of the human player """

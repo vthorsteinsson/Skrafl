@@ -37,15 +37,16 @@ class Unique:
     @classmethod
     def id(cls):
         """ Generates unique id strings """
-        return uuid.uuid1() # Random UUID
+        return str(uuid.uuid1()) # Random UUID
 
 
-class User(ndb.Model):
+class UserModel(ndb.Model):
 
     """ Models an individual user """
 
     nickname = ndb.StringProperty()
     inactive = ndb.BooleanProperty()
+    prefs = ndb.JsonProperty()
     timestamp = ndb.DateTimeProperty(auto_now_add = True)
 
     @classmethod
@@ -54,13 +55,15 @@ class User(ndb.Model):
         user = cls(id = user_id)
         user.nickname = nickname # Default to the same nickname
         user.inactive = False # A new user is always active
+        user.prefs = { }
         return user.put().id()
 
     @classmethod
-    def update(cls, user_id, nickname, inactive):
+    def update(cls, user_id, nickname, inactive, prefs):
         user = cls.fetch(user_id)
         user.nickname = nickname
         user.inactive = inactive
+        user.prefs = prefs
         user.put()
 
     @classmethod
@@ -93,29 +96,59 @@ class User(ndb.Model):
 #     @classmethod
 #     def fetch_game(cls, game):
 #         return User.get_by_id(uuid)
-# 
-# 
-# class Cover(ndb.Model):
-#     """ Models a square being covered in a Move """
-# 
-#     coord = ndb.StringProperty(required = True)
-#     tile = ndb.StringProperty(required = True)
-#     letter = ndb.StringProperty(required = True)
-# 
-# 
-# class Move(ndb.Model):
-#     """ Models a single move in a Game """
-# 
-#     kind = ndb.StringProperty(required = True)
-#     covers = ndb.LocalStructuredProperty(Cover, repeated = True)
-#     score = ndb.IntegerProperty(default = 0)
-# 
-# 
-# class Game(ndb.Model):
-#     """ Models a game between two users """
-# 
-#     match = ndb.KeyProperty(kind = Match)
-#     completed = ndb.BooleanProperty()
-#     timestamp = ndb.DateTimeProperty(auto_now_add = True)
-#     moves = ndb.StructuredProperty(Move, repeated = True)
-# 
+
+
+class CoverModel(ndb.Model):
+    """ Models a square being covered in a Move """
+
+    coord = ndb.StringProperty(required = True)
+    tile = ndb.StringProperty(required = True)
+    letter = ndb.StringProperty()
+    score = ndb.IntegerProperty()
+
+
+class MoveModel(ndb.Model):
+    """ Models a single move in a Game """
+
+    coord = ndb.StringProperty()
+    word = ndb.StringProperty()
+    score = ndb.IntegerProperty(default = 0)
+    covers = ndb.LocalStructuredProperty(CoverModel, repeated = True)
+
+
+class GameModel(ndb.Model):
+    """ Models a game between two users """
+
+    # The players
+    player0 = ndb.KeyProperty(kind = UserModel)
+    player1 = ndb.KeyProperty(kind = UserModel)
+
+    # The racks
+    rack0 = ndb.StringProperty()
+    rack1 = ndb.StringProperty()
+
+    # The scores
+    score0 = ndb.IntegerProperty()
+    score1 = ndb.IntegerProperty()
+
+    # Whose turn is it next, 0 or 1?
+    to_move = ndb.IntegerProperty()
+
+    # Is this game over?
+    over = ndb.BooleanProperty()
+
+    # When was the game started?
+    timestamp = ndb.DateTimeProperty(auto_now_add = True)
+
+    # The moves so far
+    moves = ndb.LocalStructuredProperty(MoveModel, repeated = True)
+
+    def __init__(self):
+        ndb.Model.__init__(self, id = Unique.id())
+
+    def set_player(self, ix, user_id):
+        k = None if user_id is None else ndb.Key(UserModel, user_id)
+        if ix == 0:
+            self.player0 = k
+        elif ix == 1:
+            self.player1 = k
