@@ -326,7 +326,7 @@ class Rack:
         return self.num_tiles() == 0
 
     def set_tiles(self, tiles):
-        """ Force the contents of the rack. Used for testing purposes. """
+        """ Set the contents of the rack """
         self._tiles = tiles
 
     def contains(self, tiles):

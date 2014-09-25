@@ -34,7 +34,7 @@ from google.appengine.api import users
 from skraflmechanics import Manager, State, Board, Move, PassMove, ExchangeMove, ResignMove, Error
 from skraflplayer import AutoPlayer
 from languages import Alphabet
-from skrafldb import UserModel, GameModel, MoveModel
+from skrafldb import Unique, UserModel, GameModel, MoveModel
 
 
 # Standard Flask initialization
@@ -114,8 +114,12 @@ class Game:
         or completed. Contains inter alia a State instance.
     """
 
-    def __init__(self):
+    def __init__(self, uuid = None):
+        # Unique id of the game
+        self.uuid = uuid
+        # The nickname of the human (local) player
         self.username = None
+        # The current game state
         self.state = None
         # Is the human player 0 or 1, where player 0 begins the game?
         self.player_index = 0
@@ -135,17 +139,23 @@ class Game:
         """ Obtain the current game state """
         user = User.current()
         user_id = None if user is None else user.id()
-        if not user_id or user_id not in Game._cache:
+        if not user_id:
             # No game state found
             return None
-        # Fetch the game state
-        # !!! TODO: Will fetch from persistent state
-        return Game._cache[user_id]
+        if user_id in Game._cache:
+            return Game._cache[user_id]
+        # No game in cache: attempt to find one in the database
+        uuid = GameModel.find_live_game(user_id)
+        if uuid is None:
+            # Not found in persistent storage: create a new game
+            return cls.new(user.nickname())
+        # Load from persistent storage
+        return cls.load(uuid)
 
     @classmethod
     def new(cls, username):
         """ Start and initialize a new game """
-        game = cls()
+        game = cls(Unique.id()) # Assign a new unique id to the game
         game.username = username
         game.state = State()
         game.player_index = randint(0, 1)
@@ -159,12 +169,39 @@ class Game:
         if game.player_index == 1:
             game.autoplayer_move()
         # Store the new game in persistent storage
-        game._store_db(user.id())
+        game.store(user.id())
         return game
 
-    def _store_db(self, user_id):
+    @classmethod
+    def load(cls, uuid):
+        """ Load an already existing game from persistent storage """
+        game = cls(uuid) # Initialize a new Game instance with a pre-existing uuid
+        gm = GameModel.fetch(uuid)
+        game.username = username # !!!
+        game.state = State()
+        game.state._scores[0] = gm.score0
+        game.state._scores[1] = gm.score1
+        game.state._racks[0].set_tiles(gm.rack0)
+        game.state._racks[1].set_tiles(gm.rack1)
+        game.player_index = ...
+        game.state.set_player_name(game.player_index, username)
+        game.state.set_player_name(1 - game.player_index, u"Netskrafl")
+        ... gm.to_move
+        ... gm_over
+        for mm in gm.moves:
+            # Build the board state incrementally
+            # Add to the move history
+            pass
+        # Cache the game so it can be looked up by user id
+        user = User.current()
+        if user is not None:
+            Game._cache[user.id()] = game
+        return game
+
+    def store(self, user_id):
         """ Store the game state in persistent storage """
-        gm = GameModel()
+        assert self.uuid is not None
+        gm = GameModel(self.uuid)
         gm.set_player(self.player_index, user_id)
         gm.set_player(1 - self.player_index, None)
         gm.rack0 = self.state._racks[0].contents()

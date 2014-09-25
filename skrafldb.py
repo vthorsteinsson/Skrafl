@@ -133,8 +133,8 @@ class GameModel(ndb.Model):
     # The moves so far
     moves = ndb.LocalStructuredProperty(MoveModel, repeated = True)
 
-    def __init__(self):
-        ndb.Model.__init__(self, id = Unique.id())
+    def __init__(self, uuid):
+        ndb.Model.__init__(self, id = uuid)
 
     def set_player(self, ix, user_id):
         k = None if user_id is None else ndb.Key(UserModel, user_id)
@@ -142,3 +142,8 @@ class GameModel(ndb.Model):
             self.player0 = k
         elif ix == 1:
             self.player1 = k
+
+    @classmethod
+    def fetch(cls, uuid):
+        return cls.get_by_id(uuid)
+
