@@ -130,8 +130,8 @@ class Game:
         # History of moves in this game so far
         self.moves = []
 
-    # The current game state for different users
-    # !!! TODO: This will be stored persistently in the App Engine datastore
+    # The current game state held in memory for different users
+    # !!! TODO: limit the size of the cache and make it LRU
     _cache = dict()
 
     @classmethod
@@ -150,7 +150,7 @@ class Game:
             # Not found in persistent storage: create a new game
             return cls.new(user.nickname())
         # Load from persistent storage
-        return cls.load(uuid)
+        return cls.load(uuid, user.nickname())
 
     @classmethod
     def new(cls, username):
@@ -169,45 +169,116 @@ class Game:
         if game.player_index == 1:
             game.autoplayer_move()
         # Store the new game in persistent storage
-        game.store(user.id())
+        game.store()
         return game
 
     @classmethod
-    def load(cls, uuid):
+    def load(cls, uuid, username):
+
         """ Load an already existing game from persistent storage """
-        game = cls(uuid) # Initialize a new Game instance with a pre-existing uuid
+
         gm = GameModel.fetch(uuid)
-        game.username = username # !!!
+        if gm is None:
+            # A game with this uuid is not found in the database: give up
+            return None
+
+        # Initialize a new Game instance with a pre-existing uuid
+        game = cls(uuid)
+
+        game.username = username
         game.state = State()
-        game.state._scores[0] = gm.score0
-        game.state._scores[1] = gm.score1
-        game.state._racks[0].set_tiles(gm.rack0)
-        game.state._racks[1].set_tiles(gm.rack1)
-        game.player_index = ...
+
+        if gm.player0 is None:
+            # Player 0 is an Autoplayer
+            game.player_index = 1 # Human (local) player is 1
+        else:
+            assert gm.player1 is None
+            game.player_index = 0 # Human (local) player is 0
+
         game.state.set_player_name(game.player_index, username)
         game.state.set_player_name(1 - game.player_index, u"Netskrafl")
-        ... gm.to_move
-        ... gm_over
+
+        # Load the current racks
+        game.state._racks[0].set_tiles(gm.rack0)
+        game.state._racks[1].set_tiles(gm.rack1)
+
+        # Process the moves
+        player = 0
         for mm in gm.moves:
-            # Build the board state incrementally
-            # Add to the move history
-            pass
+
+            m = None
+            if mm.coord:
+
+                # Normal tile move
+                # Decode the coordinate: A15 = horizontal, 15A = vertical
+                if mm.coord[0] in Board.ROWIDS:
+                    row = Board.ROWIDS.index(mm.coord[0])
+                    col = int(mm.coord[1:]) - 1
+                    horiz = True
+                else:
+                    row = Board.ROWIDS.index(mm.coord[-1])
+                    col = int(mm.coord[0:-1]) - 1
+                    horiz = False
+                # The tiles string may contain wildcards followed by their meaning
+                # Remove the ? marks to get the "plain" word formed
+                m = Move(mm.tiles.replace(u'?', u''), row, col, horiz)
+                m.make_covers(game.state.board(), mm.tiles)
+
+            elif mm.tiles[0:4] == u"EXCH":
+
+                # Exchange move
+                m = ExchangeMove(mm.tiles[5:])
+
+            elif mm.tiles == u"PASS":
+
+                # Pass move
+                m = PassMove()
+
+            elif mm.tiles == u"RSGN":
+
+                # Game resigned
+                m = ResignMove(- mm.score)
+
+            assert m is not None
+            if m:
+                # Do a "shallow apply" of the move, which updates
+                # the board and internal state variables but does
+                # not modify the bag or the racks
+                game.state.apply_move(m, True)
+                # Append to the move history
+                game.moves.append((player, m))
+                player = 1 - player
+
+        # If the moves were correctly applied, the scores should match
+        assert game.state._scores[0] == gm.score0
+        assert game.state._scores[1] == gm.score1
+
+        # Find out what tiles are now in the bag
+        game.state.bag().subtract_board(game.state.board())
+        game.state.bag().subtract_rack(game.state._racks[0].contents())
+        game.state.bag().subtract_rack(game.state._racks[1].contents())
+
         # Cache the game so it can be looked up by user id
         user = User.current()
         if user is not None:
             Game._cache[user.id()] = game
         return game
 
-    def store(self, user_id):
+    def store(self):
         """ Store the game state in persistent storage """
         assert self.uuid is not None
-        gm = GameModel(self.uuid)
-        gm.set_player(self.player_index, user_id)
+        user = User.current()
+        if user is None:
+            # No current user: can't store game
+            assert False
+            return
+        gm = GameModel(id = self.uuid)
+        gm.set_player(self.player_index, user.id())
         gm.set_player(1 - self.player_index, None)
         gm.rack0 = self.state._racks[0].contents()
         gm.rack1 = self.state._racks[1].contents()
-        gm.score0 = self.state._scores[0]
-        gm.score1 = self.state._scores[1]
+        gm.score0 = self.state.scores()[0]
+        gm.score1 = self.state.scores()[1]
         gm.to_move = len(self.moves) % 2
         gm.over = self.state.is_game_over()
         movelist = []
@@ -363,6 +434,9 @@ def _process_move(movelist):
     if game.state.is_game_over():
         # If the game is now over, tally the final score
         game.state.finalize_score()
+
+    # Make sure the new game state is persistently recorded
+    game.store()
 
     # Return a state update to the client (board, rack, score, movelist, etc.)
     return jsonify(game.client_state())

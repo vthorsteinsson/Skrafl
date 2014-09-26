@@ -46,8 +46,8 @@
             tiles = "Pass";
          else
          if (tiles.indexOf("EXCH") == 0) {
-            /* Exchange move */
-            numtiles = parseInt(tiles.slice(5));
+            /* Exchange move - we don't show the actual tiles exchanged, only their count */
+            numtiles = tiles.slice(5).length;
             tiles = "Skipti um " + numtiles.toString() + (numtiles == 1 ? " staf" : " stafi");
          }
          else
@@ -186,7 +186,7 @@
             continue;
          }
          letter = letter.toLowerCase();
-         if ("aábdðeéfghiíjklmoóprstuúvxyýþæö".indexOf(letter) == -1) {
+         if ("aábdðeéfghiíjklmnoóprstuúvxyýþæö".indexOf(letter) == -1) {
             /* Not an allowed letter: add an error message and prompt again */
             q = defq + err;
             continue;

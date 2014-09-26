@@ -274,6 +274,10 @@ class Bag:
         """ Return the contents of the bag """
         return self._tiles
 
+    def set_contents(self, tiles):
+        """ Set the contents of the bag """
+        self._tiles = tiles
+
     def num_tiles(self):
         """ Return the number of tiles in the bag """
         return len(self._tiles)
@@ -283,7 +287,17 @@ class Bag:
         return not self._tiles
 
     def allows_exchange(self):
+        """ Does the bag contain enough tiles to allow exchange? """
         return self.num_tiles() >= Rack.MAX_TILES
+
+    def subtract_board(self, board):
+        """ Subtract all tiles on the board from the bag """
+        board_tiles = u''.join(tile for row, col, tile, letter in board.enum_tiles())
+        self._tiles = Alphabet.string_subtract(self._tiles, board_tiles)
+
+    def subtract_rack(self, rack):
+        """ Subtract all tiles in the rack from the bag """
+        self._tiles = Alphabet.string_subtract(self._tiles, rack)
 
 
 class Rack:
@@ -415,21 +429,24 @@ class State:
             return Error.NULL_MOVE
         return move.check_legality(self)
 
-    def apply_move(self, move):
+    def apply_move(self, move, shallow = False):
         """ Apply the given move, assumed to be legal, to this state """
+        # A shallow apply is one that does not modify the racks or the bag.
+        # It is used when loading game state from persistent storage.
         if self.is_game_over():
             # Game is over, moves are not accepted any more
             return False
         # Update the player's score
         self._scores[self._player_to_move] += self.score(move)
         # Apply the move to the board state
-        move.apply(self)
+        move.apply(self, shallow)
         # Increment the move count
         self._num_moves += 1
         if not (self._game_resigned or self._num_passes >= 6):
             # Game is still ongoing:
             # Draw new tiles if required
-            self.player_rack().replenish(self._bag)
+            if not shallow:
+                self.player_rack().replenish(self._bag)
             # It's the other player's move
             self._player_to_move = 1 - self._player_to_move
         return True
@@ -640,6 +657,36 @@ class Move:
         # Find out automatically whether this is a horizontal or vertical move
         if len(self._covers) == 2:
             self._horizontal = self._covers[0].row == cover.row
+
+    def make_covers(self, board, tiles):
+        """ Create a cover list out of a tile string """
+
+        self.set_tiles(tiles)
+
+        def enum_covers(tiles):
+            """ Generator to enumerate through a tiles string, yielding (tile, letter) tuples """
+            ix = 0
+            while ix < len(tiles):
+                if tiles[ix] == u'?':
+                    # Wildcard tile: must be followed by its meaning
+                    ix += 1
+                    yield (u'?', tiles[ix])
+                else:
+                    # Normal letter tile
+                    yield (tiles[ix], tiles[ix])
+                ix += 1
+
+        row, col = self._row, self._col
+        xd, yd = (0, 1) if self._horizontal else (1, 0)
+        for tile, letter in enum_covers(tiles):
+            if not board.is_covered(row, col):
+                # This is a fresh tile being laid down on the board
+                self._covers.append(Cover(row, col, tile, letter))
+            row += xd
+            col += yd
+        # Sanity checks: we've enumerated correctly through the laid-down word
+        assert row - self._row == self._numletters * xd
+        assert col - self._col == self._numletters * yd
 
     def check_legality(self, state):
         """ Check whether this move is legal on the board """
@@ -863,14 +910,15 @@ class Move:
         self._score = total
         return total
 
-    def apply(self, state):
+    def apply(self, state, shallow = False):
         """ Apply this move, assumed to be legal, to the board """
         board = state.board()
         rack = state.player_rack()
         for c in self._covers:
             board.set_letter(c.row, c.col, c.letter)
             board.set_tile(c.row, c.col, c.tile)
-            rack.remove_tile(c.tile)
+            if not shallow:
+                rack.remove_tile(c.tile)
         state.reset_passes()
 
 
@@ -897,7 +945,7 @@ class ExchangeMove:
 
     def summary(self, board):
         """ Return a summary of the move, as a tuple: (coordinate, word, score) """
-        return (u"", u"EXCH " + str(len(self._tiles)), 0)
+        return (u"", u"EXCH " + self._tiles, 0)
 
     def details(self):
         """ Return a tuple list describing tiles committed to the board by this move """
@@ -908,9 +956,10 @@ class ExchangeMove:
         # An exchange move does not affect the score
         return 0
 
-    def apply(self, state):
+    def apply(self, state, shallow = False):
         """ Apply this move, assumed to be legal, to the current game state """
-        state.player_rack().exchange(state.bag(), self._tiles)
+        if not shallow:
+            state.player_rack().exchange(state.bag(), self._tiles)
         state.reset_passes()
 
 
@@ -943,7 +992,7 @@ class PassMove:
         # A pass move does not affect the score
         return 0
 
-    def apply(self, state):
+    def apply(self, state, shallow = False):
         """ Apply this move, assumed to be legal, to the current game state """
         # Increment the number of consecutive Pass moves
         state.add_pass()
@@ -978,7 +1027,7 @@ class ResignMove:
         # A resignation loses all points
         return - self._forfeited_points
 
-    def apply(self, state):
+    def apply(self, state, shallow = False):
         """ Apply this move, assumed to be legal, to the current game state """
         # Resign the game, causing is_game_over() to become True
         state.resign_game()

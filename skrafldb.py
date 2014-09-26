@@ -55,7 +55,7 @@ class UserModel(ndb.Model):
         user = cls(id = user_id)
         user.nickname = nickname # Default to the same nickname
         user.inactive = False # A new user is always active
-        user.prefs = { }
+        user.prefs = { } # No preferences
         return user.put().id()
 
     @classmethod
@@ -114,8 +114,8 @@ class GameModel(ndb.Model):
     player1 = ndb.KeyProperty(kind = UserModel)
 
     # The racks
-    rack0 = ndb.StringProperty()
-    rack1 = ndb.StringProperty()
+    rack0 = ndb.StringProperty(indexed = False)
+    rack1 = ndb.StringProperty(indexed = False)
 
     # The scores
     score0 = ndb.IntegerProperty()
@@ -133,10 +133,8 @@ class GameModel(ndb.Model):
     # The moves so far
     moves = ndb.LocalStructuredProperty(MoveModel, repeated = True)
 
-    def __init__(self, uuid):
-        ndb.Model.__init__(self, id = uuid)
-
     def set_player(self, ix, user_id):
+        """ Set a player key property to point to a given user, or None """
         k = None if user_id is None else ndb.Key(UserModel, user_id)
         if ix == 0:
             self.player0 = k
@@ -145,5 +143,16 @@ class GameModel(ndb.Model):
 
     @classmethod
     def fetch(cls, uuid):
+        """ Fetch a game model given its uuid """
         return cls.get_by_id(uuid)
 
+    @classmethod
+    def find_live_game(cls, user_id):
+        """ Query to find a live (ongoing) game for the given user, if it exists """
+        assert user_id is not None
+        if user_id is None:
+            return None
+        k = ndb.Key(UserModel, user_id)
+        q = cls.query(ndb.OR(GameModel.player0 == k, GameModel.player1 == k)).filter(GameModel.over == False)
+        reskey = q.get(keys_only = True)
+        return None if reskey is None else reskey.id()
