@@ -159,7 +159,7 @@ class Game:
         """ Start and initialize a new game """
         game = cls(Unique.id()) # Assign a new unique id to the game
         game.username = username
-        game.state = State()
+        game.state = State(drawtiles = True)
         game.player_index = randint(0, 1)
         game.state.set_player_name(game.player_index, username)
         game.state.set_player_name(1 - game.player_index, u"Netskrafl")

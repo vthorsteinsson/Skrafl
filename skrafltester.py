@@ -25,7 +25,7 @@ import time
 
 
 def test_move(state, movestring):
-    # Test placing a simple move
+    """ Test placing a simple tile move """
     coord, word = movestring.split(u' ')
     rowid = u"ABCDEFGHIJKLMNO"
     row, col = 0, 0
@@ -60,7 +60,9 @@ def test_move(state, movestring):
     print(state.__str__())
     return True
 
+
 def test_exchange(state, numtiles):
+    """ Test exchange move """
     exch = state.player_rack().contents()[0:numtiles]
     move = ExchangeMove(exch)
     legal = state.check_legality(move)
@@ -72,6 +74,7 @@ def test_exchange(state, numtiles):
     print(state.__str__())
     return True
 
+
 def test_game(players, silent):
     """ Go through a whole game by pitting two AutoPlayers against each other """
     # The players parameter is a list of tuples: (playername, constructorfunc)
@@ -80,7 +83,7 @@ def test_game(players, silent):
     # on behalf of the player.
 
     # Initial, empty game state
-    state = State()
+    state = State(drawtiles = True)
 
     # Set player names
     for ix in range(2):
@@ -133,6 +136,7 @@ def test_game(players, silent):
             state.num_moves(), t1 - t0, state.player_name(0), state.player_name(1)))
 
     return state.scores()
+
 
 def test(num_games, opponent, silent):
 
@@ -198,6 +202,7 @@ def test(num_games, opponent, silent):
 
 
 class Usage(Exception):
+
     def __init__(self, msg):
         self.msg = msg
 
@@ -239,6 +244,7 @@ def main(argv=None):
         print(err.msg, file=sys.stderr)
         print("for help use --help", file=sys.stderr)
         return 2
+
 
 if __name__ == "__main__":
     sys.exit(main())
