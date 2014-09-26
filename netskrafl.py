@@ -90,6 +90,7 @@ class User:
 
     @classmethod
     def current(cls):
+        """ Return the currently logged in user """
         user = users.get_current_user()
         if user is None:
             return None
@@ -102,6 +103,7 @@ class User:
 
     @classmethod
     def current_nickname(cls):
+        """ Return the nickname of the current user """
         u = cls.current()
         if u is None:
             return None
@@ -186,7 +188,7 @@ class Game:
         game = cls(uuid)
 
         game.username = username
-        game.state = State()
+        game.state = State(drawtiles = False)
 
         if gm.player0 is None:
             # Player 0 is an Autoplayer
@@ -252,6 +254,7 @@ class Game:
         # If the moves were correctly applied, the scores should match
         assert game.state._scores[0] == gm.score0
         assert game.state._scores[1] == gm.score1
+        assert len(game.state.bag().contents()) == len(Alphabet.full_bag())
 
         # Find out what tiles are now in the bag
         game.state.bag().subtract_board(game.state.board())

@@ -98,6 +98,8 @@ class Alphabet:
     order = u'aábdðeéfghiíjklmnoóprstuúvxyýþæö'
     # Upper case version of the order string
     upper = u'AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ'
+    # All tiles including wildcard '?'
+    all_tiles = order + u'?'
 
     # Letter bit pattern
     bit = [1 << n for n in range(len(order))]
@@ -148,9 +150,8 @@ class Alphabet:
     def string_subtract(a, b):
         """ Subtract all letters in b from a, counting each instance separately """
         # Note that this cannot be done with sets, as they fold multiple letter instances into one
-        alltiles = Alphabet.order + u'?'
-        lcount = [a.count(c) - b.count(c) for c in alltiles]
-        return u''.join([alltiles[ix] * lcount[ix]
+        lcount = [a.count(c) - b.count(c) for c in Alphabet.all_tiles]
+        return u''.join([Alphabet.all_tiles[ix] * lcount[ix]
             for ix in range(len(lcount)) if lcount[ix] > 0])
 
     @staticmethod

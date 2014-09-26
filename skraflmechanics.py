@@ -391,7 +391,7 @@ class State:
         Contains the current board, the racks, scores, etc.
     """
 
-    def __init__(self, copy = None):
+    def __init__(self, drawtiles = True, copy = None):
 
         if copy is None:
             self._board = Board()
@@ -404,9 +404,10 @@ class State:
             self._racks = [Rack(), Rack()]
             # Initialize a fresh, full bag of tiles
             self._bag = Bag()
-            # Draw the racks from the bag
-            for rack in self._racks:
-                rack.replenish(self._bag)
+            if drawtiles:
+                # Draw the racks from the bag
+                for rack in self._racks:
+                    rack.replenish(self._bag)
         else:
             # Copy constructor: initialize a State from another State
             self._board = Board(copy._board)
