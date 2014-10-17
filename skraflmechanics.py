@@ -286,6 +286,10 @@ class Bag:
         """ Returns True if the bag is empty, i.e. all tiles have been drawn """
         return not self._tiles
 
+    def is_full(self):
+        """ Returns True if the bag is full, i.e. no tiles have been drawn """
+        return self.num_tiles() == len(Alphabet.full_bag())
+
     def allows_exchange(self):
         """ Does the bag contain enough tiles to allow exchange? """
         return self.num_tiles() >= Rack.MAX_TILES
@@ -495,6 +499,17 @@ class State:
     def bag(self):
         """ Return the current Bag """
         return self._bag
+
+    def recalc_bag(self):
+        """ Recalculate the bag by subtracting from it the tiles on the board and in the racks """
+        assert self._bag.is_full()
+        self._bag.subtract_board(self._board)
+        self._bag.subtract_rack(self._racks[0].contents())
+        self._bag.subtract_rack(self._racks[1].contents())
+
+    def display_bag(self, player):
+        """ Returns the current bag plus the rack of the opponent """
+        return self._bag.contents() + self._racks[player].contents()
 
     def is_game_over(self):
         """ The game is over if either rack is empty or if both players have passed 3 times in a row """

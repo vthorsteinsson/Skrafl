@@ -9,20 +9,28 @@
 
     The data model is as follows:
 
-    User
-       [Properties]
-       [1:1] Preferences
-            [Properties]
-       [2:1] Match
-            User
-            [1:1] Game
-                [Properties]
-                [1:N] Move
-                    [Properties]
-                    [1:N] Cover
-                        [Properties]
-                    [1:1] Stats
-                        [Properties]
+    UserModel:
+        nickname : string
+        inactive : boolean
+        prefs : dict
+        timestamp : timestamp
+
+    MoveModel:
+        coord : string
+        tiles : string
+        score : integer
+
+    GameModel:
+        player0 : key into UserModel
+        player1 : key into UserModel
+        rack0 : string
+        rack1 : string
+        score0 : integer
+        score1 : integer
+        to_move : integer
+        over : boolean
+        timestamp : timestamp
+        moves : array of MoveModel
 
 """
 
@@ -69,33 +77,6 @@ class UserModel(ndb.Model):
     @classmethod
     def fetch(cls, user_id):
         return cls.get_by_id(user_id)
-
-
-# class Match(ndb.Model):
-# 
-#    """ Models a match that consists of a single Game between two Users """
-# 
-#     player = ndb.KeyProperty(kind = User)
-#     playerid = ndb.IntegerProperty() # Was the player 0 (first move) or 1 (opponent)
-#     game = ndb.KeyProperty(kind = Game)
-# 
-#     @classmethod
-#     def create(cls, game_id, player0_id, player1_id):
-#         """ Create two Match entities for a Game, one for each User (player) """
-#         match = cls(id = Unique.id())
-#         match.player = ndb.Key(User, player0_id) # Unique id of user player0
-#         match.playerid = 0
-#         match.game = ndb.Key(Game, game_id) # Unique id of game
-#         match.put()
-#         match = cls(id = Unique.id()) # Unique
-#         match.player = ndb.Key(User, player1_id)
-#         match.playerid = 1
-#         match.game = ndb.Key(Game, game_id) # Key of game
-#         match.put()
-# 
-#     @classmethod
-#     def fetch_game(cls, game):
-#         return User.get_by_id(uuid)
 
 
 class MoveModel(ndb.Model):

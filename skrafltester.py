@@ -19,7 +19,7 @@ from __future__ import print_function
 import sys
 import getopt
 
-from skraflmechanics import Manager, State, Move, ExchangeMove, Error
+from skraflmechanics import Manager, State, Board, Move, ExchangeMove, Error
 from skraflplayer import AutoPlayer, AutoPlayer_MiniMax
 import time
 
@@ -27,7 +27,7 @@ import time
 def test_move(state, movestring):
     """ Test placing a simple tile move """
     coord, word = movestring.split(u' ')
-    rowid = u"ABCDEFGHIJKLMNO"
+    rowid = Board.ROWIDS
     row, col = 0, 0
     xd, yd = 0, 0
     horiz = True

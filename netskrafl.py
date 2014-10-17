@@ -41,6 +41,8 @@ from skrafldb import Unique, UserModel, GameModel, MoveModel
 
 app = Flask(__name__)
 app.config['DEBUG'] = True # !!! TODO: Change to False for production deployment
+
+# !!! TODO: Change this to read the secret key from a config file at run-time
 app.secret_key = '\x03\\_,i\xfc\xaf=:L\xce\x9b\xc8z\xf8l\x000\x84\x11\xe1\xe6\xb4M'
 
 manager = Manager()
@@ -116,6 +118,9 @@ class Game:
         or completed. Contains inter alia a State instance.
     """
 
+    # The human-readable name of the computer player
+    AUTOPLAYER_NAME = u"Netskrafl"
+
     def __init__(self, uuid = None):
         # Unique id of the game
         self.uuid = uuid
@@ -135,6 +140,14 @@ class Game:
     # The current game state held in memory for different users
     # !!! TODO: limit the size of the cache and make it LRU
     _cache = dict()
+
+    def _make_new(self, username):
+        # Initialize a new, fresh game
+        self.username = username
+        self.state = State(drawtiles = True)
+        self.player_index = randint(0, 1)
+        self.state.set_player_name(self.player_index, username)
+        self.state.set_player_name(1 - self.player_index, Game.AUTOPLAYER_NAME)
 
     @classmethod
     def current(cls):
@@ -158,11 +171,7 @@ class Game:
     def new(cls, username):
         """ Start and initialize a new game """
         game = cls(Unique.id()) # Assign a new unique id to the game
-        game.username = username
-        game.state = State(drawtiles = True)
-        game.player_index = randint(0, 1)
-        game.state.set_player_name(game.player_index, username)
-        game.state.set_player_name(1 - game.player_index, u"Netskrafl")
+        game._make_new(username)
         # Cache the game so it can be looked up by user id
         user = User.current()
         if user is not None:
@@ -254,12 +263,9 @@ class Game:
         # If the moves were correctly applied, the scores should match
         assert game.state._scores[0] == gm.score0
         assert game.state._scores[1] == gm.score1
-        assert len(game.state.bag().contents()) == len(Alphabet.full_bag())
 
         # Find out what tiles are now in the bag
-        game.state.bag().subtract_board(game.state.board())
-        game.state.bag().subtract_rack(game.state._racks[0].contents())
-        game.state.bag().subtract_rack(game.state._racks[1].contents())
+        game.state.recalc_bag()
 
         # Cache the game so it can be looked up by user id
         user = User.current()
@@ -333,7 +339,7 @@ class Game:
 
     def display_bag(self):
         """ Returns the bag as it should be displayed, i.e. including the autoplayer's rack """
-        displaybag = self.state.bag().contents() + self.state._racks[1 - self.player_index].contents()
+        displaybag = self.state.display_bag(1 - self.player_index)
         return u''.join(sorted(displaybag, key=lambda ch: Game.BAG_SORT_ORDER.index(ch)))
 
     def client_state(self):
