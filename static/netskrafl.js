@@ -565,7 +565,7 @@
       submitOut();
       /* Show a temporary animated GIF while the Ajax call is being processed */
       submitTemp = $("div.submitmove").html();
-      $("div.submitmove").html("<img src='static/ajax-loader.gif' border=0/>");
+      $("div.submitmove").html("<img src='/static/ajax-loader.gif' border=0/>");
       /* Talk to the game server using jQuery/Ajax */
       $.ajax({
          // the URL for the request

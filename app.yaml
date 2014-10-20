@@ -8,7 +8,7 @@ handlers:
 - url: /favicon.ico
   static_files: static/favicon.ico
   upload: static/favicon.ico
-- url: /ajax-loader.gif
+- url: /static/ajax-loader.gif
   static_files: static/ajax-loader.gif
   upload: static/ajax-loader.gif
 - url: /apple-touch-icon.png
@@ -23,10 +23,16 @@ handlers:
 - url: /touch-icon-iphone-retina.png
   static_files: static/touch-icon-iphone-retina.png
   upload: static/touch-icon-iphone-retina.png
-- url: /skrafl.css
+- url: /static/glyphicons_387_log_out.png
+  static_files: static/glyphicons_387_log_out.png
+  upload: static/glyphicons_387_log_out.png
+- url: /static/glyphicons_173_play.png
+  static_files: static/glyphicons_173_play.png
+  upload: static/glyphicons_173_play.png
+- url: /static/skrafl.css
   static_files: static/skrafl.css
   upload: static/skrafl.css
-- url: /netskrafl.js
+- url: /static/netskrafl.js
   static_files: static/netskrafl.js
   upload: static/netskrafl.js
 - url: /glyphicons-halflings-regular.ttf
