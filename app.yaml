@@ -35,10 +35,13 @@ handlers:
 - url: /static/netskrafl.js
   static_files: static/netskrafl.js
   upload: static/netskrafl.js
-- url: /glyphicons-halflings-regular.ttf
+- url: /static/jquery.ui.touch-punch.min.js
+  static_files: static/jquery.ui.touch-punch.min.js
+  upload: static/jquery.ui.touch-punch.min.js
+- url: /static/glyphicons-halflings-regular.ttf
   static_files: static/glyphicons-halflings-regular.ttf
   upload: static/glyphicons-halflings-regular.ttf
-- url: /glyphicons-halflings-regular.woff
+- url: /static/glyphicons-halflings-regular.woff
   static_files: static/glyphicons-halflings-regular.woff
   upload: static/glyphicons-halflings-regular.woff
 - url: .*
