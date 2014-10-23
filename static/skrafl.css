@@ -151,7 +151,7 @@ div.tile {
    text-align: center;
    text-transform: uppercase;
    height: 30px;
-   width: 100%; /* 30px; */
+   width: 30px; /* 100%; 30px; */
    overflow: hidden;
    margin: 0px;
    padding-top: 2px;

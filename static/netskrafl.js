@@ -101,78 +101,8 @@
          movelist.scrollTop(topoffset - height)
    }
 
-   var elementDragged = null; /* The element being dragged with the mouse */
-   var showingDialog = false; /* Is a modal dialog banner being shown? */
-   var exchangeAllowed = true; /* Is an exchange move allowed? */
-
-   function handleDragstart(e) {
-      /* The dragstart target is the DIV inside a TD */
-      e.dataTransfer.clearData();
-      e.dataTransfer.setData('text/html', ""); /* We don't use this */
-      e.dataTransfer.effectAllowed = 'move';
-      /* e.dataTransfer.setDragImage(e.target.innerHTML); */
-      elementDragged = e.target;
-      elementDragged.style.opacity = "0.6"
-   }
-
-   function handleDragend(e) {
-      if (elementDragged != null)
-         elementDragged.style.opacity = "1.0";
-      elementDragged = null;
-   }
-
-   function initDraggable(elem) {
-      /* The DIVs inside the board TDs are draggable */
-      $(elem).attr("draggable", "true");
-      elem.addEventListener('dragstart', handleDragstart);
-      elem.addEventListener('dragend', handleDragend);
-   }
-
-   function removeDraggable(elem) {
-      /* The DIVs inside the board TDs are draggable */
-      $(elem).attr("draggable", "false");
-      elem.removeEventListener('dragstart', handleDragstart);
-      elem.removeEventListener('dragend', handleDragend);
-   }
-
-   function initRackDraggable(state) {
-      /* Make the seven tiles in the rack draggable or not, depending on
-         the state parameter */
-      for (i = 1; i <= 7; i++) {
-         rackTileId = "R" + i.toString();
-         rackTile = document.getElementById(rackTileId);
-         if (rackTile && rackTile.firstChild)
-            /* There is a tile in this rack slot */
-            if (state)
-               initDraggable(rackTile.firstChild);
-            else
-               removeDraggable(rackTile.firstChild);
-      }
-   }
-
-   function handleDragover(e) {
-      if (e.preventDefault)
-         e.preventDefault();
-      if (e.target.firstChild)
-         /* There is already a tile in the square: drop will have no effect */
-         e.dataTransfer.dropEffect = 'none';
-      else
-         e.dataTransfer.dropEffect = 'move';
-      return false;
-   }
-
-   function handleDragenter(e) {
-      if (e.target.firstChild == null)
-        /* Empty square, can drop here: add yellow outline highlight to square*/
-        this.classList.add("over");
-   }
-
-   function handleDragleave(e) {
-      /* Can drop here: remove outline highlight from square */
-      this.classList.remove("over");
-   }
-
    function promptForBlank() {
+      /* When dropping a blank tile, ask for its meaning */
       var defq = "Hvaða staf táknar auða flísin?";
       var err = "\nSláðu inn einn staf í íslenska stafrófinu."
       var q = defq;
@@ -195,19 +125,158 @@
       }
    }
 
-   function handleDrop(e) {
+   var elementDragged = null; /* The element being dragged with the mouse */
+   var showingDialog = false; /* Is a modal dialog banner being shown? */
+   var exchangeAllowed = true; /* Is an exchange move allowed? */
+
+   function handleDragstart(e, ui) {
+      /* The dragstart target is the DIV inside a TD */
+      /*
+      e.dataTransfer.clearData();
+      e.dataTransfer.setData('text/html', ""); // We don't use this
+      e.dataTransfer.effectAllowed = 'move';
+      */
+      /* e.dataTransfer.setDragImage(e.target.innerHTML); */
+      elementDragged = e.target;
+      // elementDragged.style.opacity = "0.6"
+   }
+
+   function handleDragend(e, ui) {
+      /*
+      if (elementDragged != null)
+         elementDragged.style.opacity = "1.0";
+      */
+      elementDragged = null;
+   }
+
+   /*
+   function handleDragover(e) {
+      if (e.preventDefault)
+         e.preventDefault();
+      if (e.target.firstChild)
+         // There is already a tile in the square: drop will have no effect
+         e.dataTransfer.dropEffect = 'none';
+      else
+         e.dataTransfer.dropEffect = 'move';
+      return false;
+   }
+   */
+
+   function handleDropover(e, ui) {
+      if (e.target.firstChild == null)
+        /* Empty square, can drop here: add yellow outline highlight to square*/
+        this.classList.add("over");
+   }
+
+   function handleDropleave(e, ui) {
+      /* Can drop here: remove outline highlight from square */
+      this.classList.remove("over");
+   }
+
+   function initDraggable(elem) {
+      /* The DIVs inside the board TDs are draggable */
+      // $(elem).attr("draggable", "true");
+      $(elem).draggable(
+         {
+            opacity : 0.6,
+            helper : "clone",
+            cursor : "move",
+            start : handleDragstart,
+            stop : handleDragend
+         }
+      );
+      /*
+      elem.addEventListener('dragstart', handleDragstart);
+      elem.addEventListener('dragend', handleDragend);
+      */
+   }
+
+   function removeDraggable(elem) {
+      /* The DIVs inside the board TDs are draggable */
+      $(elem).draggable("destroy");
+      /*
+      $(elem).attr("draggable", "false");
+      elem.removeEventListener('dragstart', handleDragstart);
+      elem.removeEventListener('dragend', handleDragend);
+      */
+   }
+
+   function initRackDraggable(state) {
+      /* Make the seven tiles in the rack draggable or not, depending on
+         the state parameter */
+      for (i = 1; i <= 7; i++) {
+         rackTileId = "R" + i.toString();
+         rackTile = document.getElementById(rackTileId);
+         if (rackTile && rackTile.firstChild)
+            /* There is a tile in this rack slot */
+            if (state)
+               initDraggable(rackTile.firstChild);
+            else
+               removeDraggable(rackTile.firstChild);
+      }
+   }
+
+   function initDropTarget(elem) {
+      if (elem != null)
+         elem.droppable(
+            {
+               drop : handleDrop,
+               over : handleDropover,
+               out : handleDropleave
+            }
+         );
+      /*
+      if (elem) {
+         elem.addEventListener('dragover', handleDragover);
+         elem.addEventListener('dragenter', handleDragenter);
+         elem.addEventListener('dragleave', handleDragleave);
+         elem.addEventListener('drop', handleDrop);
+      }
+      */
+   }
+
+   /*
+   function removeDropTarget(elem) {
+      if (elem) {
+         elem.removeEventListener('dragover', handleDragover);
+         elem.removeEventListener('dragenter', handleDragenter);
+         elem.removeEventListener('dragleave', handleDragleave);
+         elem.removeEventListener('drop', handleDrop);
+      }
+   }
+   */
+
+   function initDropTargets() {
+      /* All board squares are drop targets */
+      for (x = 1; x <= 15; x++)
+         for (y = 1; y <= 15; y++) {
+            coord = "ABCDEFGHIJKLMNO".charAt(y - 1) + x.toString();
+            sq = $("#"+coord);
+            initDropTarget(sq);
+         }
+      /* Make the rack a drop target as well */
+      for (x = 1; x <= 7; x++) {
+        coord = "R" + x.toString();
+        sq = $("#"+coord);
+        initDropTarget(sq);
+      }
+   }
+
+   function handleDrop(e, ui) {
       /* A tile is being dropped on a square on the board or into the rack */
+      /*
       if (e.preventDefault)
          e.preventDefault();
       if (e.stopPropagation)
          e.stopPropagation();
+      */
+      e.target.classList.remove("over");
       /* Save the elementDragged value as it will be set to null in handleDragend() */
       var eld = elementDragged;
-      e.target.classList.remove("over");
-      if (eld != null)
-         eld.style.opacity = "1.0";
-      if (e.target.firstChild == null && eld != null &&
-         eld != e.target.firstChild) {
+      if (eld == null)
+         return; // false;
+      eld.style.opacity = "1.0";
+      if (e.target.firstChild == null && eld != null) {
          /* Looks like a legitimate drop */
          var ok = true;
          parentid = eld.parentNode.id;
@@ -226,7 +295,8 @@
                else {
                   $(eld).data("letter", letter);
                   $(eld).addClass("blanktile");
-                  eld.childNodes[0].nodeValue = letter;
+                  $(eld).children().eq(0).text(letter);
+                  // eld.childNodes[0].nodeValue = letter;
                }
             }
          }
@@ -238,46 +308,11 @@
          elementDragged = null;
          updateButtonState();
       }
-      return false;
-   }
-
-   function initDropTarget(elem) {
-      if (elem) {
-         elem.addEventListener('dragover', handleDragover);
-         elem.addEventListener('dragenter', handleDragenter);
-         elem.addEventListener('dragleave', handleDragleave);
-         elem.addEventListener('drop', handleDrop);
-      }
-   }
-
-   function removeDropTarget(elem) {
-      if (elem) {
-         elem.removeEventListener('dragover', handleDragover);
-         elem.removeEventListener('dragenter', handleDragenter);
-         elem.removeEventListener('dragleave', handleDragleave);
-         elem.removeEventListener('drop', handleDrop);
-      }
-   }
-
-   function initDropTargets() {
-      /* All board squares are drop targets */
-      for (x = 1; x <= 15; x++)
-         for (y = 1; y <= 15; y++) {
-            coord = "ABCDEFGHIJKLMNO".charAt(y - 1) + x.toString();
-            sq = document.getElementById(coord);
-            if (sq)
-               initDropTarget(sq);
-         }
-      /* Make the rack a drop target as well */
-      for (x = 1; x <= 7; x++) {
-        coord = "R" + x.toString();
-        sq = document.getElementById(coord);
-        if (sq)
-           initDropTarget(sq);
-      }
+      // return false;
    }
 
    function updateButtonState() {
+      /* Refresh state of action buttons depending on availability */
       tilesPlaced = findCovers().length;
       $("div.submitmove").toggleClass("disabled",
          (tilesPlaced == 0 || showingDialog));

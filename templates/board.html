@@ -7,7 +7,7 @@
    function placeTiles() {
 {% for coord, tile, letter, score in game.enum_tiles() %}
       placeTile("{{ coord }}", "{{ tile }}", "{{ letter }}", "{{ score }}");
-{% endfor %}
+{%- endfor -%}
 
 {% for tile, score in game.state.player_rack().details() %}
       placeTile("R{{ loop.index }}", "{{ tile }}", "{{ tile }}", "{{ score }}");
@@ -18,7 +18,7 @@
 {% for player, m in game.moves %}
 {% set coord, tiles, score = m.summary(game.state.board()) %}
       appendMove({{ player }}, "{{ coord }}", "{{ tiles }}", "{{ score }}");
-{% endfor %}
+{%- endfor -%}
    }
 
    function initBag(bag) {
