@@ -6,6 +6,8 @@
    
 */
 
+   var numMoves = 0;
+
    function placeTile(sq, tile, letter, score) {
       if (tile.length == 0) {
          /* Erasing tile */
@@ -99,6 +101,8 @@
       height = movelist.height()
       if (topoffset >= height)
          movelist.scrollTop(topoffset - height)
+      /* Count the moves */
+      numMoves += 1;
    }
 
    function promptForBlank() {
@@ -131,36 +135,15 @@
 
    function handleDragstart(e, ui) {
       /* The dragstart target is the DIV inside a TD */
-      /*
-      e.dataTransfer.clearData();
-      e.dataTransfer.setData('text/html', ""); // We don't use this
-      e.dataTransfer.effectAllowed = 'move';
-      */
-      /* e.dataTransfer.setDragImage(e.target.innerHTML); */
       elementDragged = e.target;
-      // elementDragged.style.opacity = "0.6"
+      elementDragged.style.opacity = "0.6"
    }
 
    function handleDragend(e, ui) {
-      /*
       if (elementDragged != null)
          elementDragged.style.opacity = "1.0";
-      */
       elementDragged = null;
    }
-
-   /*
-   function handleDragover(e) {
-      if (e.preventDefault)
-         e.preventDefault();
-      if (e.target.firstChild)
-         // There is already a tile in the square: drop will have no effect
-         e.dataTransfer.dropEffect = 'none';
-      else
-         e.dataTransfer.dropEffect = 'move';
-      return false;
-   }
-   */
 
    function handleDropover(e, ui) {
       if (e.target.firstChild == null)
@@ -175,7 +158,6 @@
 
    function initDraggable(elem) {
       /* The DIVs inside the board TDs are draggable */
-      // $(elem).attr("draggable", "true");
       $(elem).draggable(
          {
             opacity : 0.6,
@@ -185,20 +167,11 @@
             stop : handleDragend
          }
       );
-      /*
-      elem.addEventListener('dragstart', handleDragstart);
-      elem.addEventListener('dragend', handleDragend);
-      */
    }
 
    function removeDraggable(elem) {
       /* The DIVs inside the board TDs are draggable */
       $(elem).draggable("destroy");
-      /*
-      $(elem).attr("draggable", "false");
-      elem.removeEventListener('dragstart', handleDragstart);
-      elem.removeEventListener('dragend', handleDragend);
-      */
    }
 
    function initRackDraggable(state) {
@@ -217,6 +190,7 @@
    }
 
    function initDropTarget(elem) {
+      /* Prepare a board square or a rack slot to accept drops */
       if (elem != null)
          elem.droppable(
             {
@@ -225,26 +199,7 @@
                out : handleDropleave
             }
          );
-      /*
-      if (elem) {
-         elem.addEventListener('dragover', handleDragover);
-         elem.addEventListener('dragenter', handleDragenter);
-         elem.addEventListener('dragleave', handleDragleave);
-         elem.addEventListener('drop', handleDrop);
-      }
-      */
    }
-
-   /*
-   function removeDropTarget(elem) {
-      if (elem) {
-         elem.removeEventListener('dragover', handleDragover);
-         elem.removeEventListener('dragenter', handleDragenter);
-         elem.removeEventListener('dragleave', handleDragleave);
-         elem.removeEventListener('drop', handleDrop);
-      }
-   }
-   */
 
    function initDropTargets() {
       /* All board squares are drop targets */
@@ -264,17 +219,11 @@
 
    function handleDrop(e, ui) {
       /* A tile is being dropped on a square on the board or into the rack */
-      /*
-      if (e.preventDefault)
-         e.preventDefault();
-      if (e.stopPropagation)
-         e.stopPropagation();
-      */
       e.target.classList.remove("over");
       /* Save the elementDragged value as it will be set to null in handleDragend() */
       var eld = elementDragged;
       if (eld == null)
-         return; // false;
+         return;
       eld.style.opacity = "1.0";
       if (e.target.firstChild == null && eld != null) {
          /* Looks like a legitimate drop */
@@ -295,8 +244,7 @@
                else {
                   $(eld).data("letter", letter);
                   $(eld).addClass("blanktile");
-                  $(eld).children().eq(0).text(letter);
-                  // eld.childNodes[0].nodeValue = letter;
+                  eld.childNodes[0].nodeValue = letter;
                }
             }
          }
@@ -304,11 +252,18 @@
             /* Complete the drop */
             eld.parentNode.removeChild(eld);
             e.target.appendChild(eld);
+            if (e.target.id.charAt(0) == 'R') {
+               /* Dropping into the rack */
+               if ($(eld).data("tile") == '?') {
+                  /* Dropping a blank tile: erase its letter value, if any */
+                  $(eld).data("letter", ' ');
+                  eld.childNodes[0].nodeValue = "\xa0"; // Non-breaking space, i.e. &nbsp;
+               }
+            }
          }
          elementDragged = null;
          updateButtonState();
       }
-      // return false;
    }
 
    function updateButtonState() {
@@ -400,7 +355,7 @@
       }
    }
 
-   var GAME_OVER = 13; /* Error code corresponding to the Error class in skraflmechanics.py */
+   var GAME_OVER = 14; /* Error code corresponding to the Error class in skraflmechanics.py */
 
    function updateState(json) {
       /* Work through the returned JSON object to update the
@@ -600,6 +555,7 @@
       submitOut();
       /* Show a temporary animated GIF while the Ajax call is being processed */
       submitTemp = $("div.submitmove").html();
+      $("div.submitmove").removeClass("disabled");
       $("div.submitmove").html("<img src='/static/ajax-loader.gif' border=0/>");
       /* Talk to the game server using jQuery/Ajax */
       $.ajax({
@@ -608,7 +564,9 @@
 
          // the data to send
          data: {
-            moves: moves
+            moves: moves,
+            // Send a move count to ensure that the client and the server are in sync
+            mcount: numMoves
          },
 
          // whether this is a POST or GET request

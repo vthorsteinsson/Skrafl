@@ -574,7 +574,8 @@ class Error:
     TILE_NOT_IN_RACK = 10
     EXCHANGE_NOT_ALLOWED = 11
     TOO_MANY_TILES_EXCHANGED = 12
-    GAME_OVER = 13
+    OUT_OF_SYNC = 13
+    GAME_OVER = 14
 
     @staticmethod
     def errortext(errcode):
@@ -591,6 +592,7 @@ class Error:
             u"TILE_NOT_IN_RACK",
             u"EXCHANGE_NOT_ALLOWED",
             u"TOO_MANY_TILES_EXCHANGED",
+            u"OUT_OF_SYNC",
             u"GAME_OVER"][errcode]
 
 

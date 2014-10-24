@@ -342,6 +342,10 @@ class Game:
         displaybag = self.state.display_bag(1 - self.player_index)
         return u''.join(sorted(displaybag, key=lambda ch: Game.BAG_SORT_ORDER.index(ch)))
 
+    def num_moves(self):
+        """ Returns the number of moves in the game so far """
+        return len(self.moves)
+
     def client_state(self):
         """ Create a package of information for the client about the current state """
         reply = dict()
@@ -370,6 +374,7 @@ class Game:
             reply["bag"] = "" # Bag is now empty, by definition
             reply["xchg"] = False # Exchange move not allowed
         else:
+            # Game is still in progress
             reply["result"] = 0 # Indicate no error
             reply["rack"] = self.state.player_rack().details()
             reply["lastmove"] = self.last_move.details()
@@ -380,7 +385,7 @@ class Game:
         return reply
 
 
-def _process_move(movelist):
+def _process_move(movecount, movelist):
     """ Process a move from the client (the human player)
         Returns True if OK or False if the move was illegal
     """
@@ -390,6 +395,11 @@ def _process_move(movelist):
     if game is None:
         # !!! TODO: more informative error message about relogging in
         return jsonify(result=Error.NULL_MOVE)
+
+    # Make sure the client is in sync with the server:
+    # check the move count
+    if movecount != game.num_moves():
+        return jsonify(result=Error.OUT_OF_SYNC)
 
     # Parse the move from the movestring we got back
     m = Move(u'', 0, 0)
@@ -455,14 +465,16 @@ def _process_move(movelist):
 def submitmove():
     """ Handle a move that is being submitted from the client """
     movelist = []
+    movecount = 0
     if request.method == 'POST':
         # This URL should only receive Ajax POSTs from the client
         try:
             movelist = request.form.getlist('moves[]')
+            movecount = int(request.form.get('mcount', 0))
         except:
             pass
     # Process the movestring
-    return _process_move(movelist)
+    return _process_move(movecount, movelist)
 
 
 @app.route("/userprefs", methods=['GET', 'POST'])

@@ -11,12 +11,12 @@
 
 {% for tile, score in game.state.player_rack().details() %}
       placeTile("R{{ loop.index }}", "{{ tile }}", "{{ tile }}", "{{ score }}");
-{% endfor %}
+{%- endfor -%}
    }
 
    function initMoveList() {
 {% for player, m in game.moves %}
-{% set coord, tiles, score = m.summary(game.state.board()) %}
+{%- set coord, tiles, score = m.summary(game.state.board()) -%}
       appendMove({{ player }}, "{{ coord }}", "{{ tiles }}", "{{ score }}");
 {%- endfor -%}
    }
@@ -133,6 +133,7 @@
    <p id="err_10">Stafur er ekki í rekkanum</p> <!-- TILE_NOT_IN_RACK = 10 -->
    <p id="err_11">Of fáir stafir eftir, skipting ekki leyfð</p> <!-- EXCHANGE_NOT_ALLOWED = 11 -->
    <p id="err_12">Of mörgum stöfum skipt</p> <!-- TOO_MANY_TILES_EXCHANGED = 12 -->
+   <p id="err_13">Leik vantar á borðið - þarf að endurhlaða</p> <!-- OUT_OF_SYNC = 13 -->
 </div>
 
 <!-- Confirm resignation of game -->
