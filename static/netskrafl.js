@@ -6,6 +6,10 @@
    
 */
 
+   /* Constants */
+   var ROWIDS = "ABCDEFGHIJKLMNO";
+
+   /* Global variables */
    var numMoves = 0;
 
    function placeTile(sq, tile, letter, score) {
@@ -37,9 +41,47 @@
       }
    }
 
+   function highlightMove(ev) {
+      /* Highlight a move's tiles when hovering over it in the move list */
+      var coord = ev.data.coord;
+      var tiles = ev.data.tiles;
+      var score = ev.data.score;
+      var player = ev.data.player;
+      var dx = 0, dy = 0;
+      var col = 0;
+      var row = ROWIDS.indexOf(coord.charAt(0));
+      if (row >= 0) {
+         /* Horizontal move */
+         col = parseInt(coord.slice(1)) - 1;
+         dx = 1;
+      }
+      else {
+         /* Vertical move */
+         row = ROWIDS.indexOf(coord.charAt(coord.length - 1));
+         col = parseInt(coord) - 1;
+         dy = 1;
+      }
+      for (var i = 0; i < tiles.length; i++) {
+         var sq = ROWIDS.charAt(row) + (col + 1).toString();
+         var tileDiv = $("#"+sq).children().eq(0);
+         if (!(tileDiv == null))
+            if (ev.data.show) {
+               tileDiv.addClass("highlight" + player);
+               $(this).find("span.score").addClass("highlight");
+            }
+            else {
+               tileDiv.removeClass("highlight" + player);
+               $(this).find("span.score").removeClass("highlight");
+            }
+         col += dx;
+         row += dy;
+      }
+   }
+
    function appendMove(player, coord, tiles, score) {
       /* Add a move to the move history list */
-      wrdclass = "wordmove";
+      var wrdclass = "wordmove";
+      var rawCoord = coord;
       if (coord == "") {
          /* Not a regular tile move */
          wrdclass = "othermove";
@@ -87,18 +129,34 @@
       }
       movelist = $("div.movelist");
       movelist.append(str);
-      if (wrdclass != "gameover")
+      if (wrdclass != "gameover") {
+         var m = $("div.movelist").children().last();
+         var playerid = "0";
          if (player == humanPlayer())
-            $("div.movelist").children().last().addClass("humancolor");
-         else
-            $("div.movelist").children().last().addClass("autoplayercolor");
+            m.addClass("humancolor"); /* Local player */
+         else {
+            m.addClass("autoplayercolor"); /* Remote player */
+            playerid = "1";
+         }
+         if (wrdclass == "wordmove") {
+            /* Register a hover event handler to highlight this move */
+            m.on("mouseover",
+               { coord: rawCoord, tiles: tiles, score: score, player: playerid, show: true },
+               highlightMove
+            );
+            m.on("mouseout",
+               { coord: rawCoord, tiles: tiles, score: score, player: playerid, show: false },
+               highlightMove
+            );
+         }
+      }
       /* Manage the scrolling of the move list */
-      lastchild = $("div.movelist:last-child");
+      lastchild = $("div.movelist:last-child"); /* .children().last() causes problems */
       firstchild = $("div.movelist").children().eq(0);
       topoffset = lastchild.position().top -
          firstchild.position().top +
          lastchild.height();
-      height = movelist.height()
+      height = movelist.height();
       if (topoffset >= height)
          movelist.scrollTop(topoffset - height)
       /* Count the moves */
@@ -205,7 +263,7 @@
       /* All board squares are drop targets */
       for (x = 1; x <= 15; x++)
          for (y = 1; y <= 15; y++) {
-            coord = "ABCDEFGHIJKLMNO".charAt(y - 1) + x.toString();
+            coord = ROWIDS.charAt(y - 1) + x.toString();
             sq = $("#"+coord);
             initDropTarget(sq);
          }
