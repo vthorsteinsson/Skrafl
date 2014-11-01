@@ -194,7 +194,7 @@
    function handleDragstart(e, ui) {
       /* The dragstart target is the DIV inside a TD */
       elementDragged = e.target;
-      elementDragged.style.opacity = "0.6"
+      elementDragged.style.opacity = "0.5"
    }
 
    function handleDragend(e, ui) {
@@ -218,9 +218,10 @@
       /* The DIVs inside the board TDs are draggable */
       $(elem).draggable(
          {
-            opacity : 0.6,
+            opacity : 0.8,
             helper : "clone",
-            cursor : "move",
+            cursor : "pointer",
+            zIndex : 100,
             start : handleDragstart,
             stop : handleDragend
          }
@@ -293,7 +294,7 @@
             if (t == '?') {
                /* Dropping a blank tile: we need to ask for its meaning */
                e.target.classList.add("over");
-               eld.style.opacity = "0.6";
+               eld.style.opacity = "0.8";
                letter = promptForBlank();
                eld.style.opacity = "1.0";
                e.target.classList.remove("over");

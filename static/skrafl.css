@@ -162,7 +162,7 @@ div.tile {
 }
 
 div.racktile {
-   cursor: move;
+   cursor: pointer;
    background-color: #fcce43; /* Pantone 7404 U */
 }
 
@@ -674,3 +674,19 @@ div.over {
 div.disabled {
    background-color: #d6d1c4; /* Pantone 7534 U */
 }
+
+a.nodecorate:link {
+   text-decoration: none;
+   color: black;
+}
+
+a.nodecorate:visited {
+   text-decoration: none;
+   color: black;
+}
+
+a.nodecorate:hover {
+   text-decoration: none;
+   color: #006db8; /* Pantone 300 U */
+}
+
