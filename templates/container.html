@@ -39,9 +39,14 @@
 
    <div class="container">
    
-      <div class="pageheader">
+      <div class="logo">
+      	<a class="nodecorate" href="{{ url_for('main') }}">
+      		<img src="{{ url_for('static', filename='Netskrafl.png') }}" border=0 width=46px height=400px></img>
+      	</a>
+      <!--
          <h2><a class="nodecorate" href="{{ url_for('main') }}">Netskrafl</a></h2>
          <h3>eftir <a class="nodecorate" href="http://blog.pressan.is/vthorsteinsson" target="new">Vilhjálm Þorsteinsson</a></h3>
+      -->
       </div>
 
 {% block content %}

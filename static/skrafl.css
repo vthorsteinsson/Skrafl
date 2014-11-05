@@ -363,6 +363,7 @@ div.container {
    margin: 0;
 }
 
+/*
 div.pageheader {
    position: relative;
    top: 0;
@@ -387,6 +388,7 @@ div.pageheader {
    padding-left: 4px;
    display:inline;
 }
+*/
 
 div.logout {
    position: absolute;
@@ -401,10 +403,18 @@ div.logout {
    padding-top: 8px;
 }
 
+div.logo {
+   position: absolute;
+   top: 28px;
+   left: 12px;
+   width: 46px;
+   height: 400px;
+}
+
 div.board {
    position: absolute;
-   top: 48px;
-   left: 0px;
+   top: 8px;
+   left: 66px;
 }
 
 div.rightcol {
