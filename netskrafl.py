@@ -552,10 +552,10 @@ def main():
     return render_template("board.html", game = game, user = user)
 
 
-@app.route("/help/")
+@app.route("/help")
 def help():
     """ Show help page """
-    return render_template("help.html")
+    return render_template("nshelp.html")
 
 
 @app.errorhandler(404)

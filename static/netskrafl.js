@@ -400,8 +400,8 @@
       while (lenbag > 0) {
          /* Rows */
          var str = "<tr>";
-         /* Columns: max 13 tiles per row */
-         for (var i = 0; i < 13 && lenbag > 0; i++) {
+         /* Columns: max 19 tiles per row */
+         for (var i = 0; i < 19 && lenbag > 0; i++) {
             var tile = bag[ix++]
             if (tile == "?")
                /* Show wildcard tiles '?' as blanks */

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Spilaðu skrafl á netinu!">
 
 <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
 
@@ -43,10 +44,12 @@
       	<a class="nodecorate" href="{{ url_for('main') }}">
       		<img src="{{ url_for('static', filename='Netskrafl.png') }}" border=0 width=46px height=400px></img>
       	</a>
-      <!--
-         <h2><a class="nodecorate" href="{{ url_for('main') }}">Netskrafl</a></h2>
-         <h3>eftir <a class="nodecorate" href="http://blog.pressan.is/vthorsteinsson" target="new">Vilhjálm Þorsteinsson</a></h3>
-      -->
+      </div>
+
+      <div class="info">
+      	<a class="iconlink" href="{{ url_for('help') }}">
+      		<span class="glyphicon glyphicon-info-sign"></span>
+      	</a>
       </div>
 
 {% block content %}

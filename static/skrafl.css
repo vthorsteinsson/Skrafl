@@ -30,6 +30,9 @@
 .glyphicon-log-in:before {
   content: "\e161";
 }
+.glyphicon-log-out:before {
+  content: "\e163";
+}
 .glyphicon-screenshot:before {
   content: "\e087";
 }
@@ -47,6 +50,9 @@
 }
 .glyphicon-remove:before {
   content: "\e014";
+}
+.glyphicon-info-sign:before {
+  content: "\e086";
 }
 
 body {
@@ -223,7 +229,7 @@ h3.playerleft {
    top: 0; left: 0;
    width: 50%;
    font-size: 16px;
-   line-height: 16px;
+   line-height: 24px;
    font-weight: 700;
    text-align: left;
    color: #222222;
@@ -240,7 +246,7 @@ h3.playerright {
    top: 0; right: 0;
    width: 50%;
    font-size: 16px;
-   line-height: 16px;
+   line-height: 24px;
    font-weight: 700;
    text-align: right;
    color: #222222;
@@ -254,11 +260,11 @@ h3.playerright {
 h3.scoreleft {
    display: inline-block;
    position: absolute;
-   top: 38px;
+   top: 42px;
    left: 0;
    width: 50%;
-   font-size: 22px;
-   line-height: 22px;
+   font-size: 24px;
+   line-height: 24px;
    font-weight: 700;
    text-align: left;
    color: white;
@@ -271,11 +277,11 @@ h3.scoreleft {
 h3.scoreright {
    display: inline-block;
    position: absolute;
-   top: 38px;
+   top: 42px;
    right: 0;
    width: 50%;
-   font-size: 22px;
-   line-height: 22px;
+   font-size: 24px;
+   line-height: 24px;
    font-weight: 700;
    text-align: right;
    color: white;
@@ -357,50 +363,10 @@ div.container {
    top: 0;
    left: 0;
    width: 1024px;
-   height: 768px;
+   height: 720px;
    background-color: #FFF1DC; /* Pantone 7506 U */
    padding: 0;
    margin: 0;
-}
-
-/*
-div.pageheader {
-   position: relative;
-   top: 0;
-   left: 0;
-   font-size: 20px;
-   width: 760px;
-   height: 40px;
-   margin: 4px;
-}
-
-.pageheader h2 {
-   width: 100%;
-   margin: 0;
-   display: inline;
-}
-
-.pageheader h3 {
-   font-size: 14px;
-   font-weight: 400;
-   width: 100%;
-   margin: 0;
-   padding-left: 4px;
-   display:inline;
-}
-*/
-
-div.logout {
-   position: absolute;
-   top: 0;
-   right: 0;
-   font-size: 16px;
-   text-align: right;
-   vertical-align: middle;
-   width: 25%;
-   height: 40px;
-   margin: 8px;
-   padding-top: 8px;
 }
 
 div.logo {
@@ -411,17 +377,27 @@ div.logo {
    height: 400px;
 }
 
+div.info {
+   position: absolute;
+   top: 460px;
+   left: 12px;
+   width: 46px;
+   height: 46px;
+   text-align: center;
+   font-size: 32px;
+}
+
 div.board {
    position: absolute;
    top: 8px;
-   left: 66px;
+   left: 96px;
 }
 
 div.rightcol {
    position: absolute;
-   width: 206px;
-   right: 4px;
-   top: 48px;
+   width: 302px;
+   right: 12px;
+   top: 14px;
    margin-top: 24px;
 }
 
@@ -429,7 +405,7 @@ div.rack {
    position: absolute;
    text-align: center;
    bottom: 91px;
-   left: 172px;
+   left: 268px;
    background-color: #afb8bf; /* Pantone 7543 U */
    padding: 8px;
    border-width: 0;
@@ -440,10 +416,9 @@ div.rack {
 div.bag {
    position: absolute;
    bottom: 4px;
-   right: 4px;
-   width: 208px;
+   right: 14px;
+   width: 302px;
    height: 160px;
-   /* background-color: #d6d1c4; */ /* Pantone 7534 U */
    font-size: 11px;
    font-weight: 700;
    text-transform: uppercase;
@@ -469,8 +444,8 @@ div.error {
    text-align: center;
    display: block;
    bottom: 40px;
-   left: 34px;
-   width: 520px;
+   left: 130px;
+   width: 512px;
    height: 28px;
    background-color: #ee4f68; /* Pantone 192 U */
    font-size: 16px;
@@ -497,7 +472,7 @@ div.resign {
    text-align: center;
    display: block;
    bottom: 40px;
-   left: 34px;
+   left: 130px;
    width: 512px;
    height: 28px;
    background-color: #ee4f68; /* Pantone 192 U */
@@ -537,7 +512,7 @@ div.exchange {
    text-align: center;
    display: block;
    bottom: 40px;
-   left: 34px;
+   left: 130px;
    width: 512px;
    height: 28px;
    background-color: #7ad3b7; /* Pantone 337 U */
@@ -555,7 +530,7 @@ div.submitmove {
    height: 28px;
    text-align: center;
    bottom: 100px;
-   left: 446px;
+   left: 542px;
    background-color: #7ad3b7; /* Pantone 337 U */
    font-size: 18px;
    font-weight: 700;
@@ -572,7 +547,7 @@ div.submitpass {
    height: 28px;
    text-align: center;
    bottom: 100px;
-   left: 74px;
+   left: 170px;
    background-color: #ffa03b; /* Pantone 137 U */
    font-size: 18px;
    font-weight: 700;
@@ -589,7 +564,7 @@ div.submitresign {
    height: 28px;
    text-align: center;
    bottom: 100px;
-   left: 32px;
+   left: 128px;
    background-color: #ee4f68; /* Pantone 192 U */
    font-size: 18px;
    font-weight: 700;
@@ -606,7 +581,7 @@ div.submitexchange {
    height: 28px;
    text-align: center;
    bottom: 100px;
-   left: 116px;
+   left: 212px;
    background-color: #7ad3b7; /* Pantone 337 U */
    font-size: 18px;
    font-weight: 700;
@@ -617,10 +592,19 @@ div.submitexchange {
    cursor: pointer;
 }
 
+div.help {
+   position: absolute;
+   left: 116px;
+   top: 4px;
+   width: 880px;
+   height: 680px;
+   overflow: hidden;
+}
+
 div.loginform {
    position: absolute;
-   left: 204px;
-   top: 140px;
+   left: 300px;
+   top: 100px;
    text-align: center;
 }
 
@@ -650,7 +634,7 @@ input.username:focus {
    outline: none;
 }
 
-button.login {
+button[type="submit"] {
    font-family: 'Open Sans', 'Helvetica Neue', 'Arial', sans-serif;
    font-size: 20px;
    font-weight: 400;
@@ -672,9 +656,16 @@ button.login {
    cursor: pointer;
 }
 
-button.login:focus, button.login:hover {
+button[type="submit"]:focus, button[type="submit"]:hover {
    outline: yellow solid 3px;
-   background-color: #55cc66;
+}
+
+button.login {
+}
+
+button.logout {
+   margin-top: 80px;
+   background-color: #ee4f68;
 }
 
 div.over {
@@ -696,6 +687,21 @@ a.nodecorate:visited {
 }
 
 a.nodecorate:hover {
+   text-decoration: none;
+   color: #006db8; /* Pantone 300 U */
+}
+
+a.iconlink:link {
+   text-decoration: none;
+   color: #78aee6;
+}
+
+a.iconlink:visited {
+   text-decoration: none;
+   color: #78aee6;
+}
+
+a.iconlink:hover {
    text-decoration: none;
    color: #006db8; /* Pantone 300 U */
 }

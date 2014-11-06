@@ -42,11 +42,6 @@
 
 {% block content %}
 
-<!-- User name and logout icon -->
-<div class="logout">
-<a class="nodecorate" href="{{ url_for('userprefs') }}">{{ user.nickname() }}</a>&nbsp;&nbsp;<a href='{{ user.logout_url() }}' title="Skrá mig út"><img src='{{ url_for("static", filename="glyphicons_387_log_out.png") }}' width=21 height=18 border=0></a>
-</div>
-
 <!-- The board -->
 <div class="board">
    <table class="board">
@@ -72,8 +67,24 @@
 <!-- Player names, scores and move history -->
 <div class="rightcol">
    <div class="heading">
-      <h3 class="playerleft">{{ game.state.player_name(0) }}</h3>
-      <h3 class="playerright">{{ game.state.player_name(1) }}</h3>
+      <h3 class="playerleft">
+{% if game.player_index == 0 %}
+<a class="nodecorate" href="{{ url_for('userprefs') }}">
+{%- endif -%}
+      {{ game.state.player_name(0) }}
+{%- if game.player_index == 0 -%}
+</a>
+{% endif %}
+      </h3>
+      <h3 class="playerright">
+{% if game.player_index == 1 %}
+<a class="nodecorate" href="{{ url_for('userprefs') }}">
+{%- endif -%}
+      {{ game.state.player_name(1) }}
+{%- if game.player_index == 1 -%}
+</a>
+{% endif %}
+      </h3>
       <h3 class="scoreleft">{{ game.state.scores()[0] }}</h3>
       <h3 class="scoreright">{{ game.state.scores()[1] }}</h3>
    </div>
