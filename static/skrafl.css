@@ -599,6 +599,12 @@ div.help {
    width: 880px;
    height: 680px;
    overflow: hidden;
+   font-size: 15.5px;
+}
+
+div.smallprint {
+   font-size: 12px;
+   padding-top: 12px;
 }
 
 div.loginform {
