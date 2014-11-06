@@ -29,10 +29,10 @@
       $("#"+sq).html("<div " + attr + ">" + letter +
          "<div class='letterscore'>" + score + "</div></div>");
       elem = $("#"+sq).children().eq(0);
+      elem.data("score", score);
       if (sq.charAt(0) == "R") {
          /* Store associated data with rack tiles */
          elem.data("tile", tile);
-         elem.data("score", score);
       }
       else
       if (tile == '?') {
@@ -236,7 +236,7 @@
    function initRackDraggable(state) {
       /* Make the seven tiles in the rack draggable or not, depending on
          the state parameter */
-      for (i = 1; i <= 7; i++) {
+      for (var i = 1; i <= 7; i++) {
          rackTileId = "R" + i.toString();
          rackTile = document.getElementById(rackTileId);
          if (rackTile && rackTile.firstChild)
@@ -390,6 +390,39 @@
          }
       });
       return moves;      
+   }
+
+   function resetRack(ev) {
+      /* Reset the rack, i.e. recall all tiles. Bound to the Esc key. */
+      if (showingDialog)
+         return false;
+      var rslot = 1;
+      $("div.tile").each(function() {
+         var sq = $(this).parent().attr("id");
+         var t = $(this).data("tile");
+         var score = $(this).data("score");
+         if (t !== null && t !== undefined && sq.charAt(0) != "R") {
+            placeTile(sq, "", "", 0);
+            /* Find an empty slot in the rack for the tile */
+            for (; rslot <= 7; rslot++) {
+               rackTileId = "R" + rslot.toString();
+               rackTile = document.getElementById(rackTileId);
+               if (rackTile && rackTile.firstChild === null) {
+                  /* Found empty rack slot: put this there */
+                  placeTile(rackTileId, t, t, score);
+                  initDraggable(rackTile.firstChild);
+                  rslot++;
+                  break;
+               }
+            }
+         }
+      });
+   }
+
+   function rescrambleRack(ev) {
+      /* Reorder the rack randomly. Bound to the R key. */
+      if (showingDialog)
+         return false;
    }
 
    function updateBag(bag) {
@@ -673,6 +706,10 @@
          $("h3.playerleft").addClass("autoplayercolor");
       }
       updateButtonState();
+      /* Bind Esc key to a function to reset the rack */
+      Mousetrap.bind('esc', resetRack);
+      /* Bind R key to a function to rescramble the rack */
+      Mousetrap.bind('r', rescrambleRack);
    }
 
 
