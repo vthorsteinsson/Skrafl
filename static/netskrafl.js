@@ -204,8 +204,8 @@
    }
 
    function handleDropover(e, ui) {
-      if (e.target.firstChild == null)
-        /* Empty square, can drop here: add yellow outline highlight to square*/
+      if (e.target.id.charAt(0) == 'R' || e.target.firstChild == null)
+        /* Rack square or empty square: can drop. Add yellow outline highlight to square */
         this.classList.add("over");
    }
 
@@ -284,14 +284,66 @@
       if (eld == null)
          return;
       eld.style.opacity = "1.0";
-      if (e.target.firstChild == null && eld != null) {
+      var dropToRack = false;
+      if (e.target.id.charAt(0) == 'R' && e.target.firstChild != null) {
+         /* Dropping into an already occupied rack slot: shuffle the rack tiles to make room */
+         var ix = parseInt(e.target.id.slice(1));
+         var rslot = null;
+         var i = 0;
+         /* Try to find an empty slot to the right */
+         for (i = ix + 1; i <= 7; i++) {
+            rslot = document.getElementById("R" + i.toString());
+            if (!rslot.firstChild)
+               /* Empty slot in the rack */
+               break;
+            rslot = null;
+         }
+         if (rslot == null) {
+            /* Not found: Try an empty slot to the left */
+            for (i = ix - 1; i >= 1; i--) {
+               rslot = document.getElementById("R" + i.toString());
+               if (!rslot.firstChild)
+                  /* Empty slot in the rack */
+                  break;
+               rslot = null;
+            }
+         }
+         if (rslot == null) {
+            /* No empty slot: must be internal shuffle in the rack */
+            rslot = eld.parentNode;
+            i = parseInt(rslot.id.slice(1));
+         }
+         if (rslot != null) {
+            if (i > ix)
+               /* Found empty slot: shift rack tiles to the right to make room */
+               for (var j = i; j > ix; j--) {
+                  src = document.getElementById("R" + (j - 1).toString());
+                  tile = src.firstChild;
+                  src.removeChild(tile);
+                  rslot.appendChild(tile);
+                  rslot = src;
+               }
+            else
+            if (i < ix)
+               /* Found empty slot: shift rack tiles to the left to make room */
+               for (var j = i; j < ix; j++) {
+                  src = document.getElementById("R" + (j + 1).toString());
+                  tile = src.firstChild;
+                  src.removeChild(tile);
+                  rslot.appendChild(tile);
+                  rslot = src;
+               }
+            dropToRack = true;
+         }
+      }
+      if (e.target.firstChild == null) {
          /* Looks like a legitimate drop */
          var ok = true;
          parentid = eld.parentNode.id;
          if (parentid.charAt(0) == 'R') {
             /* Dropping from the rack */
             var t = $(eld).data("tile");
-            if (t == '?') {
+            if (!dropToRack && t == '?') {
                /* Dropping a blank tile: we need to ask for its meaning */
                e.target.classList.add("over");
                eld.style.opacity = "0.8";
@@ -320,9 +372,9 @@
                }
             }
          }
-         elementDragged = null;
          updateButtonState();
       }
+      elementDragged = null;
    }
 
    function updateButtonState() {

@@ -594,17 +594,17 @@ div.submitexchange {
 
 div.help {
    position: absolute;
-   left: 116px;
+   left: 110px;
    top: 4px;
    width: 880px;
    height: 680px;
    overflow: hidden;
-   font-size: 15.5px;
+   font-size: 15px;
 }
 
 div.smallprint {
    font-size: 12px;
-   padding-top: 12px;
+   padding-top: 6px;
 }
 
 div.loginform {
