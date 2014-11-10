@@ -81,6 +81,10 @@ table.board {
    padding: 0;
 }
 
+.rack table.board {
+   border-spacing: 4px;
+}
+
 td.over {
    outline: yellow solid 3px;
 }
@@ -404,10 +408,10 @@ div.rightcol {
 div.rack {
    position: absolute;
    text-align: center;
-   bottom: 91px;
-   left: 268px;
+   bottom: 89px;
+   left: 254px;
    background-color: #afb8bf; /* Pantone 7543 U */
-   padding: 8px;
+   padding: 6px;
    border-width: 0;
    border-radius: 4px;
    margin: 0;
