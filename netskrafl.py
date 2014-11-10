@@ -40,7 +40,7 @@ from skrafldb import Unique, UserModel, GameModel, MoveModel
 # Standard Flask initialization
 
 app = Flask(__name__)
-app.config['DEBUG'] = True # !!! TODO: Change to False for production deployment
+app.config['DEBUG'] = False
 
 # !!! TODO: Change this to read the secret key from a config file at run-time
 app.secret_key = '\x03\\_,i\xfc\xaf=:L\xce\x9b\xc8z\xf8l\x000\x84\x11\xe1\xe6\xb4M'
@@ -120,6 +120,7 @@ class Game:
 
     # The human-readable name of the computer player
     AUTOPLAYER_NAME = u"Netskrafl"
+    UNDEFINED_NAME = u"[Ónefndur]"
 
     def __init__(self, uuid = None):
         # Unique id of the game
@@ -142,12 +143,11 @@ class Game:
     _cache = dict()
 
     def _make_new(self, username):
-        # Initialize a new, fresh game
+        """ Initialize a new, fresh game """
         self.username = username
         self.state = State(drawtiles = True)
         self.player_index = randint(0, 1)
-        self.state.set_player_name(self.player_index, username)
-        self.state.set_player_name(1 - self.player_index, Game.AUTOPLAYER_NAME)
+        self.set_human_name(username)
 
     @classmethod
     def current(cls):
@@ -206,8 +206,7 @@ class Game:
             assert gm.player1 is None
             game.player_index = 0 # Human (local) player is 0
 
-        game.state.set_player_name(game.player_index, username)
-        game.state.set_player_name(1 - game.player_index, u"Netskrafl")
+        game.set_human_name(username)
 
         # Load the current racks
         game.state._racks[0].set_tiles(gm.rack0)
@@ -303,7 +302,12 @@ class Game:
 
     def set_human_name(self, nickname):
         """ Set the nickname of the human player """
+        if nickname[0:8] == u"https://":
+            # Raw name (path) from Google Accounts: use a more readable version
+            nickname = Game.UNDEFINED_NAME
         self.state.set_player_name(self.player_index, nickname)
+        # Set the autoplayer's name as well
+        self.state.set_player_name(1 - self.player_index, Game.AUTOPLAYER_NAME)
 
     def resign(self):
         """ The human player is resigning the game """
