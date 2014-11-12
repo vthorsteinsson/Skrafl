@@ -700,7 +700,7 @@ def nofilter(word):
     """ No filtering - include all input words in output graph """
     return True
 
-disallowed = set([u"im", u"ím", u"je", u"oj", u"pé"])
+# disallowed = set([u"je", u"oj", u"pé"]) # Previously had u"im" and u"ím" here
 
 def filter_skrafl(word):
     """ Filtering for Icelandic Scrabble(tm)
@@ -713,12 +713,12 @@ def filter_skrafl(word):
     if lenw > SCRABBLE_MAXLEN:
         # Too long, not necessary for Scrabble
         return False
-    if any(c in word for c in u"cqwzü"):
-        # Non-Icelandic character
-        return False
-    if word in disallowed:
-        # Two-letter word that is not allowed in Icelandic Scrabble
-        return False
+#    if any(c in word for c in u"cqwzü"):
+#        # Non-Icelandic character
+#        return False
+#    if word in disallowed:
+#        # Two-letter word that is not allowed in Icelandic Scrabble
+#        return False
     return True
 
 import time
@@ -775,12 +775,12 @@ def run_skrafl():
     # filtered according to filter_skrafl() (see comment above) and with a few two-letter
     # words added according to Icelandic Scrabble rules
     # Output is about 2.2 million words, generating 102,668 graph nodes
-    print(u"Starting DAWG build for Skrafl/ordaleikur.appspot.com")
+    print(u"Starting DAWG build for skraflhjalp/netskrafl.appspot.com")
     db = DawgBuilder()
     t0 = time.time()
     # "isl" specifies Icelandic sorting order - modify this for other languages
     db.build(
-        ["ordalisti1.txt", "ordalisti2.txt", "smaord.sorted.txt", "tveggjastafa.sorted.txt"], # Input files to be merged
+        ["ordalistimax15.sorted.txt"], # Input files to be merged
         "ordalisti", # Output file - full name will be ordalisti.text.dawg
         "resources", # Subfolder of input and output files
         "isl", # Identifier of locale to use for sorting order
