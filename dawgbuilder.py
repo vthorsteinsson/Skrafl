@@ -102,6 +102,8 @@ import binascii
 import struct
 import io
 
+from dawgdictionary import DawgDictionary
+
 from languages import Alphabet
 
 MAXLEN = 48 # Longest possible word to be processed
@@ -242,7 +244,7 @@ class _Dawg:
         """ Collapse and optimize the edges in the parent dict """
         # Iterate through the letter position and
         # attempt to collapse all "simple" branches from it
-        for letter, node in edges.items(): # !!! Was list(edges.items())
+        for letter, node in edges.items():
             if node:
                 self._collapse_branch(edges, letter, node)
 
@@ -788,3 +790,21 @@ def run_skrafl():
     t1 = time.time()
     print("Build took {0:.2f} seconds".format(t1 - t0))
 
+    dawg = DawgDictionary()
+    fpath = os.path.abspath(os.path.join("resources", "ordalisti.text.dawg"))
+    t0 = time.time()
+    dawg.load(fpath)
+    t1 = time.time()
+
+    print("DAWG loaded in {0:.2f} seconds".format(t1 - t0))
+
+    t0 = time.time()
+    dawg.store_pickle(os.path.abspath(os.path.join("resources", "ordalisti.dawg.pickle")))
+    t1 = time.time()
+
+    print("DAWG pickle file stored in {0:.2f} seconds".format(t1 - t0))
+
+
+if __name__ == '__main__':
+
+    run_skrafl()

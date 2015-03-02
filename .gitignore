@@ -12,6 +12,9 @@ __pycache__/
 resources/smaord.txt
 resources/TWL06.txt
 resources/testwords.txt
+resources/ordalistimax15.sorted.txt
+resources/ordalistimax15_13112014.txt
+resources/ordalisti.dawg.pickle
 
 # Scratch work files
 templates/main-scratch.html

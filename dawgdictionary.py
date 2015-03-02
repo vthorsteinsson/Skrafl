@@ -53,17 +53,23 @@
 
 import os
 import codecs
+import threading
+import logging
+import time
+import cPickle as pickle
 
 from languages import Alphabet
 
 
+class _Node:
+
+    """ This class must be at module level for pickling """
+
+    def __init__(self):
+        self.final = False
+        self.edges = dict()
+
 class DawgDictionary:
-
-    class _Node:
-
-        def __init__(self):
-            self.final = False
-            self.edges = dict()
 
     def __init__(self):
         # Initialize an empty graph
@@ -71,6 +77,8 @@ class DawgDictionary:
         self._nodes = None
         # Running counter of nodes read
         self._index = 1
+        # Lock to ensure that only one thread loads the dictionary
+        self._lock = threading.Lock()
 
     def _parse_and_add(self, line):
         """ Parse a single line of a DAWG text file and add to the graph structure """
@@ -91,7 +99,7 @@ class DawgDictionary:
             newnode = self._nodes[nodeid]
         else:
             # The id is appearing for the first time: add it
-            newnode = DawgDictionary._Node()
+            newnode = _Node()
             self._nodes[nodeid] = newnode
         newnode.final = final
         # Process the edges
@@ -107,25 +115,44 @@ class DawgDictionary:
                 newnode.edges[prefix] = self._nodes[edgeid]
             else:
                 # Edge leads to a new, previously unseen node: Create it
-                newterminal = DawgDictionary._Node()
+                newterminal = _Node()
                 newnode.edges[prefix] = newterminal
                 self._nodes[edgeid] = newterminal
 
     def load(self, fname):
         """ Load a DAWG from a text file """
         # Reset the graph contents
-        self._nodes = dict()
-        self._index = 1
-        with codecs.open(fname, mode='r', encoding='utf-8') as fin:
-            for line in fin:
-                if line.endswith(u'\r\n'):
-                    # Cut off trailing CRLF (Windows-style)
-                    line = line[0:-2]
-                elif line.endswith(u'\n'):
-                    # Cut off trailing LF (Unix-style)
-                    line = line[0:-1]
-                if line:
-                    self._parse_and_add(line)
+        with self._lock:
+            # Ensure that we don't have multiple threads trying to load simultaneously
+            if self._nodes is not None:
+                # Already loaded
+                return
+            self._nodes = dict()
+            self._index = 1
+            with codecs.open(fname, mode='r', encoding='utf-8') as fin:
+                for line in fin:
+                    if line.endswith(u'\r\n'):
+                        # Cut off trailing CRLF (Windows-style)
+                        line = line[0:-2]
+                    elif line.endswith(u'\n'):
+                        # Cut off trailing LF (Unix-style)
+                        line = line[0:-1]
+                    if line:
+                        self._parse_and_add(line)
+
+    def store_pickle(self, fname):
+        """ Store a DAWG in a Python pickle file """
+        with open(fname, "wb") as pf:
+            pickle.dump(self._nodes, pf, pickle.HIGHEST_PROTOCOL)
+
+    def load_pickle(self, fname):
+        """ Load a DAWG from a Python pickle file """
+        with self._lock:
+            if self._nodes is not None:
+                # Already loaded
+                return
+            with open(fname, "rb") as pf:
+                self._nodes = pickle.load(pf)
 
     def num_nodes(self):
         """ Return a count of unique nodes in the DAWG """
@@ -187,6 +214,62 @@ class DawgDictionary:
             return
         root = self._nodes[0] # Start at the root
         Navigation(nav).go(root)
+
+
+class Wordbase:
+
+    """ Container for a singleton instance of the word database """
+
+    _dawg = None
+    _lock = threading.Lock()
+
+    @staticmethod
+    def _load():
+        """ Load a DawgDictionary, from either a text file or a pickle file """
+        with Wordbase._lock:
+            if Wordbase._dawg is not None:
+                # Already loaded: nothing to do
+                return
+            # Compare the file times of the text version vs. the pickled version
+            fname = os.path.abspath(os.path.join("resources", "ordalisti.text.dawg"))
+            pname = os.path.abspath(os.path.join("resources", "ordalisti.dawg.pickle"))
+            try:
+                fname_t = os.path.getmtime(fname)
+            except os.error:
+                fname_t = None
+            try:
+                pname_t = os.path.getmtime(pname)
+            except os.error:
+                pname_t = None
+
+            dawg = DawgDictionary()
+
+            if fname_t is not None and pname_t is not None and pname_t >= fname_t:
+                # We have a newer pickle file: use it
+                logging.info(u"Instance {0} loading DAWG from pickle file {1}"
+                    .format(os.environ.get("INSTANCE_ID", ""), pname))
+                t0 = time.time()
+                dawg.load_pickle(pname)
+                t1 = time.time()
+                logging.info(u"Loaded {0} graph nodes in {1:.2f} seconds".format(dawg.num_nodes(), t1 - t0))
+            else:
+                # Load in the traditional way, from the text file
+                logging.info(u"Instance {0} loading DAWG from text file {1}"
+                    .format(os.environ.get("INSTANCE_ID", ""), fname))
+                t0 = time.time()
+                dawg.load(fname)
+                t1 = time.time()
+                logging.info(u"Loaded {0} graph nodes in {1:.2f} seconds".format(dawg.num_nodes(), t1 - t0))
+
+            # Do not assign Wordbase._dawg until fully loaded, to prevent race conditions
+            Wordbase._dawg = dawg
+
+    @staticmethod
+    def dawg():
+        if Wordbase._dawg is None:
+            Wordbase._load()
+        assert Wordbase._dawg is not None
+        return Wordbase._dawg
 
 
 class Navigation:

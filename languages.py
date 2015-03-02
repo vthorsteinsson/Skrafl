@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-""" Language and alphabet encapsulation module
+""" Language, locale and alphabet encapsulation module
 
     Author: Vilhjalmur Thorsteinsson, 2014
 
@@ -55,7 +55,8 @@ class Alphabet:
         u'ý': 9,
         u'þ': 4,
         u'æ': 5,
-        u'ö': 7
+        u'ö': 7,
+        u'?': 0
     }
 
     # Tiles in initial bag, with frequencies
@@ -94,20 +95,32 @@ class Alphabet:
         (u"ö", 1),
         (u"?", 2)] # Blank tiles
 
-    # Sort ordering of Icelandic letters
+    # Sort ordering of Icelandic letters allowed in Scrabble
     order = u'aábdðeéfghiíjklmnoóprstuúvxyýþæö'
     # Upper case version of the order string
     upper = u'AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ'
     # All tiles including wildcard '?'
     all_tiles = order + u'?'
 
+    # Sort ordering of all valid letters
+    full_order = u'aábcdðeéfghiíjklmnoópqrstuúvwxyýzþæö'
+    # Upper case version of the full order string
+    full_upper = u'AÁBCDÐEÉFGHIÍJKLMNOÓPQRSTUÚVWXYÝZÞÆÖ'
+
     # Letter bit pattern
     bit = [1 << n for n in range(len(order))]
+
+    # Locale collation (sorting) map, initialized in _init()
+    _lcmap = None # Case sensitive
+    _lcmap_nocase = None # Case insensitive
+
 
     @staticmethod
     def score(tiles):
         """ Return the net (plain) score of the given tiles """
-        return sum([Alphabet.scores[tile] for tile in tiles if tile != u'?'])
+        if not tiles:
+            return 0
+        return sum([Alphabet.scores[tile] for tile in tiles])
 
     @staticmethod
     def bit_pattern(word):
@@ -117,7 +130,7 @@ class Alphabet:
     @staticmethod
     def bit_of(c):
         """ Returns the bit corresponding to a character in the alphabet """
-        return 1 << Alphabet.order.index(c)
+        return Alphabet.bit[Alphabet.order.index(c)]
 
     @staticmethod
     def all_bits_set():
@@ -127,14 +140,19 @@ class Alphabet:
     @staticmethod
     def lowercase(ch):
         """ Convert an uppercase character to lowercase """
-        return Alphabet.order[Alphabet.upper.index(ch)]
+        return Alphabet.full_order[Alphabet.full_upper.index(ch)]
+
+    @staticmethod
+    def tolower(s):
+        """ Return the argument string converted to lowercase """
+        return u''.join([Alphabet.lowercase(c) if c in Alphabet.full_upper else c for c in s])
 
     @staticmethod
     def sortkey(word):
         """ Return a sort key with the proper lexicographic ordering
-            for the given word. """
-        # This assumes that Alphabet.order is correctly ordered in ascending order.
-        return [Alphabet.order.index(ch) for ch in word]
+            for the given word, which must be 'pure', i.e. alphabetic. """
+        # This assumes that Alphabet.full_order is correctly ordered in ascending order.
+        return [Alphabet.full_order.index(ch) for ch in word]
 
     @staticmethod
     def sort(l):
@@ -158,4 +176,63 @@ class Alphabet:
     def full_bag():
         """ Return a full bag of tiles """
         return u''.join([tile * count for (tile, count) in Alphabet.bag_tiles])
+
+    @staticmethod
+    def format_timestamp(ts, format = None):
+        """ Return a timestamp formatted as a readable string """
+        # Currently always returns the full ISO format: YYYY-MM-DD HH:MM:SS
+        return u"" + ts.isoformat(' ')[0:19]
+ 
+    @staticmethod
+    def _init():
+        """ Create a collation (sort) mapping for the Icelandic language """
+        lcmap = [i for i in range(0,256)]
+
+        def rotate(letter, sort_after):
+            """ Modifies the lcmap so that the letter is sorted after the indicated letter """
+            sort_as = lcmap[sort_after] + 1
+            letter_val = lcmap[letter]
+            # We only support the case where a letter is moved forward in the sort order
+            if letter_val > sort_as:
+                for i in range(0, 256):
+                    if (lcmap[i] >= sort_as) and (lcmap[i] < letter_val):
+                        lcmap[i] += 1
+            lcmap[letter] = sort_as
+
+        def adjust(s):
+            """ Ensure that the sort order in the lcmap is in ascending order as in s """
+            # This does not need to be terribly efficient as the code is
+            # only run once, during initialization
+            for i in range(1, len(s) - 1):
+                rotate(ord(s[i]), ord(s[i-1]))
+
+        adjust(Alphabet.full_upper) # Uppercase adjustment
+        adjust(Alphabet.full_order) # Lowercase adjustment
+
+        # Now we have a case-sensitive sorting map: copy it
+        Alphabet._lcmap = lcmap[:]
+
+        # Create a case-insensitive sorting map, where the lower case
+        # characters have the same sort value as the upper case ones
+        for i, c in enumerate(Alphabet.full_order):
+            lcmap[ord(c)] = lcmap[ord(Alphabet.full_upper[i])]
+
+        # Store the case-insensitive sorting map
+        Alphabet._lcmap_nocase = lcmap
+
+    @staticmethod
+    def sortkey(lstr):
+        """ Key function for locale-based sorting """
+        assert Alphabet._lcmap
+        return [Alphabet._lcmap[ord(c)] if ord(c) <= 255 else 256 for c in lstr]
+
+    @staticmethod
+    def sortkey_nocase(lstr):
+        """ Key function for locale-based sorting, case-insensitive """
+        assert Alphabet._lcmap_nocase
+        return [Alphabet._lcmap_nocase[ord(c)] if ord(c) <= 255 else 256 for c in lstr]
+
+
+# Initialize the locale collation (sorting) map
+Alphabet._init()
 
