@@ -19,10 +19,10 @@
          <div class="panel-body">
             <h3>
 {% for w in result.allwords() %}
-               <a href="/?rack={{ w|urlencode }}">
-{%- if (w|length) >= 7 -%}
+               <a href="/?rack={{ w.split()[0]|urlencode }}">
+{%- if (w.split()[0]|length) >= 7 -%}
                <span class="label label-danger resultword">
-{%- elif (w|length == result.rack()|length) -%}
+{%- elif (w.split()[0]|length == result.rack()|length) -%}
                <span class="label label-warning resultword">
 {%- else -%}
                <span class="label label-success resultword">
@@ -47,11 +47,10 @@
 {% for ch, l in result.combinations() %}
                <span class="label label-primary resultword">{{ ch }}</span>
 {%- for w in l -%}
-               
 {%- if loop.index == 1 -%}
 &nbsp;
 {%- endif -%}
-               <a href="/?rack={{ w|urlencode }}"><span class="label label-info resultword">{{ w }}</span></a>
+               <a href="/?rack={{ w.split()[0]|urlencode }}"><span class="label label-info resultword">{{ w }}</span></a>
 {% endfor %}
 {% endfor %}
             </h3>

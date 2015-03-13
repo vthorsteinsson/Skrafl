@@ -254,7 +254,7 @@ class Tabulator:
     def _add_permutation(self, word, score):
         """ Add a valid permulation to the tabulation result """
         self._counter += 1
-        self._allwords.append(word)
+        self._allwords.append(word + " (" + str(score) + ")")
         if score > self._highscore:
             # New high scoring word: note it and start a new list
             self._highscore = score
