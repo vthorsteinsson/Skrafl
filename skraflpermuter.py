@@ -136,7 +136,7 @@ class Tabulator:
 
     def __init__(self):
         self._counter = 0
-        self._allwords = []
+        self._allwords = [] # List of tuples: (word, score)
         self._highscore = 0
         self._highwords = []
         self._combinations = { }
@@ -160,7 +160,7 @@ class Tabulator:
             return False
         # Make sure we reset all state in case we're called multiple times
         self._counter = 0
-        self._allwords = []
+        self._allwords = [] # List of tuples: (word, score)
         self._highscore = 0
         self._highwords = []
         self._combinations = { }
@@ -254,7 +254,7 @@ class Tabulator:
     def _add_permutation(self, word, score):
         """ Add a valid permulation to the tabulation result """
         self._counter += 1
-        self._allwords.append(word)
+        self._allwords.append((word, score))
         if score > self._highscore:
             # New high scoring word: note it and start a new list
             self._highscore = score
@@ -279,7 +279,7 @@ class Tabulator:
         return self._counter
 
     def allwords(self):
-        """ Returns a list of all the valid letter permulations in the rack """
+        """ Returns a list of (word, score) tuples for all valid letter permulations in the rack """
         return self._allwords
         
     def highscore(self):

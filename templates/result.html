@@ -18,7 +18,7 @@
          </div>
          <div class="panel-body">
             <h3>
-{% for w in result.allwords() %}
+{% for w, sc in result.allwords() %}
                <a href="/?rack={{ w|urlencode }}">
 {%- if (w|length) >= 7 -%}
                <span class="label label-danger resultword">
@@ -30,7 +30,7 @@
 {%- if w in result.highwords() -%}
                   <span class="glyphicon glyphicon-star"></span>&nbsp;
 {%- endif -%}
-                  {{ w }}</span></a>
+                  {{ w }}<span class="score">{{ sc }}</span></span></a>
 {% endfor %}
             </h3>
          </div>
