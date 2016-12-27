@@ -1,3 +1,4 @@
+#!/usr/bin/env pypy
 # -*- coding: utf-8 -*-
 
 """ DAWG dictionary builder
@@ -94,9 +95,12 @@
 
 """
 
+from __future__ import print_function
+
 import os
+import sys
 import codecs
-import locale
+import time
 
 import binascii
 import struct
@@ -104,10 +108,15 @@ import io
 
 from dawgdictionary import DawgDictionary
 
+# The DAWG builder uses the collation (sorting) given by Alphabet.sortkey
+# This is by default the Icelandic sorting order
 from languages import Alphabet
+
 
 MAXLEN = 48 # Longest possible word to be processed
 SCRABBLE_MAXLEN = 15 # Longest possible word in a Scrabble database
+COMMON_MAXLEN = 12 # Longest words in common word list used by weakest robot
+
 
 class _DawgNode:
 
@@ -137,11 +146,16 @@ class _DawgNode:
     _nextid = 1
 
     @staticmethod
-    def stringify_edges(edges, arr):
+    def _sorted(l):
+        """ Return a list of (prefix, node) tuples sorted by prefix """
+        return sorted(l, key = lambda x: Alphabet.sortkey(x[0]))
+
+    @staticmethod
+    def stringify_edges(edges):
         """ Utility function to create a compact descriptor string and hashable key for node edges """
-        for prefix, node in edges.items():
-            arr.append(prefix + u':' + (u'0' if node is None else str(node.id)))
-        return "_".join(arr)
+        edges = [ prefix + u':' + (u'0' if node is None else str(node.id))
+            for prefix, node in _DawgNode._sorted(edges.items()) ]
+        return "_".join(edges)
 
     def __init__(self):
         self.id = _DawgNode._nextid
@@ -155,15 +169,13 @@ class _DawgNode:
         """ Return a string representation of this node, cached if possible """
         if not self._strng:
             # We don't have a cached string representation: create it
-            arr = []
-            if self.final: 
-                arr.append("|")
-            self._strng = _DawgNode.stringify_edges(self.edges, arr)
+            edges = _DawgNode.stringify_edges(self.edges)
+            self._strng = "|_" + edges if self.final else edges
         return self._strng
 
     def __hash__(self):
         """ Return a hash of this node, cached if possible """
-        if not self._hash:
+        if self._hash is None:
             # We don't have a cached hash: create it
             self._hash = self.__str__().__hash__()
         return self._hash
@@ -189,7 +201,12 @@ class _Dawg:
         self._dicts = [None] * MAXLEN
         self._dicts[0] = self._root
         # Initialize the result list of unique nodes
+
+        # Keep a list of the values inserted too. Note that using
+        # OrderedDict raises an exception while enumerating the values
+        # (presumably because the dictionary has been altered).
         self._unique_nodes = dict()
+        self._unique_nodes_values = list()
 
     def _collapse_branch(self, parent, prefix, node):
         """ Attempt to collapse a single branch of the tree """
@@ -239,14 +256,16 @@ class _Dawg:
         else:
             # This is a new, unique signature: store it in the dictionary of unique nodes
             self._unique_nodes[node] = node
+            self._unique_nodes_values.append(node)
 
     def _collapse(self, edges):
         """ Collapse and optimize the edges in the parent dict """
         # Iterate through the letter position and
         # attempt to collapse all "simple" branches from it
-        for letter, node in edges.items():
-            if node:
-                self._collapse_branch(edges, letter, node)
+        if edges:
+            for letter, node in edges.items():
+                if node:
+                    self._collapse_branch(edges, letter, node)
 
     def _collapse_to(self, divergence):
         """ Collapse the tree backwards from the point of divergence """
@@ -307,7 +326,7 @@ class _Dawg:
         # Renumber the nodes for a tidier graph and more compact output
         # 1 is the line number of the root in text output files, so we start with 2
         ix = 2
-        for n in self._unique_nodes.values():
+        for n in self._unique_nodes_values:
             if n is not None:
                 n.reset_id(ix)
                 ix += 1
@@ -317,7 +336,7 @@ class _Dawg:
         for ch, nx in d.items():
             s = u' ' * level + ch
             if nx and nx.final:
-                s = s + u'|'
+                s += u'|'
             s += u' ' * (50 - len(s))
             s += nx.__str__()
             print(s)
@@ -329,7 +348,7 @@ class _Dawg:
         self._dump_level(0, self._root)
         print("Total of {0} nodes and {1} edges with {2} prefix characters".format(self.num_unique_nodes(),
             self.num_edges(), self.num_edge_chars()))
-        for ix, n in enumerate(self._unique_nodes.values()):
+        for ix, n in enumerate(self._unique_nodes_values):
             if n is not None:
                 # We don't use ix for the time being
                 print(u"Node {0}{1}".format(n.id, u"|" if n.final else u""))
@@ -343,7 +362,7 @@ class _Dawg:
     def num_edges(self):
         """ Count the total number of edges between unique nodes in the graph """
         edges = 0
-        for n in self._unique_nodes.values():
+        for n in self._unique_nodes_values:
             if n is not None:
                 edges += len(n.edges)
         return edges
@@ -351,7 +370,7 @@ class _Dawg:
     def num_edge_chars(self):
         """ Count the total number of edge prefix letters in the graph """
         chars = 0
-        for n in self._unique_nodes.values():
+        for n in self._unique_nodes_values:
             if n is not None:
                 for prefix in n.edges:
                     # Add the length of all prefixes to the edge, minus the vertical bar
@@ -365,7 +384,7 @@ class _Dawg:
         # Start with the root edges
         for prefix, nd in self._root.items():
             packer.edge(nd.id, prefix)
-        for node in self._unique_nodes.values():
+        for node in self._unique_nodes_values:
             if node is not None:
                 packer.node_start(node.id, node.final, len(node.edges))
                 for prefix, nd in node.edges.items():
@@ -382,11 +401,11 @@ class _Dawg:
         # We don't have to write node ids since they correspond to line numbers.
         # The root is always in the first line and the first node after the root has id 2.
         # Start with the root edges
-        arr = []
-        stream.write(_DawgNode.stringify_edges(self._root, arr) + u"\n")
-        for node in self._unique_nodes.values():
+        stream.write(_DawgNode.stringify_edges(self._root) + u"\n")
+        for node in self._unique_nodes_values:
             if node is not None:
                 stream.write(node.__str__() + u"\n")
+
 
 class _BinaryDawgPacker:
 
@@ -439,24 +458,24 @@ class _BinaryDawgPacker:
         # number of root edges
         self._stream.write(self._byte_struct.pack(num_root_edges))
 
-    def node_start(self, id, final, num_edges):
+    def node_start(self, ident, final, num_edges):
         pos = self._stream.tell()
-        if id in self._fixups:
+        if ident in self._fixups:
             # We have previously output references to this node without
             # knowing its location: fix'em now
-            for fix in self._fixups[id]:
+            for fix in self._fixups[ident]:
                 self._stream.seek(fix)
                 self._stream.write(self._loc_struct.pack(pos))
             self._stream.seek(pos)
-            del self._fixups[id]
+            del self._fixups[ident]
         # Remember where we put this node
-        self._locs[id] = pos
+        self._locs[ident] = pos
         self._stream.write(self._byte_struct.pack((0x80 if final else 0x00) | (num_edges & 0x7F)))
 
-    def node_end(self, id):
+    def node_end(self, ident):
         pass
 
-    def edge(self, id, prefix):
+    def edge(self, ident, prefix):
         b = []
         last = None
         for c in prefix:
@@ -478,19 +497,19 @@ class _BinaryDawgPacker:
             self._stream.write(self._byte_struct.pack(len(b) & 0x3F))
             for by in b:
                 self._stream.write(self._byte_struct.pack(by))
-        if id == 0:
+        if ident == 0:
             self._stream.write(self._loc_struct.pack(0))
-        elif id in self._locs:
+        elif ident in self._locs:
             # We've already written the node and know where it is: write its location
-            self._stream.write(self._loc_struct.pack(self._locs[id]))
+            self._stream.write(self._loc_struct.pack(self._locs[ident]))
         else:
             # This is a forward reference to a node we haven't written yet:
             # reserve space for the node location and add a fixup
             pos = self._stream.tell()
             self._stream.write(self._loc_struct.pack(0xFFFFFFFF)) # Temporary - will be overwritten
-            if id not in self._fixups:
-                self._fixups[id] = []
-            self._fixups[id].append(pos)
+            if ident not in self._fixups:
+                self._fixups[ident] = []
+            self._fixups[ident].append(pos)
 
     def finish(self):
         # Clear the temporary fixup stuff from memory
@@ -526,15 +545,19 @@ class DawgBuilder:
     def __init__(self):
         self._dawg = None
 
-    class _InFile:
+    class _InFile(object):
         """ InFile represents a single sorted input file. """
 
         def __init__(self, relpath, fname):
             self._eof = False
             self._nxt = None
+            self._key = None # Sortkey for self._nxt
             fpath = os.path.abspath(os.path.join(relpath, fname))
             self._fin = codecs.open(fpath, mode='r', encoding='utf-8')
             print(u"Opened input file {0}".format(fpath))
+            self._init()
+
+        def _init(self):
             # Read the first word from the file to initialize the iteration
             self.read_word()
 
@@ -556,11 +579,16 @@ class DawgBuilder:
                 if line and len(line) < MAXLEN:
                     # Valid word
                     self._nxt = line
+                    self._key = Alphabet.sortkey(line)
                     return True
 
         def next_word(self):
             """ Returns the next available word from this input file """
             return None if self._eof else self._nxt
+
+        def next_key(self):
+            """ Returns the sort key of the next available word from this input file """
+            return None if self._eof else self._key
 
         def has_word(self):
             """ True if a word is available, or False if EOF has been reached """
@@ -572,7 +600,51 @@ class DawgBuilder:
                 self._fin.close()
             self._fin = None
 
-    def _load(self, relpath, inputs, localeid, filter):
+    class _InFileToBeSorted(_InFile):
+        """ InFileToBeSorted represents an input file that should be pre-sorted in memory """
+
+        def __init__(self, relpath, fname):
+            # Call base class constructor
+            super(DawgBuilder._InFileToBeSorted, self).__init__(relpath, fname)
+
+        def _init(self):
+            """ Read the entire file and pre-sort it """
+            self._list = []
+            self._index = 0
+            try:
+                for line in self._fin:
+                    if line.endswith(u'\r\n'):
+                        # Cut off trailing CRLF (Windows-style)
+                        line = line[0:-2]
+                    elif line.endswith(u'\n'):
+                        # Cut off trailing LF (Unix-style)
+                        line = line[0:-1]
+                    if line and len(line) < MAXLEN:
+                        # Valid word
+                        self._list.append(line)
+            except StopIteration:
+                pass
+            finally:
+                self._fin.close()
+                self._fin = None
+            self._len = len(self._list)
+            self._list.sort(key = Alphabet.sortkey)
+            self.read_word()
+
+        def read_word(self):
+            if self._index >= self._len:
+                self._eof = True
+                return False
+            self._nxt = self._list[self._index]
+            self._key = Alphabet.sortkey(self._nxt)
+            self._index += 1
+            return True
+
+        def close(self):
+            """ Close the associated file, if it is still open """
+            pass
+
+    def _load(self, relpath, inputs, removals, word_filter):
         """ Load word lists into the DAWG from one or more static text files,
             assumed to be located in the relpath subdirectory.
             The text files should contain one word per line,
@@ -580,7 +652,8 @@ class DawgBuilder:
             Upper or lower case should be consistent throughout.
             All lower case is preferred. The words should appear in
             ascending sort order within each file. The input files will
-            be merged in sorted order in the load process.
+            be merged in sorted order in the load process. Words found
+            in the removals file will be removed from the output.
         """
         self._dawg = _Dawg()
         # Total number of words read from input files
@@ -590,13 +663,23 @@ class DawgBuilder:
         outcount = 0
         # Total number of duplicate words found in input files
         duplicates = 0
-        # If a locale for sorting/collation is specified, set it
-        if localeid:
-            locale.setlocale(locale.LC_COLLATE, localeid)
+        # Count removed words due to the removed word list
+        removed = 0
         # Enforce strict ascending lexicographic order
         lastword = None
-        # Open the input files
-        infiles = [DawgBuilder._InFile(relpath, f) for f in inputs]
+        lastkey = None
+        # Open the input files. The first (main) input file is assumed
+        # to be pre-sorted. Other input files are sorted in memory before
+        # being used.
+        infiles = [DawgBuilder._InFile(relpath, f) if ix == 0 else
+            DawgBuilder._InFileToBeSorted(relpath, f)
+            for ix, f in enumerate(inputs)]
+        # Open the removal file, if any
+        if removals is None:
+            removal = None
+        else:
+            removal = DawgBuilder._InFileToBeSorted(relpath, removals)
+        remove_key = None if removal is None else removal.next_key()
         # Merge the inputs
         while True:
             smallest = None
@@ -605,49 +688,67 @@ class DawgBuilder:
                 if f.has_word():
                     if smallest is None:
                         smallest = f
+                        key_smallest = smallest.next_key()
                     else:
                         # Use the sort ordering of the current locale to compare words
-                        cmp = locale.strcoll(f.next_word(), smallest.next_word())
-                        if cmp == 0:
+                        key_f = f.next_key()
+                        if key_f == key_smallest:
                             # We have the same word in two files: make sure we don't add it twice
                             f.read_word()
                             incount += 1
                             duplicates += 1
-                        elif cmp < 0:
+                        elif key_f < key_smallest:
                             # New smallest word
                             smallest = f
+                            key_smallest = key_f
             if smallest is None:
                 # All files exhausted: we're done
                 break
             # We have the smallest word
             word = smallest.next_word()
+            key = key_smallest
             incount += 1
-            if lastword and locale.strcoll(lastword, word) >= 0:
+            if lastkey and lastkey >= key:
                 # Something appears to be wrong with the input sort order.
                 # If it's a duplicate, we don't mind too much, but if it's out
                 # of order, display a warning
-                if locale.strcoll(lastword, word) > 0:
-                    print(u"Warning: input files should be in ascending order, but \"{0}\" > \"{1}\"".format(lastword, word))
+                if lastkey > key:
+                    print(u"Warning: input files should be in ascending order, but \"{0}\" > \"{1}\""
+                        .format(lastword, word))
                 else:
+                    # Identical to previous word
                     duplicates += 1
-            elif (filter is None) or filter(word):
-                # This word passes the filter: add it to the graph
-                self._dawg.add_word(word)
+            elif word_filter is None or word_filter(word):
+                # This word passes the filter: check the removal list, if any
+                while remove_key is not None and remove_key < key:
+                    # Skip past words in the removal file as needed
+                    removal.read_word()
+                    remove_key = removal.next_key()
+                if remove_key is not None and remove_key == key:
+                    # Found a word to be removed
+                    removal.read_word()
+                    remove_key = removal.next_key()
+                    removed += 1
+                else:
+                    # Not a word to be removed: add it to the graph
+                    self._dawg.add_word(word)
+                    outcount += 1
                 lastword = word
-                outcount += 1
+                lastkey = key
             if incount % 5000 == 0:
                 # Progress indicator
-                print ("{0}...\r".format(incount)),
+                print ("{0}...".format(incount), end="\r")
+                sys.stdout.flush()
             # Advance to the next word in the file we read from
             smallest.read_word()
         # Done merging: close all files
         for f in infiles:
             assert not f.has_word()
             f.close()
-            f = None
         # Complete and clean up
         self._dawg.finish()
-        print("Finished loading {0} words, output {1} words, {2} duplicates skipped".format(incount, outcount, duplicates))
+        print("Finished loading {0} words, output {1} words, {2} duplicates skipped, {3} removed"
+            .format(incount, outcount, duplicates, removed))
 
     def _output_binary(self, relpath, output):
         """ Write the DAWG to a flattened binary output file with extension '.dawg' """
@@ -672,7 +773,7 @@ class DawgBuilder:
         with codecs.open(fname, mode='w', encoding='utf-8') as fout:
             self._dawg.write_text(fout)
 
-    def build(self, inputs, output, relpath="resources", localeid=None, filter=None):
+    def build(self, inputs, output, relpath="resources", word_filter=None, removals=None):
         """ Build a DAWG from input file(s) and write it to the output file(s) (potentially in multiple formats).
             The input files are assumed to be individually sorted in correct ascending alphabetical
             order. They will be merged in parallel into a single sorted stream and added to the DAWG.
@@ -686,7 +787,7 @@ class DawgBuilder:
             # Nothing to do
             print("No inputs or no output: Nothing to do")
             return
-        self._load(relpath, inputs, localeid, filter)
+        self._load(relpath, inputs, removals, word_filter)
         # print("Dumping...")
         # self._dawg.dump()
         print("Outputting...")
@@ -694,15 +795,16 @@ class DawgBuilder:
         self._output_text(relpath, output)
         print("DawgBuilder done")
 
+
 # Filter functions
 # The resulting DAWG will include all words for which filter() returns True, and exclude others.
 # Useful for excluding long words or words containing "foreign" characters.
 
+# noinspection PyUnusedLocal
 def nofilter(word):
     """ No filtering - include all input words in output graph """
     return True
 
-# disallowed = set([u"je", u"oj", u"pé"]) # Previously had u"im" and u"ím" here
 
 def filter_skrafl(word):
     """ Filtering for Icelandic Scrabble(tm)
@@ -711,19 +813,16 @@ def filter_skrafl(word):
         Exclude two-letter words in the word database that are not
             allowed according to Icelandic Scrabble rules
     """
-    lenw = len(word)
-    if lenw > SCRABBLE_MAXLEN:
-        # Too long, not necessary for Scrabble
-        return False
-#    if any(c in word for c in u"cqwzü"):
-#        # Non-Icelandic character
-#        return False
-#    if word in disallowed:
-#        # Two-letter word that is not allowed in Icelandic Scrabble
-#        return False
-    return True
+    return len(word) <= SCRABBLE_MAXLEN
 
-import time
+
+def filter_common(word):
+    """ For the list of common words used by the weakest robot,
+        skip words longer than 12 characters (those would almost
+        never be used anyway)
+    """
+    return len(word) <= COMMON_MAXLEN
+
 
 def run_test():
     """ Build a DAWG from the files listed """
@@ -738,6 +837,7 @@ def run_test():
     t1 = time.time()
     print("Build took {0:.2f} seconds".format(t1 - t0))
 
+
 def run_twl06():
     """ Build a DAWG from the files listed """
     # This creates a DAWG from a single file named TWL06.txt,
@@ -748,48 +848,34 @@ def run_twl06():
     db.build(
         ["TWL06.txt"], # Input files to be merged
         "TWL06", # Output file - full name will be TWL06.text.dawg
-        "resources") # Subfolder of input and output files
+        "resources" # Subfolder of input and output files
+    )
     t1 = time.time()
     print("Build took {0:.2f} seconds".format(t1 - t0))
 
-def run_full_bin():
-    """ Build a DAWG from the files listed """
-    # This creates a DAWG from the full database of 'Beygingarlýsing íslensks nútímamáls' (BIN)
-    # (except abbreviations, 'skammstafanir', and proper names, 'sérnöfn')
-    # This is about 2.6 million words, generating 103,200 graph nodes
-    print(u"Starting DAWG build for Beygingarlýsing íslensks nútímamáls")
-    db = DawgBuilder()
-    t0 = time.time()
-    # "isl" specifies Icelandic sorting order - modify this for other languages
-    db.build(
-        ["ordalisti1.txt", "ordalisti2.txt", "smaord.sorted.txt"], # Input files to be merged
-        "ordalisti-bin", # Output file - full name will be ordalisti-bin.text.dawg
-        "resources", # Subfolder of input and output files
-        "isl", # Identifier of locale to use for sorting order
-        nofilter) # Word filter function to apply
-    t1 = time.time()
-    print("Build took {0:.2f} seconds".format(t1 - t0))
 
 def run_skrafl():
     """ Build a DAWG from the files listed """
-    # This creates a DAWG from the full database of 'Beygingarlýsing íslensks nútímamáls' (BIN)
-    # (except abbreviations, 'skammstafanir', and proper names, 'sérnöfn'), but
-    # filtered according to filter_skrafl() (see comment above) and with a few two-letter
-    # words added according to Icelandic Scrabble rules
-    # Output is about 2.2 million words, generating 102,668 graph nodes
+    # This creates a DAWG from the full database of Icelandic words in
+    # 'Beygingarlýsing íslensks nútímamáls' (BIN), except abbreviations,
+    # 'skammstafanir', and proper names, 'sérnöfn'.
+    # The words in ordalisti.add.txt are added to BIN, and words in
+    # ordalisti.remove.txt (known errors) are removed.
+    # The result is about 2.3 million words, generating >100,000 graph nodes
     print(u"Starting DAWG build for skraflhjalp/netskrafl.appspot.com")
     db = DawgBuilder()
     t0 = time.time()
-    # "isl" specifies Icelandic sorting order - modify this for other languages
     db.build(
-        ["ordalistimax15.sorted.txt"], # Input files to be merged
+        ["ordalistimax15.sorted.txt", "ordalisti.add.txt"], # Input files to be merged
         "ordalisti", # Output file - full name will be ordalisti.text.dawg
         "resources", # Subfolder of input and output files
-        "isl", # Identifier of locale to use for sorting order
-        filter_skrafl) # Word filter function to apply
+        filter_skrafl, # Word filter function to apply
+        "ordalisti.remove.txt" # Words to remove
+    )
     t1 = time.time()
     print("Build took {0:.2f} seconds".format(t1 - t0))
 
+    # Test loading of DAWG
     dawg = DawgDictionary()
     fpath = os.path.abspath(os.path.join("resources", "ordalisti.text.dawg"))
     t0 = time.time()
@@ -798,13 +884,49 @@ def run_skrafl():
 
     print("DAWG loaded in {0:.2f} seconds".format(t1 - t0))
 
+    # Store DAWG as a Python cPickle file
     t0 = time.time()
     dawg.store_pickle(os.path.abspath(os.path.join("resources", "ordalisti.dawg.pickle")))
     t1 = time.time()
 
     print("DAWG pickle file stored in {0:.2f} seconds".format(t1 - t0))
 
+    # Process list of common words
+
+    print(u"Starting DAWG build for list of common words")
+    db = DawgBuilder()
+    t0 = time.time()
+    # "isl"/"is_IS" specifies Icelandic sorting order - modify this for other languages
+    db.build(
+        ["ordalisti.algeng.sorted.txt"], # Input files to be merged
+        "algeng", # Output file - full name will be algeng.text.dawg
+        "resources", # Subfolder of input and output files
+        filter_common # Word filter function to apply
+    )
+    t1 = time.time()
+    print("Build took {0:.2f} seconds".format(t1 - t0))
+
+    # Test loading of DAWG for common words
+    dawg = DawgDictionary()
+    fpath = os.path.abspath(os.path.join("resources", "algeng.text.dawg"))
+    t0 = time.time()
+    dawg.load(fpath)
+    t1 = time.time()
+
+    print("DAWG loaded in {0:.2f} seconds".format(t1 - t0))
+
+    # Store common words DAWG in a Python cPickle file
+    t0 = time.time()
+    dawg.store_pickle(os.path.abspath(os.path.join("resources", "algeng.dawg.pickle")))
+    t1 = time.time()
+
+    print("DAWG pickle file stored in {0:.2f} seconds".format(t1 - t0))
+
+    print("DAWG builder run complete")
+
 
 if __name__ == '__main__':
 
+    # Build the whole Icelandic Netskrafl word database by default
     run_skrafl()
+
