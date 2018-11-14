@@ -27,14 +27,22 @@
 """
 
 import os
-import itertools
-import codecs
 import logging
 import time
+import sys
 
 import dawgdictionary
 
 from languages import Alphabet
+
+
+# Mask away Python version differences
+if sys.version_info >= (3, 0):
+    def items(d):
+        return d.items()
+else:
+    def items(d):
+        return d.iteritems()
 
 
 class WordDatabase:
@@ -294,7 +302,7 @@ class Tabulator:
         """ Returns a list of the combinations possible with additional letters.
         The list contains (ch, wordlist) tuples where ch is the additional letter
         and wordlist is a list of legal words that can be formed with that letter. """
-        lc = list(self._combinations.items())
+        lc = list(items(self._combinations))
         if lc:
             # Sort the combinations properly in alphabetical order before returning them
            lc.sort(key = lambda x: Alphabet.order.index(x[0]))

@@ -56,7 +56,21 @@ import codecs
 import threading
 import logging
 import time
-import cPickle as pickle
+import sys
+
+# Mask away Python version differences
+if sys.version_info >= (3, 0):
+    import pickle
+
+    def items(d):
+        return d.items()
+
+else:
+    import cPickle as pickle
+
+    def items(d):
+        return d.iteritems()
+
 
 from languages import Alphabet
 
@@ -68,6 +82,7 @@ class _Node:
     def __init__(self):
         self.final = False
         self.edges = dict()
+
 
 class DawgDictionary:
 
@@ -87,10 +102,10 @@ class DawgDictionary:
         assert self._nodes is not None
         nodeid = self._index if self._index > 1 else 0
         self._index += 1
-        edgedata = line.split(u'_')
+        edgedata = line.split(u"_")
         final = False
         firstedge = 0
-        if len(edgedata) >= 1 and edgedata[0] == u'|':
+        if len(edgedata) >= 1 and edgedata[0] == u"|":
             # Vertical bar denotes final node
             final = True
             firstedge = 1
@@ -104,7 +119,7 @@ class DawgDictionary:
         newnode.final = final
         # Process the edges
         for edge in edgedata[firstedge:]:
-            e = edge.split(u':')
+            e = edge.split(u":")
             prefix = e[0]
             edgeid = int(e[1])
             if edgeid == 0:
@@ -129,12 +144,12 @@ class DawgDictionary:
                 return
             self._nodes = dict()
             self._index = 1
-            with codecs.open(fname, mode='r', encoding='utf-8') as fin:
+            with codecs.open(fname, mode="r", encoding="utf-8") as fin:
                 for line in fin:
-                    if line.endswith(u'\r\n'):
+                    if line.endswith(u"\r\n"):
                         # Cut off trailing CRLF (Windows-style)
                         line = line[0:-2]
-                    elif line.endswith(u'\n'):
+                    elif line.endswith(u"\n"):
                         # Cut off trailing LF (Unix-style)
                         line = line[0:-1]
                     if line:
@@ -177,7 +192,7 @@ class DawgDictionary:
         self.navigate(nav)
         return nav.result()
 
-    def find_permutations(self, rack, minlen = 0):
+    def find_permutations(self, rack, minlen=0):
         """ Returns a list of legal permutations of a rack of letters.
             The list is sorted in descending order by permutation length.
             The rack may contain question marks '?' as wildcards, matching all letters.
@@ -212,7 +227,7 @@ class DawgDictionary:
             # No graph: no navigation
             nav.done()
             return
-        root = self._nodes[0] # Start at the root
+        root = self._nodes[0]  # Start at the root
         Navigation(nav).go(root)
 
 
@@ -246,20 +261,34 @@ class Wordbase:
 
             if fname_t is not None and pname_t is not None and pname_t >= fname_t:
                 # We have a newer pickle file: use it
-                logging.info(u"Instance {0} loading DAWG from pickle file {1}"
-                    .format(os.environ.get("INSTANCE_ID", ""), pname))
+                logging.info(
+                    u"Instance {0} loading DAWG from pickle file {1}".format(
+                        os.environ.get("INSTANCE_ID", ""), pname
+                    )
+                )
                 t0 = time.time()
                 dawg.load_pickle(pname)
                 t1 = time.time()
-                logging.info(u"Loaded {0} graph nodes in {1:.2f} seconds".format(dawg.num_nodes(), t1 - t0))
+                logging.info(
+                    u"Loaded {0} graph nodes in {1:.2f} seconds".format(
+                        dawg.num_nodes(), t1 - t0
+                    )
+                )
             else:
                 # Load in the traditional way, from the text file
-                logging.info(u"Instance {0} loading DAWG from text file {1}"
-                    .format(os.environ.get("INSTANCE_ID", ""), fname))
+                logging.info(
+                    u"Instance {0} loading DAWG from text file {1}".format(
+                        os.environ.get("INSTANCE_ID", ""), fname
+                    )
+                )
                 t0 = time.time()
                 dawg.load(fname)
                 t1 = time.time()
-                logging.info(u"Loaded {0} graph nodes in {1:.2f} seconds".format(dawg.num_nodes(), t1 - t0))
+                logging.info(
+                    u"Loaded {0} graph nodes in {1:.2f} seconds".format(
+                        dawg.num_nodes(), t1 - t0
+                    )
+                )
 
             # Do not assign Wordbase._dawg until fully loaded, to prevent race conditions
             Wordbase._dawg = dawg
@@ -287,7 +316,7 @@ class Navigation:
         """ Starting from a given node, navigate outgoing edges """
         # Go through the edges of this node and follow the ones
         # okayed by the navigator
-        for prefix, nextnode in node.edges.items():
+        for prefix, nextnode in items(node.edges):
             if self._nav.push_edge(prefix[0]):
                 # This edge is a candidate: navigate through it
                 self._navigate_from_edge(prefix, nextnode, matched)
@@ -310,7 +339,7 @@ class Navigation:
             j += 1
             # Check whether the next prefix character is a vertical bar, denoting finality
             final = False
-            if j < lenp and prefix[j] == u'|':
+            if j < lenp and prefix[j] == u"|":
                 final = True
                 j += 1
             elif (j >= lenp) and ((nextnode is None) or nextnode.final):
@@ -345,7 +374,7 @@ class Navigation:
         # The ship is ready to go
         if self._nav.accepting():
             # Leave shore and navigate the open seas
-            self._navigate_from_node(root, u'')
+            self._navigate_from_node(root, u"")
         self._nav.done()
 
     def resume(self, prefix, nextnode, matched):
@@ -409,7 +438,7 @@ class PermutationNavigator:
         to find all permutations of a rack
     """
 
-    def __init__(self, rack, minlen = 0):
+    def __init__(self, rack, minlen=0):
         self._rack = rack
         self._stack = []
         self._result = []
@@ -419,7 +448,7 @@ class PermutationNavigator:
         """ Returns True if the edge should be entered or False if not """
         # Follow all edges that match a letter in the rack
         # (which can be '?', matching all edges)
-        if not ((firstchar in self._rack) or (u'?' in self._rack)):
+        if not ((firstchar in self._rack) or (u"?" in self._rack)):
             return False
         # Fit: save our rack and move into the edge
         self._stack.append(self._rack)
@@ -433,14 +462,14 @@ class PermutationNavigator:
     def accepts(self, newchar):
         """ Returns True if the navigator will accept the new character """
         exactmatch = newchar in self._rack
-        if (not exactmatch) and (u'?' not in self._rack):
+        if (not exactmatch) and (u"?" not in self._rack):
             # Can't continue with this prefix - we no longer have rack letters matching it
             return False
         # We're fine with this: accept the character and remove from the rack
         if exactmatch:
-            self._rack = self._rack.replace(newchar, u'', 1)
+            self._rack = self._rack.replace(newchar, u"", 1)
         else:
-            self._rack = self._rack.replace(u'?', u'', 1)
+            self._rack = self._rack.replace(u"?", u"", 1)
         return True
 
     def accept(self, matched, final):
@@ -456,7 +485,7 @@ class PermutationNavigator:
 
     def done(self):
         """ Called when the whole navigation is done """
-        self._result.sort(key = lambda x: (-len(x), Alphabet.sortkey(x)))
+        self._result.sort(key=lambda x: (-len(x), Alphabet.sortkey(x)))
 
     def result(self):
         return self._result
@@ -473,7 +502,7 @@ class MatchNavigator:
         self._lenp = len(pattern)
         self._index = 0
         self._chmatch = pattern[0]
-        self._wildcard = (self._chmatch == u'?')
+        self._wildcard = self._chmatch == u"?"
         self._stack = []
         self._result = []
         self._sort = sort
@@ -500,7 +529,7 @@ class MatchNavigator:
         self._index += 1
         if self._index < self._lenp:
             self._chmatch = self._pattern[self._index]
-            self._wildcard = (self._chmatch == u'?')
+            self._wildcard = self._chmatch == u"?"
         return True
 
     def accept(self, matched, final):
@@ -519,8 +548,7 @@ class MatchNavigator:
     def done(self):
         """ Called when the whole navigation is done """
         if self._sort:
-            self._result.sort(key = Alphabet.sortkey)
+            self._result.sort(key=Alphabet.sortkey)
 
     def result(self):
         return self._result
-

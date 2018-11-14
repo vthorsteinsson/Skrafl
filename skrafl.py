@@ -37,6 +37,7 @@ import skraflpermuter
 app = Flask(__name__)
 app.config['DEBUG'] = False
 
+
 def _process_rack(rack):
     """ Process a given input rack
         Returns True if OK or False if the rack was invalid, i.e. contains invalid letters
@@ -46,9 +47,9 @@ def _process_rack(rack):
     t0 = time.time()
 
     if not t.process(rack):
-       # Something was wrong with the rack
-       # Show the user an error response page
-       return render_template("errorword.html")
+        # Something was wrong with the rack
+        # Show the user an error response page
+        return render_template("errorword.html")
 
     t1 = time.time()
     # For logging, the 'latin-1' encoding seems to work on App Engine in Windows.
@@ -58,6 +59,7 @@ def _process_rack(rack):
     # The rack was successfully processed and tabulated
     # Show the user a result page
     return render_template("result.html", result=t)
+
 
 @app.route("/", methods=['GET', 'POST'])
 def main():
@@ -79,7 +81,7 @@ def main():
         try:
             # Funny string addition below ensures that the result is in
             # Unicode under both Python 2 and 3
-            rack = u'' + request.args.get('rack','')
+            rack = u'' + request.args.get('rack', '')
         except:
             rack = u''
     if rack:
@@ -90,12 +92,13 @@ def main():
     # If nothing to do, just show the main rack entry form
     return render_template("main.html")
 
+
 @app.route("/help/")
 def help():
     """ Show help page """
     return render_template("help.html")
 
-# Run a default Flask web server for testing if invoked directly as a main program
 
+# Run a default Flask web server for testing if invoked directly as a main program
 if __name__ == "__main__":
     app.run(debug=True)
