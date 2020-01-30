@@ -75,6 +75,7 @@ class DawgTester:
         self._test_false(u"ertðu")
         self._test_false(u"sértðu")
         # self._test_false(u"vextu") # Seems to be allowed
+        self._test_true(u"sté")
         self._test_true(u"sértu")
         self._test_true(u"dren")
         self._test_true(u"drenið")
