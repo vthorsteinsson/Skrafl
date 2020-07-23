@@ -1,8 +1,9 @@
-﻿# -*- coding: utf-8 -*-
+﻿"""
 
-""" SCRABBLE(tm) rack permutations
+    SCRABBLE(tm) rack permutations
 
-    Author: Vilhjalmur Thorsteinsson, 2014
+    Copyright (C) 2020 Miðeind ehf.
+    Original author: Vilhjálmur Þorsteinsson
 
     This module implements a main class named Tabulator and
     a helper class named WordDatabase.
@@ -31,18 +32,9 @@ import logging
 import time
 import sys
 
-import dawgdictionary
+from dawgdictionary import Wordbase
 
 from languages import Alphabet
-
-
-# Mask away Python version differences
-if sys.version_info >= (3, 0):
-    def items(d):
-        return d.items()
-else:
-    def items(d):
-        return d.iteritems()
 
 
 class WordDatabase:
@@ -76,13 +68,7 @@ class WordDatabase:
         if self._dawg is not None:
             # Already loaded, nothing to do
             return
-        fname = os.path.abspath(os.path.join("resources", "ordalisti.text.dawg"))
-        logging.info(u"Loading graph from file {0}".format(fname))
-        t0 = time.time()
-        self._dawg = dawgdictionary.DawgDictionary()
-        self._dawg.load(fname)
-        t1 = time.time()
-        logging.info(u"Loaded {0} graph nodes in {1:.2f} seconds".format(self._dawg.num_nodes(), t1 - t0))
+        self._dawg = Wordbase.dawg()
 
     def initialize(self):
         """ Force preloading of word lists into memory """
@@ -148,7 +134,7 @@ class Tabulator:
         self._highscore = 0
         self._highwords = []
         self._combinations = { }
-        self._rack = u''
+        self._rack = ""
         self._rack_is_valid = False # True if the rack is itself a valid word
         self._pattern = False # True if the result is a pattern match ('=')
         if Tabulator._word_db is None:
@@ -172,16 +158,16 @@ class Tabulator:
         self._highscore = 0
         self._highwords = []
         self._combinations = { }
-        self._rack = u''
+        self._rack = ""
         self._pattern = False
         # Do a sanity check on the input by calculating its raw score, thereby
         # checking whether all the letters are valid
         score = 0
-        rack_lower = u'' # Rack converted to lowercase
+        rack_lower = "" # Rack converted to lowercase
         wildcards = 0 # Number of wildcard characters
         # If the rack starts with an equals sign ('=') we do a pattern match
         # instead of a permutation search
-        if rack[0] == u'=':
+        if rack[0] == '=':
             self._pattern = True
             rack = rack[1:]
         # Sanitize the rack, converting upper case to lower case and
@@ -192,10 +178,10 @@ class Tabulator:
                 if ch in Alphabet.upper:
                     # Uppercase: find corresponding lowercase letter
                     ch = Alphabet.lowercase(ch)
-                if ch in u'?_*':
+                if ch in '?_*':
                     # This is one of the allowed wildcard characters
                     wildcards += 1
-                    ch = u'?'
+                    ch = '?'
                 else:
                     score += Alphabet.scores[ch]
                 rack_lower += ch
@@ -210,7 +196,7 @@ class Tabulator:
         # Generate combinations
         if not self._pattern and not wildcards:
             # If no wildcards given, check combinations with one additional letter
-            query = self._rack + u'?'
+            query = self._rack + '?'
             # Permute the rack with one additional letter
             p = self._word_db.find_permutations(query)
             # Check the permutations to find valid words and their scores
@@ -280,7 +266,7 @@ class Tabulator:
 
     def rack(self):
         """ Returns a display form of the rack that was tabulated """
-        return (u'= ' + self._rack) if self._pattern else self._rack
+        return ('= ' + self._rack) if self._pattern else self._rack
 
     def count(self):
         """ Returns a count of all valid letter permutations in the rack """
@@ -302,7 +288,7 @@ class Tabulator:
         """ Returns a list of the combinations possible with additional letters.
         The list contains (ch, wordlist) tuples where ch is the additional letter
         and wordlist is a list of legal words that can be formed with that letter. """
-        lc = list(items(self._combinations))
+        lc = list(self._combinations.items())
         if lc:
             # Sort the combinations properly in alphabetical order before returning them
            lc.sort(key = lambda x: Alphabet.order.index(x[0]))

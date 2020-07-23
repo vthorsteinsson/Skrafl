@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
+"""
 
-""" Word dictionary implemented with a DAWG
+    Word dictionary implemented with a DAWG
 
-    Author: Vilhjalmur Thorsteinsson, 2014
+    Copyright (C) 2020 Miðeind ehf.
+    Original author: Vilhjálmur Þorsteinsson
 
     DawgDictionary uses a Directed Acyclic Word Graph (DAWG) internally
     to store a large set of words in an efficient structure in terms
@@ -57,20 +58,7 @@ import threading
 import logging
 import time
 import sys
-
-# Mask away Python version differences
-if sys.version_info >= (3, 0):
-    import pickle
-
-    def items(d):
-        return d.items()
-
-else:
-    import cPickle as pickle
-
-    def items(d):
-        return d.iteritems()
-
+import pickle
 
 from languages import Alphabet
 
@@ -102,10 +90,10 @@ class DawgDictionary:
         assert self._nodes is not None
         nodeid = self._index if self._index > 1 else 0
         self._index += 1
-        edgedata = line.split(u"_")
+        edgedata = line.split("_")
         final = False
         firstedge = 0
-        if len(edgedata) >= 1 and edgedata[0] == u"|":
+        if len(edgedata) >= 1 and edgedata[0] == "|":
             # Vertical bar denotes final node
             final = True
             firstedge = 1
@@ -119,7 +107,7 @@ class DawgDictionary:
         newnode.final = final
         # Process the edges
         for edge in edgedata[firstedge:]:
-            e = edge.split(u":")
+            e = edge.split(":")
             prefix = e[0]
             edgeid = int(e[1])
             if edgeid == 0:
@@ -146,10 +134,10 @@ class DawgDictionary:
             self._index = 1
             with codecs.open(fname, mode="r", encoding="utf-8") as fin:
                 for line in fin:
-                    if line.endswith(u"\r\n"):
+                    if line.endswith("\r\n"):
                         # Cut off trailing CRLF (Windows-style)
                         line = line[0:-2]
-                    elif line.endswith(u"\n"):
+                    elif line.endswith("\n"):
                         # Cut off trailing LF (Unix-style)
                         line = line[0:-1]
                     if line:
@@ -259,10 +247,10 @@ class Wordbase:
 
             dawg = DawgDictionary()
 
-            if fname_t is not None and pname_t is not None and pname_t >= fname_t:
+            if fname_t is None or (pname_t is not None and pname_t >= fname_t):
                 # We have a newer pickle file: use it
                 logging.info(
-                    u"Instance {0} loading DAWG from pickle file {1}".format(
+                    "Instance {0} loading DAWG from pickle file {1}".format(
                         os.environ.get("INSTANCE_ID", ""), pname
                     )
                 )
@@ -270,14 +258,15 @@ class Wordbase:
                 dawg.load_pickle(pname)
                 t1 = time.time()
                 logging.info(
-                    u"Loaded {0} graph nodes in {1:.2f} seconds".format(
+                    "Loaded {0} graph nodes in {1:.2f} seconds".format(
                         dawg.num_nodes(), t1 - t0
                     )
                 )
             else:
                 # Load in the traditional way, from the text file
+                assert fname_t is not None
                 logging.info(
-                    u"Instance {0} loading DAWG from text file {1}".format(
+                    "Instance {0} loading DAWG from text file {1}".format(
                         os.environ.get("INSTANCE_ID", ""), fname
                     )
                 )
@@ -285,7 +274,7 @@ class Wordbase:
                 dawg.load(fname)
                 t1 = time.time()
                 logging.info(
-                    u"Loaded {0} graph nodes in {1:.2f} seconds".format(
+                    "Loaded {0} graph nodes in {1:.2f} seconds".format(
                         dawg.num_nodes(), t1 - t0
                     )
                 )
@@ -316,7 +305,7 @@ class Navigation:
         """ Starting from a given node, navigate outgoing edges """
         # Go through the edges of this node and follow the ones
         # okayed by the navigator
-        for prefix, nextnode in items(node.edges):
+        for prefix, nextnode in node.edges.items():
             if self._nav.push_edge(prefix[0]):
                 # This edge is a candidate: navigate through it
                 self._navigate_from_edge(prefix, nextnode, matched)
@@ -339,7 +328,7 @@ class Navigation:
             j += 1
             # Check whether the next prefix character is a vertical bar, denoting finality
             final = False
-            if j < lenp and prefix[j] == u"|":
+            if j < lenp and prefix[j] == "|":
                 final = True
                 j += 1
             elif (j >= lenp) and ((nextnode is None) or nextnode.final):
@@ -374,7 +363,7 @@ class Navigation:
         # The ship is ready to go
         if self._nav.accepting():
             # Leave shore and navigate the open seas
-            self._navigate_from_node(root, u"")
+            self._navigate_from_node(root, "")
         self._nav.done()
 
     def resume(self, prefix, nextnode, matched):
@@ -448,7 +437,7 @@ class PermutationNavigator:
         """ Returns True if the edge should be entered or False if not """
         # Follow all edges that match a letter in the rack
         # (which can be '?', matching all edges)
-        if not ((firstchar in self._rack) or (u"?" in self._rack)):
+        if not ((firstchar in self._rack) or ("?" in self._rack)):
             return False
         # Fit: save our rack and move into the edge
         self._stack.append(self._rack)
@@ -462,14 +451,14 @@ class PermutationNavigator:
     def accepts(self, newchar):
         """ Returns True if the navigator will accept the new character """
         exactmatch = newchar in self._rack
-        if (not exactmatch) and (u"?" not in self._rack):
+        if (not exactmatch) and ("?" not in self._rack):
             # Can't continue with this prefix - we no longer have rack letters matching it
             return False
         # We're fine with this: accept the character and remove from the rack
         if exactmatch:
-            self._rack = self._rack.replace(newchar, u"", 1)
+            self._rack = self._rack.replace(newchar, "", 1)
         else:
-            self._rack = self._rack.replace(u"?", u"", 1)
+            self._rack = self._rack.replace("?", "", 1)
         return True
 
     def accept(self, matched, final):
@@ -502,7 +491,7 @@ class MatchNavigator:
         self._lenp = len(pattern)
         self._index = 0
         self._chmatch = pattern[0]
-        self._wildcard = self._chmatch == u"?"
+        self._wildcard = self._chmatch == "?"
         self._stack = []
         self._result = []
         self._sort = sort
@@ -529,7 +518,7 @@ class MatchNavigator:
         self._index += 1
         if self._index < self._lenp:
             self._chmatch = self._pattern[self._index]
-            self._wildcard = self._chmatch == u"?"
+            self._wildcard = self._chmatch == "?"
         return True
 
     def accept(self, matched, final):
