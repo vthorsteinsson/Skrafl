@@ -1,8 +1,21 @@
-application: skraflhjalp
-version: 3
-runtime: python27
-api_version: 1
-threadsafe: yes
+#
+# App.yaml for the Skrafl application on Google App Engine
+#
+# Copyright (C) 2020 by Miðeind ehf.
+# Original author: Vilhjálmur Þorsteinsson
+#
+# Deploy with 'gcloud beta app deploy --no-promote --version=python3 app.yaml'
+#
+
+runtime: python38
+entrypoint: gunicorn -b :$PORT -w 2 skrafl:app
+
+instance_class: F2
+automatic_scaling:
+  max_instances: 1
+
+env_variables:
+  PROJECT_ID: skraflhjalp
 
 handlers:
 - url: /favicon.ico
@@ -21,12 +34,6 @@ handlers:
   static_files: static/touch-icon-iphone-retina.png
   upload: static/touch-icon-iphone-retina.png
 - url: .*
-  script: skrafl.app
-
-skip_files:
-- ^(.*/)?.*\.txt$
-- ^(.*/)?#.*#$
-- ^(.*/)?.*~$
-- ^(.*/)?.*\.py[co]$
-- ^(.*/)?.*/RCS/.*$
-- ^(.*/)?\..*$
+  secure: always
+  redirect_http_response_code: 301
+  script: auto

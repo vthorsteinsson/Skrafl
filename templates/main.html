@@ -47,11 +47,31 @@
 </style>
 
 <script>
+
    function updateInput(rack) {
       rackelem = document.getElementById('rack');
       rackelem.value = rack.replace(/\s+/g, '');
       rackelem.focus();
    }
+
+   function submitWord() {
+      var rack = $("#rack").val().trim();
+      if (rack.length) {
+         window.location = "/?rack=" + encodeURIComponent(rack);
+      }
+   }
+
+   function initMain() {
+      $(document).on('keypress',
+         function(ev) {
+            if (ev.which == 13) {
+               ev.preventDefault();
+               submitWord();
+            }
+         }
+      );
+   }
+
 </script>
 
 </head>
@@ -79,17 +99,17 @@
                   </h3>
                </div>
                <div class="panel-body">
-                  <form name="frm1" id="frm1" action="/" method="post">
+                  <!-- <form name="frm1" id="frm1" action="/" method="post"> -->
                      <div class="form-group">
                         <input type="text" name="rack" id="rack" maxlength=15
-                           autofocus class="form-control" required></input>
+                           autofocus class="form-control" required value="{{ rack }}"></input>
                      </div>
                      <div class="form-group">
-                     <button type="submit" id="submit" class="btn btn-primary">
+                     <button id="submit" class="btn btn-primary" onclick="submitWord()">
                         <span class="glyphicon glyphicon-search"></span>&nbsp;Finna öll möguleg orð
                      </button>
                      </div>
-                  </form>
+                  <!-- </form> -->
                </div>
             </div>
          </div>
@@ -104,6 +124,12 @@
    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
    <!-- Latest compiled and minified JavaScript -->
    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+   <script>
+
+      $(document).ready(initMain);
+
+   </script>
 
 </body>
 </html>

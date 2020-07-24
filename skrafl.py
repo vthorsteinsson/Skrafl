@@ -1,8 +1,9 @@
-﻿# -*- coding: utf-8 -*-
+﻿"""
 
-""" Web server for SCRABBLE(tm) rack permutations
+    Web server for SCRABBLE(tm) rack permutations
 
-    Author: Vilhjalmur Thorsteinsson, 2014
+    Copyright (C) 2020 Miðeind ehf.
+    Original author: Vilhjálmur Þorsteinsson
 
     This web server module uses the Flask framework to implement
     a simple form page where the user can enter a SCRABBLE(tm) rack
@@ -11,10 +12,7 @@
 
     The actual permutation engine is found in skraflpermuter.py
 
-    The server is compatible with Python 2.7 and 3.x, CPython and PyPy.
-    (To get it to run under PyPy 2.7.6 the author had to patch
-    \pypy\lib-python\2.7\mimetypes.py to fix a bug that was not
-    present in the CPython 2.7 distribution of the same file.)
+    The server is compatible with 3.x, CPython and PyPy.
 
     Note: SCRABBLE is a registered trademark. This software or its author
     are in no way affiliated with or endorsed by the owners or licensees
@@ -22,9 +20,7 @@
 
 """
 
-from flask import Flask
-from flask import render_template
-from flask import request
+from flask import Flask, render_template, request
 
 import logging
 import time
@@ -49,16 +45,14 @@ def _process_rack(rack):
     if not t.process(rack):
         # Something was wrong with the rack
         # Show the user an error response page
-        return render_template("errorword.html")
+        return render_template("errorword.html", rack=rack)
 
     t1 = time.time()
-    # For logging, the 'latin-1' encoding seems to work on App Engine in Windows.
-    # Straight Unicode or utf-8 don't work.
-    logging.info(u"Processed rack \"{0}\" in {1:.2f} seconds".format(rack, t1 - t0).encode("latin-1"))
+    logging.info("Processed rack \"{0}\" in {1:.2f} seconds".format(rack, t1 - t0))
 
     # The rack was successfully processed and tabulated
     # Show the user a result page
-    return render_template("result.html", result=t)
+    return render_template("result.html", result=t, rack="")
 
 
 @app.route("/", methods=['GET', 'POST'])
@@ -67,38 +61,34 @@ def main():
     The page can be invoked via POST from itself, or by a GET, optionally with the
     rack parameter set, i.e. GET /?rack=xxx
     """
-    rack = u''
+    rack = ""
     if request.method == 'POST':
         # A form POST, probably from the page itself
         try:
-            # Funny string addition below ensures that the result is in
-            # Unicode under both Python 2 and 3
-            rack = u'' + request.form['rack']
+            rack = request.form['rack']
         except:
-            rack = u''
+            rack = ""
     else:
         # Presumably a GET: look at the URL parameters
         try:
-            # Funny string addition below ensures that the result is in
-            # Unicode under both Python 2 and 3
-            rack = u'' + request.args.get('rack', '')
+            rack = request.args.get('rack', '')
         except:
-            rack = u''
+            rack = ""
     if rack:
+        rack = rack[0:15]
         # We have something to do: process the entered rack
         # Currently we do not do anything useful with racks of more than 15 characters
-        rack = rack[0:15]
         return _process_rack(rack)
     # If nothing to do, just show the main rack entry form
-    return render_template("main.html")
+    return render_template("main.html", rack="")
 
 
 @app.route("/help/")
 def help():
     """ Show help page """
-    return render_template("help.html")
+    return render_template("help.html", rack="")
 
 
 # Run a default Flask web server for testing if invoked directly as a main program
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=8080, use_debugger=True, threaded=False, processes=1)

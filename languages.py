@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
+"""
 
-""" Language, locale and alphabet encapsulation module
+    Language, locale and alphabet encapsulation module
 
-    Author: Vilhjalmur Thorsteinsson, 2014
+    Copyright (C) 2020 Miðeind ehf.
+    Original author: Vilhjálmur Þorsteinsson
 
     The classes in this module encapsulate particulars of supported
     languages, including the character set, scores, tiles in the
@@ -16,10 +17,6 @@ import sys
 from functools import reduce
 
 
-# Running on Python 3?
-_PY3 = sys.version_info >= (3, 0)
-
-
 class Alphabet:
 
     """ This implementation of the Alphabet class encapsulates particulars of the Icelandic
@@ -30,90 +27,90 @@ class Alphabet:
     # Scores in new Icelandic tile set
 
     scores = {
-        u"a": 1,
-        u"á": 3,
-        u"b": 5,
-        u"d": 5,
-        u"ð": 2,
-        u"e": 3,
-        u"é": 7,
-        u"f": 3,
-        u"g": 3,
-        u"h": 4,
-        u"i": 1,
-        u"í": 4,
-        u"j": 6,
-        u"k": 2,
-        u"l": 2,
-        u"m": 2,
-        u"n": 1,
-        u"o": 5,
-        u"ó": 3,
-        u"p": 5,
-        u"r": 1,
-        u"s": 1,
-        u"t": 2,
-        u"u": 2,
-        u"ú": 4,
-        u"v": 5,
-        u"x": 10,
-        u"y": 6,
-        u"ý": 5,
-        u"þ": 7,
-        u"æ": 4,
-        u"ö": 6,
-        u"?": 0,
+        "a": 1,
+        "á": 3,
+        "b": 5,
+        "d": 5,
+        "ð": 2,
+        "e": 3,
+        "é": 7,
+        "f": 3,
+        "g": 3,
+        "h": 4,
+        "i": 1,
+        "í": 4,
+        "j": 6,
+        "k": 2,
+        "l": 2,
+        "m": 2,
+        "n": 1,
+        "o": 5,
+        "ó": 3,
+        "p": 5,
+        "r": 1,
+        "s": 1,
+        "t": 2,
+        "u": 2,
+        "ú": 4,
+        "v": 5,
+        "x": 10,
+        "y": 6,
+        "ý": 5,
+        "þ": 7,
+        "æ": 4,
+        "ö": 6,
+        "?": 0,
     }
 
     # New Icelandic tile set
 
     bag_tiles = [
-        (u"a", 11),
-        (u"á", 2),
-        (u"b", 1),
-        (u"d", 1),
-        (u"ð", 4),
-        (u"e", 3),
-        (u"é", 1),
-        (u"f", 3),
-        (u"g", 3),
-        (u"h", 1),
-        (u"i", 7),
-        (u"í", 1),
-        (u"j", 1),
-        (u"k", 4),
-        (u"l", 5),
-        (u"m", 3),
-        (u"n", 7),
-        (u"o", 1),
-        (u"ó", 2),
-        (u"p", 1),
-        (u"r", 8),
-        (u"s", 7),
-        (u"t", 6),
-        (u"u", 6),
-        (u"ú", 1),
-        (u"v", 1),
-        (u"x", 1),
-        (u"y", 1),
-        (u"ý", 1),
-        (u"þ", 1),
-        (u"æ", 2),
-        (u"ö", 1),
-        (u"?", 2),
-    ]  # Blank tiles
+        ("a", 11),
+        ("á", 2),
+        ("b", 1),
+        ("d", 1),
+        ("ð", 4),
+        ("e", 3),
+        ("é", 1),
+        ("f", 3),
+        ("g", 3),
+        ("h", 1),
+        ("i", 7),
+        ("í", 1),
+        ("j", 1),
+        ("k", 4),
+        ("l", 5),
+        ("m", 3),
+        ("n", 7),
+        ("o", 1),
+        ("ó", 2),
+        ("p", 1),
+        ("r", 8),
+        ("s", 7),
+        ("t", 6),
+        ("u", 6),
+        ("ú", 1),
+        ("v", 1),
+        ("x", 1),
+        ("y", 1),
+        ("ý", 1),
+        ("þ", 1),
+        ("æ", 2),
+        ("ö", 1),
+        ("?", 2),  # Blank tiles
+    ]
 
     # Sort ordering of Icelandic letters allowed in Scrabble
-    order = u"aábdðeéfghiíjklmnoóprstuúvxyýþæö"
+    order = "aábdðeéfghiíjklmnoóprstuúvxyýþæö"
     # Upper case version of the order string
-    upper = u"AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ"
+    upper = "AÁBDÐEÉFGHIÍJKLMNOÓPRSTUÚVXYÝÞÆÖ"
     # All tiles including wildcard '?'
-    all_tiles = order + u"?"
+    all_tiles = order + "?"
 
     # Sort ordering of all valid letters
-    full_order = u"aábcdðeéfghiíjklmnoópqrstuúvwxyýzþæö"
+    full_order = "aábcdðeéfghiíjklmnoópqrstuúvwxyýzþæö"
     # Upper case version of the full order string
-    full_upper = u"AÁBCDÐEÉFGHIÍJKLMNOÓPQRSTUÚVWXYÝZÞÆÖ"
+    full_upper = "AÁBCDÐEÉFGHIÍJKLMNOÓPQRSTUÚVWXYÝZÞÆÖ"
 
     # Letter bit pattern
     bit = [1 << n for n in range(len(order))]
@@ -178,7 +175,7 @@ class Alphabet:
         """ Subtract all letters in b from a, counting each instance separately """
         # Note that this cannot be done with sets, as they fold multiple letter instances into one
         lcount = [a.count(c) - b.count(c) for c in Alphabet.all_tiles]
-        return u"".join(
+        return "".join(
             [
                 Alphabet.all_tiles[ix] * lcount[ix]
                 for ix in range(len(lcount))
@@ -189,13 +186,13 @@ class Alphabet:
     @staticmethod
     def full_bag():
         """ Return a full bag of tiles """
-        return u"".join([tile * count for (tile, count) in Alphabet.bag_tiles])
+        return "".join([tile * count for (tile, count) in Alphabet.bag_tiles])
 
     @staticmethod
     def format_timestamp(ts, format=None):
         """ Return a timestamp formatted as a readable string """
         # Currently always returns the full ISO format: YYYY-MM-DD HH:MM:SS
-        return u"" + ts.isoformat(" ")[0:19]
+        return ts.isoformat(" ")[0:19]
 
     @staticmethod
     def _init():
@@ -217,13 +214,9 @@ class Alphabet:
             """ Ensure that the sort order in the lcmap is in ascending order as in s """
             # This does not need to be terribly efficient as the code is
             # only run once, during initialization
-            if _PY3:
-                s = s.encode('latin-1')
-                for i in range(1, len(s) - 1):
-                    rotate(s[i], s[i - 1])
-            else:
-                for i in range(1, len(s) - 1):
-                    rotate(ord(s[i]), ord(s[i - 1]))
+            s = s.encode('latin-1')
+            for i in range(1, len(s) - 1):
+                rotate(s[i], s[i - 1])
 
         adjust(Alphabet.full_upper)  # Uppercase adjustment
         adjust(Alphabet.full_order)  # Lowercase adjustment
@@ -233,44 +226,24 @@ class Alphabet:
 
         # Create a case-insensitive sorting map, where the lower case
         # characters have the same sort value as the upper case ones
-        if _PY3:
-            u = Alphabet.full_upper.encode('latin-1')
-            for i, b in enumerate(Alphabet.full_order.encode('latin-1')):
-                lcmap[b] = lcmap[u[i]]
-        else:
-            for i, c in enumerate(Alphabet.full_order):
-                lcmap[ord(c)] = lcmap[ord(Alphabet.full_upper[i])]
+        u = Alphabet.full_upper.encode('latin-1')
+        for i, b in enumerate(Alphabet.full_order.encode('latin-1')):
+            lcmap[b] = lcmap[u[i]]
 
         # Store the case-insensitive sorting map
         Alphabet._lcmap_nocase = lcmap
 
-    if _PY3:
+    @staticmethod
+    def sortkey(lstr):
+        """ Key function for locale-based sorting """
+        assert Alphabet._lcmap
+        return [Alphabet._lcmap[b] if b <= 255 else 256 for b in lstr.encode('latin-1')]
 
-        @staticmethod
-        def sortkey(lstr):
-            """ Key function for locale-based sorting """
-            assert Alphabet._lcmap
-            return [Alphabet._lcmap[b] if b <= 255 else 256 for b in lstr.encode('latin-1')]
-
-        @staticmethod
-        def sortkey_nocase(lstr):
-            """ Key function for locale-based sorting, case-insensitive """
-            assert Alphabet._lcmap_nocase
-            return [Alphabet._lcmap_nocase[b] if b <= 255 else 256 for b in lstr.encode('latin-1')]
-
-    else:
-
-        @staticmethod
-        def sortkey(lstr):
-            """ Key function for locale-based sorting """
-            assert Alphabet._lcmap
-            return [Alphabet._lcmap[ord(c)] if ord(c) <= 255 else 256 for c in lstr]
-
-        @staticmethod
-        def sortkey_nocase(lstr):
-            """ Key function for locale-based sorting, case-insensitive """
-            assert Alphabet._lcmap_nocase
-            return [Alphabet._lcmap_nocase[ord(c)] if ord(c) <= 255 else 256 for c in lstr]
+    @staticmethod
+    def sortkey_nocase(lstr):
+        """ Key function for locale-based sorting, case-insensitive """
+        assert Alphabet._lcmap_nocase
+        return [Alphabet._lcmap_nocase[b] if b <= 255 else 256 for b in lstr.encode('latin-1')]
 
 
 # Initialize the locale collation (sorting) map

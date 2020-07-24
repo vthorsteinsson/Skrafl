@@ -16,11 +16,18 @@ resources/ordalistimax15.sorted.txt
 resources/ordalistimax15_13112014.txt
 resources/ordalisti.dawg.pickle
 
+# Credentials
+resources/*.json
+
 # Scratch work files
 templates/main-scratch.html
 profile.bin
 *.sublime-project
 *.sublime-workspace
+*.code-workspace
+
+# VSCode
+.vscode/
 
 # Distribution / packaging
 .Python

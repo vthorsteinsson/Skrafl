@@ -1,9 +1,11 @@
-#!/usr/bin/env pypy
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
-""" DAWG dictionary builder
+"""
 
-    Author: Vilhjalmur Thorsteinsson, 2014
+    DAWG dictionary builder
+
+    Copyright (C) 2020 Miðeind ehf.
+    Original author: Vilhjálmur Þorsteinsson
 
     DawgBuilder uses a Directed Acyclic Word Graph (DAWG)
     to store a large set of words in an efficient structure in terms
@@ -95,8 +97,6 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import sys
 import codecs
@@ -111,27 +111,6 @@ from dawgdictionary import DawgDictionary
 # The DAWG builder uses the collation (sorting) given by Alphabet.sortkey
 # This is by default the Icelandic sorting order
 from languages import Alphabet
-
-
-# Mask away Python version differences
-if sys.version_info >= (3, 0):
-
-    def items(d):
-        return d.items()
-
-    def values(d):
-        return d.values()
-
-else:
-
-    def items(d):
-        return d.iteritems()
-
-    def values(d):
-        return d.itervalues()
-
-    def next(iterator):
-        return iterator.next()
 
 
 MAXLEN = 48  # Longest possible word to be processed
@@ -175,10 +154,10 @@ class _DawgNode:
     def stringify_edges(edges):
         """ Utility function to create a compact descriptor string and hashable key for node edges """
         s = [
-            prefix + u":" + (u"0" if node is None else str(node.id))
-            for prefix, node in _DawgNode.sort_by_prefix(items(edges))
+            prefix + ":" + ("0" if node is None else str(node.id))
+            for prefix, node in _DawgNode.sort_by_prefix(edges.items())
         ]
-        return u"_".join(s)
+        return "_".join(s)
 
     def __init__(self):
         self.id = _DawgNode._nextid
@@ -193,7 +172,7 @@ class _DawgNode:
         if self._strng is None:
             # We don't have a cached string representation: create it
             edges = _DawgNode.stringify_edges(self.edges)
-            self._strng = u"|_" + edges if self.final else edges
+            self._strng = "|_" + edges if self.final else edges
         return self._strng
 
     def __hash__(self):
@@ -217,7 +196,7 @@ class _DawgNode:
 class _Dawg:
 
     def __init__(self):
-        self._lastword = u""
+        self._lastword = ""
         self._lastlen = 0
         self._root = dict()
         # Initialize empty list of starting dictionaries
@@ -255,14 +234,14 @@ class _Dawg:
             # Only one child: we can collapse
             lastd = None
             tail = None
-            for ch, nx in items(di):
+            for ch, nx in di.items():
                 # There will only be one iteration of this loop
                 tail = ch
                 lastd = nx
             # Delete the child node and put a string of prefix characters into the root instead
             del parent[prefix]
             if node.final:
-                tail = u"|" + tail
+                tail = "|" + tail
             prefix += tail
             parent[prefix] = lastd
             node = lastd
@@ -287,7 +266,7 @@ class _Dawg:
             # NOTE! Be careful here, since the underlying dict may
             # be changing under our feet. The list() constructor is
             # thus required.
-            for letter, node in list(items(edges)):
+            for letter, node in list(edges.items()):
                 if node:
                     self._collapse_branch(edges, letter, node)
 
@@ -346,24 +325,24 @@ class _Dawg:
     def finish(self):
         """ Complete the optimization of the tree """
         self._collapse_to(0)
-        self._lastword = u""
+        self._lastword = ""
         self._lastlen = 0
         self._collapse(self._root)
         # Renumber the nodes for a tidier graph and more compact output
         # 1 is the line number of the root in text output files, so we start with 2
         ix = 2
-        for n in values(self._unique_nodes):
+        for n in self._unique_nodes.values():
             if n is not None:
                 n.reset_id(ix)
                 ix += 1
 
     def _dump_level(self, level, d):
         """ Dump a level of the tree and continue into sublevels by recursion """
-        for ch, nx in items(d):
-            s = u" " * level + ch
+        for ch, nx in d.items():
+            s = " " * level + ch
             if nx and nx.final:
-                s += u"|"
-            s += u" " * (50 - len(s))
+                s += "|"
+            s += " " * (50 - len(s))
             s += nx.__str__()
             print(s)
             if nx and nx.edges:
@@ -377,13 +356,13 @@ class _Dawg:
                 self.num_unique_nodes(), self.num_edges(), self.num_edge_chars()
             )
         )
-        for n in values(self._unique_nodes):
+        for n in self._unique_nodes.values():
             if n is not None:
                 # We don't use ix for the time being
-                print(u"Node {0}{1}".format(n.id, u"|" if n.final else u""))
-                for prefix, nd in items(n.edges):
+                print("Node {0}{1}".format(n.id, "|" if n.final else ""))
+                for prefix, nd in n.edges.items():
                     print(
-                        u"   Edge {0} to node {1}".format(
+                        "   Edge {0} to node {1}".format(
                             prefix, 0 if nd is None else nd.id
                         )
                     )
@@ -395,7 +374,7 @@ class _Dawg:
     def num_edges(self):
         """ Count the total number of edges between unique nodes in the graph """
         edges = 0
-        for n in values(self._unique_nodes):
+        for n in self._unique_nodes.values():
             if n is not None:
                 edges += len(n.edges)
         return edges
@@ -403,12 +382,12 @@ class _Dawg:
     def num_edge_chars(self):
         """ Count the total number of edge prefix letters in the graph """
         chars = 0
-        for n in values(self._unique_nodes):
+        for n in self._unique_nodes.values():
             if n is not None:
                 for prefix in n.edges:
                     # Add the length of all prefixes to the edge, minus the vertical bar
                     # '|' which indicates a final character within the prefix
-                    chars += len(prefix) - prefix.count(u"|")
+                    chars += len(prefix) - prefix.count("|")
         return chars
 
     def write_packed(self, packer):
@@ -416,15 +395,15 @@ class _Dawg:
         packer.start(len(self._root))
         # Start with the root edges
         sortfunc = _DawgNode.sort_by_prefix
-        for prefix, nd in sortfunc(items(self._root)):
+        for prefix, nd in sortfunc(self._root.items()):
             if nd is None:
                 packer.edge(0, prefix)
             else:
                 packer.edge(nd.id, prefix)
-        for node in values(self._unique_nodes):
+        for node in self._unique_nodes.values():
             if node is not None:
                 packer.node_start(node.id, node.final, len(node.edges))
-                for prefix, nd in sortfunc(items(node.edges)):
+                for prefix, nd in sortfunc(node.edges.items()):
                     if nd is None:
                         packer.edge(0, prefix)
                     else:
@@ -442,10 +421,10 @@ class _Dawg:
         # We don't have to write node ids since they correspond to line numbers.
         # The root is always in the first line and the first node after the root has id 2.
         # Start with the root edges
-        stream.write(_DawgNode.stringify_edges(self._root) + u"\n")
-        for node in values(self._unique_nodes):
+        stream.write(_DawgNode.stringify_edges(self._root) + "\n")
+        for node in self._unique_nodes.values():
             if node is not None:
-                stream.write(node.__str__() + u"\n")
+                stream.write(node.__str__() + "\n")
 
 
 class _BinaryDawgPacker:
@@ -575,7 +554,7 @@ class _BinaryDawgPacker:
             print(
                 "{0:08x}: {1}".format(
                     addr,
-                    u" ".join([line[j : j + 2] for j in range(0, len(line) - 1, 2)]),
+                    " ".join([line[j : j + 2] for j in range(0, len(line) - 1, 2)]),
                 )
             )
             i += CHARS_PER_LINE
@@ -604,7 +583,7 @@ class DawgBuilder:
             self._key = None  # Sortkey for self._nxt
             fpath = os.path.abspath(os.path.join(relpath, fname))
             self._fin = codecs.open(fpath, mode="r", encoding="utf-8")
-            print(u"Opened input file {0}".format(fpath))
+            print("Opened input file {0}".format(fpath))
             self._init()
 
         def _init(self):
@@ -620,10 +599,10 @@ class DawgBuilder:
                     # We're done with this file
                     self._eof = True
                     return False
-                if line.endswith(u"\r\n"):
+                if line.endswith("\r\n"):
                     # Cut off trailing CRLF (Windows-style)
                     line = line[0:-2]
-                elif line.endswith(u"\n"):
+                elif line.endswith("\n"):
                     # Cut off trailing LF (Unix-style)
                     line = line[0:-1]
                 if line and len(line) < MAXLEN:
@@ -664,10 +643,10 @@ class DawgBuilder:
             self._index = 0
             try:
                 for line in self._fin:
-                    if line.endswith(u"\r\n"):
+                    if line.endswith("\r\n"):
                         # Cut off trailing CRLF (Windows-style)
                         line = line[0:-2]
-                    elif line.endswith(u"\n"):
+                    elif line.endswith("\n"):
                         # Cut off trailing LF (Unix-style)
                         line = line[0:-1]
                     if line and len(line) < MAXLEN:
@@ -768,7 +747,7 @@ class DawgBuilder:
                 # of order, display a warning
                 if lastkey > key:
                     print(
-                        u'Warning: input files should be in ascending order, but "{0}" > "{1}"'.format(
+                        'Warning: input files should be in ascending order, but "{0}" > "{1}"'.format(
                             lastword, word
                         )
                     )
@@ -822,7 +801,7 @@ class DawgBuilder:
         p.dump()
         # Write packed DAWG to binary file
         with open(
-            os.path.abspath(os.path.join(relpath, output + u".dawg")), "wb"
+            os.path.abspath(os.path.join(relpath, output + ".dawg")), "wb"
         ) as of:
             of.write(f.getvalue())
         f.close()
@@ -830,7 +809,7 @@ class DawgBuilder:
     def _output_text(self, relpath, output):
         """ Write the DAWG to a text output file with extension '.text.dawg' """
         assert self._dawg is not None
-        fname = os.path.abspath(os.path.join(relpath, output + u".text.dawg"))
+        fname = os.path.abspath(os.path.join(relpath, output + ".text.dawg"))
         with codecs.open(fname, mode="w", encoding="utf-8") as fout:
             self._dawg.write_text(fout)
 
@@ -890,7 +869,7 @@ def filter_common(word):
 def run_test():
     """ Build a DAWG from the files listed """
     # This creates a DAWG from a single file named testwords.txt
-    print(u"Starting DAWG build for testwords.txt")
+    print("Starting DAWG build for testwords.txt")
     db = DawgBuilder()
     t0 = time.time()
     db.build(
@@ -906,7 +885,7 @@ def run_twl06():
     """ Build a DAWG from the files listed """
     # This creates a DAWG from a single file named TWL06.txt,
     # the Scrabble Tournament Word List version 6
-    print(u"Starting DAWG build for TWL06.txt")
+    print("Starting DAWG build for TWL06.txt")
     db = DawgBuilder()
     t0 = time.time()
     db.build(
@@ -926,7 +905,7 @@ def run_skrafl():
     # The words in ordalisti.add.txt are added to BIN, and words in
     # ordalisti.remove.txt (known errors) are removed.
     # The result is about 2.3 million words, generating >100,000 graph nodes
-    print(u"Starting DAWG build for skraflhjalp/netskrafl.appspot.com")
+    print("Starting DAWG build for skraflhjalp/netskrafl.appspot.com")
     db = DawgBuilder()
     t0 = time.time()
     db.build(

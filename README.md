@@ -2,15 +2,15 @@
 
 ### English summary
 
-This set of pure Python 2.7 & 3.x (CPython and PyPy) compatible programs and modules
+This set of Python 3.x programs and modules
 implements a dictionary and word permutation engine that is the core of an
-[Icelandic SCRABBLE(tm) Helper website](http://skraflhjalp.appspot.com).
+[Icelandic SCRABBLE(tm) Helper website](https://skraflhjalp.appspot.com).
 
 The web and its engine are helpful for SCRABBLE(tm) players, crossword
 enthusiasts and others - including programmers - who are interested in fast and
 flexible dictionary implementation, for Icelandic and other languages.
 
-The software uses a [*DAWG*](http://en.wikipedia.org/wiki/Deterministic_acyclic_finite_state_automaton)
+The software uses a [*DAWG*](https://en.wikipedia.org/wiki/Deterministic_acyclic_finite_state_automaton)
 (*Directed Acyclic Word Graph*, also called *Deterministic Acyclic Finite State Automaton*, *DAFSA* or
 *Minimal Acyclic Finite State Automaton*, *MA-FSA*) to represent the dictionary.
 This enables very fast lookup, pattern matching and permutation, even with wildcards
@@ -20,8 +20,8 @@ The DAWG is pre-built from plain text word lists, compacted on-the-fly
 and stored in a compact - yet Pythonistic - text-based form.
 
 The algorithm for building an optimal DAWG from lists of valid words is based on the theory
-of [Daciuk et al](http://www.aclweb.org/anthology/J00-1002.pdf), with reference
-to [Steve Hanov's implementation](http://stevehanov.ca/blog/index.php?id=115)
+of [Daciuk et al](https://www.aclweb.org/anthology/J00-1002.pdf), with reference
+to [Steve Hanov's implementation](https://stevehanov.ca/blog/index.php?id=115)
 (and a nod to [ftbe's Go code on GitHub](https://github.com/ftbe/dawg)).
 However it optimizes further than Hanov does by collapsing chains of nodes connected by single
 edges into multi-letter edges, reducing the node count significantly.
@@ -31,7 +31,7 @@ wildcards (blank tiles), by direct traversal of the graph.
 For details see the ```dawgbuilder.py``` and ```dawgdictionary.py``` files.
 
 The code builds a 103,000 node DAWG for the Icelandic language, 2.6 million words, in about
-38 seconds (PyPy 2.3.1) / 160 seconds (CPython 2.7.6) on a medium-powered Windows desktop PC.
+38 seconds (PyPy) / 160 seconds (CPython) on a medium-powered Windows desktop PC.
 The resulting graph structure is stored in a 3,466 KB file and takes under 4 seconds to load
 into memory.
 
@@ -49,21 +49,21 @@ with or endorsed by the owners or licensees of the SCRABBLE trademark.*
 
 Vefur sem hjálpar skröflurum að finna orð í rekkanum og tengja þau við stafi sem fyrir eru.
 
-Vefurinn er byggður á Python 2.7 (en keyrir einnig undir Python 3.x) og
-notar [Flask](http://flask.pocoo.org/) undirforritasafnið, þar með talið
-[Jinja2](http://jinja.pocoo.org/) sniðmátakerfið (templates).
+Vefurinn er byggður á Python 3 og
+notar [Flask](https://flask.pocoo.org/) undirforritasafnið, þar með talið
+[Jinja2](https://jinja.pocoo.org/) sniðmátakerfið (templates).
 
-Hann notar [Bootstrap](http://getbootstrap.com/) CSS-safnið fyrir viðmót og þægilega aðlögun að
+Hann notar [Bootstrap](https://getbootstrap.com/) CSS-safnið fyrir viðmót og þægilega aðlögun að
 mismunandi skjám, þ.e. síma, spjaldtölvu eða borðtölvu.
 
-Vefinn má nálgast á [http://skraflhjalp.appspot.com](http://skraflhjalp.appspot.com)
+Vefinn má nálgast á [https://skraflhjalp.appspot.com](https://skraflhjalp.appspot.com)
 
 ### Notkun vefsins
 Ef farið er inn á vefslóðina / kemur upp aðalsíða Skraflhjálpar.
 Slóðin /help gefur hjálparsíðu.
 
 ### Til að keyra á eigin tölvu
-1. Settu upp [Python 2.7](https://www.python.org/download/releases/2.7.8/).
+1. Settu upp [Python 3.7](https://www.python.org/download/releases/3.7/).
 
 2. Sæktu þetta Git safn:
 
@@ -71,22 +71,13 @@ Slóðin /help gefur hjálparsíðu.
    git clone https://github.com/vthorsteinsson/skrafl.git
    ```
 
-3. Sæktu undirforritasöfn inn á lib skráasafnið undir aðalmöppu Skraflhjálpar.
-   Google App Engine getur aðeins notað undirforritasöfn sem geymd eru beint undir
-   möppu viðkomandi verkefnis.
+3. Sæktu undirforritasöfn.
 
    ```
    cd skrafl
-   pip install -r requirements.txt -t lib
+   pip install -r requirements.txt
    ```
-4. Keyra má vefþjón Skraflhjálpar beint frá skipanalínu.
-   Google App Engine:
-
-   ```
-   dev_appserver.py .
-   ```
-
-   Venjuleg Python 2.7 uppsetning:
+4. Keyra má vefþjón Skraflhjálpar í þróunarham beint frá skipanalínu.
 
    ```
    python skrafl.py
@@ -94,12 +85,13 @@ Slóðin /help gefur hjálparsíðu.
 
 5. Nálgast má vefinn á vefrápara:
 
-   Í skýinu á appspot.com [http://skraflhjalp.appspot.com](http://skraflhjalp.appspot.com)
+   Í skýinu á appspot.com [https://skraflhjalp.appspot.com](https://skraflhjalp.appspot.com)
 
-   Á Google App Engine/Cloud SDK á eigin tölvu [http://localhost:8080](http://localhost:8080)
-   
-   Venjuleg Python 2.7 uppsetning með Flask/Werkzeug [http://localhost:5000](http://localhost:5000)
+   Venjuleg Python 3 uppsetning með Flask/Werkzeug [http://localhost:8080](http://localhost:8080)
 
 ### Höfundur
+
 Vilhjálmur Þorsteinsson
+
+Copyright (C) 2020 Miðeind ehf.
 
