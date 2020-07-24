@@ -24,6 +24,10 @@ templates/main-scratch.html
 profile.bin
 *.sublime-project
 *.sublime-workspace
+*.code-workspace
+
+# VSCode
+.vscode/
 
 # Distribution / packaging
 .Python

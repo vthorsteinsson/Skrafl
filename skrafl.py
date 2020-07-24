@@ -45,14 +45,14 @@ def _process_rack(rack):
     if not t.process(rack):
         # Something was wrong with the rack
         # Show the user an error response page
-        return render_template("errorword.html")
+        return render_template("errorword.html", rack=rack)
 
     t1 = time.time()
     logging.info("Processed rack \"{0}\" in {1:.2f} seconds".format(rack, t1 - t0))
 
     # The rack was successfully processed and tabulated
     # Show the user a result page
-    return render_template("result.html", result=t)
+    return render_template("result.html", result=t, rack="")
 
 
 @app.route("/", methods=['GET', 'POST'])
@@ -75,18 +75,18 @@ def main():
         except:
             rack = ""
     if rack:
+        rack = rack[0:15]
         # We have something to do: process the entered rack
         # Currently we do not do anything useful with racks of more than 15 characters
-        rack = rack[0:15]
         return _process_rack(rack)
     # If nothing to do, just show the main rack entry form
-    return render_template("main.html")
+    return render_template("main.html", rack="")
 
 
 @app.route("/help/")
 def help():
     """ Show help page """
-    return render_template("help.html")
+    return render_template("help.html", rack="")
 
 
 # Run a default Flask web server for testing if invoked directly as a main program
