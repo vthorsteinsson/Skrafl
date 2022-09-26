@@ -2,7 +2,7 @@
 
     SCRABBLE(tm) rack permutations
 
-    Copyright (C) 2020 Miðeind ehf.
+    Copyright (C) 2022 Miðeind ehf.
     Original author: Vilhjálmur Þorsteinsson
 
     This module implements a main class named Tabulator and

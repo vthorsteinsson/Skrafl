@@ -4,7 +4,7 @@
 
     DAWG dictionary builder
 
-    Copyright (C) 2020 Miðeind ehf.
+    Copyright (C) 2022 Miðeind ehf.
     Original author: Vilhjálmur Þorsteinsson
 
     DawgBuilder uses a Directed Acyclic Word Graph (DAWG)

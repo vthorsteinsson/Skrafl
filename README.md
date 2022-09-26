@@ -63,7 +63,7 @@ Ef farið er inn á vefslóðina / kemur upp aðalsíða Skraflhjálpar.
 Slóðin /help gefur hjálparsíðu.
 
 ### Til að keyra á eigin tölvu
-1. Settu upp [Python 3.7](https://www.python.org/download/releases/3.7/).
+1. Settu upp [Python 3.8](https://www.python.org/download/releases/3.8/).
 
 2. Sæktu þetta Git safn:
 
@@ -93,5 +93,5 @@ Slóðin /help gefur hjálparsíðu.
 
 Vilhjálmur Þorsteinsson
 
-Copyright (C) 2020 Miðeind ehf.
+Copyright (C) 2022 Miðeind ehf.
 

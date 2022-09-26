@@ -3,7 +3,7 @@
 
 """ Test module for DAWG dictionary
 
-    Author: Vilhjalmur Thorsteinsson, 2014
+    Author: Vilhjalmur Thorsteinsson, Copyright (C) 2022
 
     This module contains test code for dawgdictionary.py
 

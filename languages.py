@@ -2,7 +2,7 @@
 
     Language, locale and alphabet encapsulation module
 
-    Copyright (C) 2020 Miðeind ehf.
+    Copyright (C) 2022 Miðeind ehf.
     Original author: Vilhjálmur Þorsteinsson
 
     The classes in this module encapsulate particulars of supported
