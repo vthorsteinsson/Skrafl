@@ -63,7 +63,7 @@ Ef farið er inn á vefslóðina / kemur upp aðalsíða Skraflhjálpar.
 Slóðin /help gefur hjálparsíðu.
 
 ### Til að keyra á eigin tölvu
-1. Settu upp [Python 3.8](https://www.python.org/download/releases/3.8/).
+1. Settu upp [Python 3.10](https://www.python.org/downloads/release/python-31013/).
 
 2. Sæktu þetta Git safn:
 
@@ -87,11 +87,13 @@ Slóðin /help gefur hjálparsíðu.
 
    Í skýinu á appspot.com [https://skraflhjalp.appspot.com](https://skraflhjalp.appspot.com)
 
-   Venjuleg Python 3 uppsetning með Flask/Werkzeug [http://localhost:8080](http://localhost:8080)
+   Venjuleg Python 3 uppsetning með Flask/Werkzeug [http://localhost:3000](http://localhost:3000)
+
+   Ef óskað er, má breyta port-númerinu neðst í skránni ```skrafl.py```.
 
 ### Höfundur
 
 Vilhjálmur Þorsteinsson
 
-Copyright (C) 2022 Miðeind ehf.
+Copyright (C) 2023 Miðeind ehf.
 

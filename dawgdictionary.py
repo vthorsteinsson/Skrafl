@@ -2,7 +2,7 @@
 
     Word dictionary implemented with a DAWG
 
-    Copyright (C) 2022 Miðeind ehf.
+    Copyright (C) 2023 Miðeind ehf.
     Original author: Vilhjálmur Þorsteinsson
 
     DawgDictionary uses a Directed Acyclic Word Graph (DAWG) internally

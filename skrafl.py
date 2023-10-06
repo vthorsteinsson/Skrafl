@@ -2,7 +2,7 @@
 
     Web server for SCRABBLE(tm) rack permutations
 
-    Copyright (C) 2022 Miðeind ehf.
+    Copyright (C) 2023 Miðeind ehf.
     Original author: Vilhjálmur Þorsteinsson
 
     This web server module uses the Flask framework to implement
@@ -91,4 +91,4 @@ def help():
 
 # Run a default Flask web server for testing if invoked directly as a main program
 if __name__ == "__main__":
-    app.run(debug=True, port=8080, use_debugger=True, threaded=False, processes=1)
+    app.run(debug=True, port=3000, use_debugger=True, threaded=False, processes=1)

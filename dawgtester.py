@@ -1,9 +1,8 @@
-#!/usr/bin/env pypy
-# -*- coding: utf-8 -*-
+"""
 
-""" Test module for DAWG dictionary
+    Test module for DAWG dictionary
 
-    Author: Vilhjalmur Thorsteinsson, Copyright (C) 2022
+    Author: Vilhjalmur Thorsteinsson, Copyright (C) 2023
 
     This module contains test code for dawgdictionary.py
 
