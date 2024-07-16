@@ -2,7 +2,7 @@
 
     Test module for DAWG dictionary
 
-    Author: Vilhjalmur Thorsteinsson, Copyright (C) 2023
+    Author: Vilhjalmur Thorsteinsson, Copyright (C) 2024
 
     This module contains test code for dawgdictionary.py
 
@@ -118,6 +118,7 @@ class DawgTester:
         self._test_true(u"vísla")
         self._test_true(u"þolla")
         self._test_true(u"þrifla")
+        self._test_true(u"bríostur")
 
         self._test_false(u"eystðu")
         self._test_false(u"blæstðu")
@@ -163,6 +164,7 @@ class DawgTester:
         self._test_false(u"þrautlestðu")
         self._test_false(u"þarftðu")
         self._test_false(u"þurreystðu")
+        self._test_false(u"ösi")
 
         self._test_true(u"ertu")
         self._test_true(u"vertu")

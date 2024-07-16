@@ -1,13 +1,13 @@
 #
 # App.yaml for the Skrafl application on Google App Engine
 #
-# Copyright (C) 2023 by Miðeind ehf.
+# Copyright (C) 2024 by Miðeind ehf.
 # Original author: Vilhjálmur Þorsteinsson
 #
-# Deploy with 'gcloud beta app deploy --no-promote --version=python3 app.yaml'
+# Deploy with 'gcloud app deploy --no-promote --version=python3 app.yaml'
 #
 
-runtime: python310
+runtime: python311
 entrypoint: gunicorn -b :$PORT -w 2 skrafl:app
 
 instance_class: F2
