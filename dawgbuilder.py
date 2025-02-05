@@ -4,7 +4,7 @@
 
     DAWG dictionary builder
 
-    Copyright (C) 2023 Miðeind ehf.
+    Copyright (C) 2025 Miðeind ehf.
     Original author: Vilhjálmur Þorsteinsson
 
     DawgBuilder uses a Directed Acyclic Word Graph (DAWG)
@@ -909,7 +909,7 @@ def run_skrafl():
     db = DawgBuilder()
     t0 = time.time()
     db.build(
-        ["ordalistimax15.sorted.txt", "ordalisti.add.txt"],  # Input files to be merged
+        ["ordalisti.full.sorted.txt", "ordalisti.add.txt"],  # Input files to be merged
         "ordalisti",  # Output file - full name will be ordalisti.text.dawg
         "resources",  # Subfolder of input and output files
         filter_skrafl,  # Word filter function to apply
